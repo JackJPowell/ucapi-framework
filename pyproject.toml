@@ -1,0 +1,30 @@
+[project]
+name = "ucapi-framework"
+version = "0.1.0"
+description = "ucapi framework that provides core functionalities for building integrations."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyee>=13.0.0",
+    "ucapi>=0.3.2",
+    "aiohttp>=3.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]

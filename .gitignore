@@ -1,0 +1,7 @@
+# Test Coverage Reports
+htmlcov/
+.coverage
+.pytest_cache/
+*.pyc
+__pycache__/
+.DS_Store

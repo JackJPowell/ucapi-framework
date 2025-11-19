@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+    # Run tests on push to main branch
+    push:
+        branches:
+            - main
+            - master
+    # Run tests on all pull requests
+    pull_request:
+    # Allow manual triggering from the Actions tab
+    workflow_dispatch:
+
+jobs:
+    test:
+        name: Test Python ${{ matrix.python-version }}
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                # Test against multiple Python versions
+                python-version: ["3.11", "3.12", "3.13"]
+            fail-fast: false
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install uv
+              uses: astral-sh/setup-uv@v4
+              with:
+                  enable-cache: true
+
+            - name: Install dependencies
+              run: |
+                  uv sync --all-extras --dev
+
+            - name: Run tests with coverage
+              run: |
+                  uv run pytest tests/ --cov=ucapi_framework --cov-report=term-missing --cov-report=xml
+
+            - name: Upload coverage to Codecov (optional)
+              if: matrix.python-version == '3.13'
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./coverage.xml
+                  fail_ci_if_error: false
+              continue-on-error: true
+
+            - name: Check coverage threshold
+              if: matrix.python-version == '3.13'
+              run: |
+                  uv run pytest tests/ --cov=ucapi_framework --cov-fail-under=90 --cov-report=term-missing
