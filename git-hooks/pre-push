@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+get_pyproject_version() {
+  # Assumes pyproject.toml has a line like: version = "1.2.3"
+  grep -E '^\s*version\s*=' pyproject.toml | head -n 1 | sed -E 's/.*=\s*"([^"]+)".*/\1/'
+}
+
+while read local_ref local_sha remote_ref remote_sha
+do
+  if [[ "$local_ref" =~ ^refs/tags/ ]]; then
+    tag_name="${local_ref#refs/tags/}"
+    
+    pyproject_version=$(get_pyproject_version)
+
+    # Normalize: strip leading 'v' from tag
+    normalized_tag="${tag_name#v}"
+
+    # Check that tag matches version in pyproject.toml
+    if [[ "$normalized_tag" != "$pyproject_version" ]]; then
+      echo "❌ Tag ($tag_name) does not match version ($pyproject_version) in pyproject.toml."
+      echo "   Expected tag: v$pyproject_version"
+      exit 1
+    fi
+
+    echo "✅ Version check passed: tag $tag_name matches pyproject.toml version $pyproject_version"
+  fi
+done

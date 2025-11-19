@@ -1,6 +1,6 @@
-# Migration Guide: Converting to ucapi_base Framework
+# Migration Guide: Converting to ucapi framework
 
-This guide helps you migrate an existing Unfolded Circle integration to use the ucapi_base framework. We'll show you the before/after for each component with real examples from the PSN integration migration.
+This guide helps you migrate an existing Unfolded Circle integration to use the ucapi framework. We'll show you the before/after for each component with real examples from the PSN integration migration.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This guide helps you migrate an existing Unfolded Circle integration to use the 
 
 ## Why Migrate?
 
-**Before ucapi_base:**
+**Before ucapi_framework_:**
 - ~1500 lines of boilerplate per integration
 - Manual configuration management with dict manipulation
 - Global state management with module-level variables
@@ -25,7 +25,7 @@ This guide helps you migrate an existing Unfolded Circle integration to use the 
 - Copy-paste setup flow code
 - Manual device lifecycle management
 
-**After ucapi_base:**
+**After ucapi_framework_:**
 - ~400 lines of integration-specific code
 - Type-safe configuration with dataclasses
 - Clean OOP design with proper encapsulation
@@ -134,7 +134,7 @@ _load()
 ```python
 # config.py - New approach
 from dataclasses import dataclass
-from ucapi_base import BaseDeviceManager
+from ucapi_framework_ import BaseDeviceManager
 
 @dataclass
 class PSNDevice:
@@ -255,7 +255,7 @@ class PSNAccount:
 
 ```python
 # psn.py - New approach
-from ucapi_base import WebSocketDevice
+from ucapi_framework_ import WebSocketDevice
 import websockets
 import json
 
@@ -440,7 +440,7 @@ class PSNSetupFlow:
 
 ```python
 # setup_flow.py - New approach
-from ucapi_base import BaseSetupFlow
+from ucapi_framework_ import BaseSetupFlow
 from ucapi import IntegrationSetupError
 import config
 
@@ -628,7 +628,7 @@ import asyncio
 import logging
 from typing import Any
 from ucapi import media_player
-from ucapi_base import BaseIntegrationDriver
+from ucapi_framework_ import BaseIntegrationDriver
 import config
 from config import PSNDevice
 from psn import PSNAccount
@@ -926,6 +926,6 @@ Test with real Remote Two connection:
 ## Need Help?
 
 - Check the PSN integration in this repo for a complete example
-- Review inline docstrings in ucapi_base modules
+- Review inline docstrings in ucapi_framework_ modules
 - See README.md for detailed API documentation
 - Open an issue on GitHub for questions

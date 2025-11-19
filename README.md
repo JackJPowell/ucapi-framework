@@ -1,4 +1,6 @@
-[![Tests](https://github.com/YOUR_USERNAME/ucapi-framework/actions/workflows/test.yml/badge.svg)](https://github.com/YOUR_USERNAME/ucapi-framework/actions/workflows/test.yml)
+[![Tests](https://github.com/jackjpowell/ucapi-framework/actions/workflows/test.yml/badge.svg)](https://github.com/jackjpowell/ucapi-framework/actions/workflows/test.yml)
+[![Discord](https://badgen.net/discord/online-members/zGVYf58)](https://discord.gg/zGVYf58)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee&nbsp;☕-FFDD00?logo=buy-me-a-coffee&logoColor=white&labelColor=grey)](https://buymeacoffee.com/jackpowell)
 
 # UCAPI Framework
 
