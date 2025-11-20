@@ -150,7 +150,7 @@ def discovery():
 @pytest.fixture
 def setup_flow(config_manager, discovery):
     """Create a test setup flow instance."""
-    return ConcreteSetupFlow(config_manager, discovery)
+    return ConcreteSetupFlow(config_manager, discovery=discovery)
 
 
 class TestBaseSetupFlow:
@@ -158,7 +158,7 @@ class TestBaseSetupFlow:
 
     def test_init(self, config_manager):
         """Test setup flow initialization."""
-        flow = ConcreteSetupFlow(config_manager, None)
+        flow = ConcreteSetupFlow(config_manager)
 
         assert flow.config == config_manager
         assert flow.discovery is None
@@ -166,7 +166,7 @@ class TestBaseSetupFlow:
 
     def test_init_with_discovery(self, config_manager, discovery):
         """Test initialization with discovery."""
-        flow = ConcreteSetupFlow(config_manager, discovery)
+        flow = ConcreteSetupFlow(config_manager, discovery=discovery)
 
         assert flow.discovery == discovery
 
@@ -501,7 +501,7 @@ class TestBaseSetupFlow:
     @pytest.mark.asyncio
     async def test_no_discovery_goes_to_manual(self, config_manager):
         """Test that without discovery, setup goes straight to manual entry."""
-        flow = ConcreteSetupFlow(config_manager, discovery_class=None)
+        flow = ConcreteSetupFlow(config_manager)
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await flow.handle_driver_setup(request)
@@ -551,7 +551,7 @@ class TestSetupFlowAdvanced:
                 self._pre_discovery_data["api_key"] = msg.input_values.get("api_key")
                 return None  # Proceed to discovery
 
-        flow = PreDiscoverySetupFlow(config_manager, DiscoveryForTests())
+        flow = PreDiscoverySetupFlow(config_manager, discovery=DiscoveryForTests())
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await flow.handle_driver_setup(request)
@@ -594,7 +594,7 @@ class TestSetupFlowAdvanced:
                 # In real implementation, you'd add this to device config
                 return None  # Complete setup
 
-        flow = AdditionalConfigSetupFlow(config_manager, discovery)
+        flow = AdditionalConfigSetupFlow(config_manager, discovery=discovery)
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         await flow.handle_driver_setup(request)
@@ -657,7 +657,7 @@ class TestSetupFlowAdvanced:
     @pytest.mark.asyncio
     async def test_discovery_with_no_discovery_class(self, config_manager):
         """Test setup flow when no discovery class is provided."""
-        setup_flow = ConcreteSetupFlow(config_manager, None)
+        setup_flow = ConcreteSetupFlow(config_manager)
 
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -737,7 +737,7 @@ class TestSetupFlowAdvanced:
                 self._pre_discovery_data = user_input
                 return None  # Continue with discovery
 
-        setup_flow = PreDiscoverySetupFlow(config_manager, discovery)
+        setup_flow = PreDiscoverySetupFlow(config_manager, discovery=discovery)
 
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -781,7 +781,7 @@ class TestSetupFlowAdvanced:
                 # Modify config with additional data
                 return device_config
 
-        setup_flow = AdditionalConfigSetupFlow(config_manager, discovery)
+        setup_flow = AdditionalConfigSetupFlow(config_manager, discovery=discovery)
 
         # Start setup and go through manual entry
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -880,7 +880,7 @@ class TestSetupFlowAdvanced:
             async def handle_pre_discovery_response(self, user_input):
                 raise RuntimeError("Pre-discovery error")
 
-        setup_flow = ErrorPreDiscoveryFlow(config_manager, discovery)
+        setup_flow = ErrorPreDiscoveryFlow(config_manager, discovery=discovery)
 
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -952,7 +952,7 @@ class TestSetupFlowAdvanced:
             ):
                 return device_config
 
-        setup_flow = MultiScreenFlow(config_manager, discovery)
+        setup_flow = MultiScreenFlow(config_manager, discovery=discovery)
 
         # Go through manual entry
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -1002,7 +1002,7 @@ class TestSetupFlowAdvanced:
                     ],
                 )
 
-        setup_flow = InterruptingPreDiscoveryFlow(config_manager, discovery)
+        setup_flow = InterruptingPreDiscoveryFlow(config_manager, discovery=discovery)
 
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
@@ -1071,7 +1071,7 @@ class TestSetupFlowDiscoveryErrorHandling:
                     ],
                 )
 
-        setup_flow = TestSetupFlow(config_manager, FailingDiscovery())
+        setup_flow = TestSetupFlow(config_manager, discovery=FailingDiscovery())
 
         # Call discover_devices directly - should return empty list
         devices = await setup_flow.discover_devices()
@@ -1115,7 +1115,7 @@ class TestSetupFlowDiscoveryErrorHandling:
                 )
 
         # Use setup flow that doesn't override create_device_from_discovery
-        setup_flow = MinimalSetupFlow(config_manager, DummyDiscovery())
+        setup_flow = MinimalSetupFlow(config_manager, discovery=DummyDiscovery())
 
         # Should raise NotImplementedError
         with pytest.raises(NotImplementedError, match="must be overridden"):

@@ -62,17 +62,25 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
     """
 
     def __init__(
-        self, config_manager: BaseDeviceManager, discovery_class: BaseDiscovery | None
+        self,
+        config_manager: BaseDeviceManager,
+        *,
+        discovery: BaseDiscovery | None = None,
     ):
         """
         Initialize the setup flow.
 
+        Child classes typically don't need to override __init__ - the discovery
+        instance is set automatically by create_handler().
+
         :param config_manager: Device configuration manager instance
-        :param discovery_class: Discovery class instance for auto-discovery.
-                               Pass None if the device does not support discovery.
+        :param discovery: Discovery instance for auto-discovery.
+                         Pass None if the device does not support discovery.
+                         This is typically instantiated in your driver's main() and
+                         passed via create_handler().
         """
         self.config = config_manager
-        self.discovery = discovery_class
+        self.discovery = discovery
         self._setup_step = SetupSteps.INIT
         self._add_mode = False
         self._pending_device_config: ConfigT | None = None  # For multi-screen flows
@@ -81,16 +89,21 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         ] = {}  # Store data from pre-discovery screens
 
     @classmethod
-    def create_handler(cls, config_manager, discovery_class=None):
+    def create_handler(cls, config_manager, discovery: BaseDiscovery | None = None):
         """
         Create a setup handler function with the given configuration.
 
         This is a convenience factory method that creates a closure containing
         the setup flow instance, suitable for passing to IntegrationAPI.init().
 
+        Example usage in driver's main():
+            discovery = MyDiscovery(api_key="...", timeout=30)
+            setup_handler = MySetupFlow.create_handler(config_manager, discovery)
+            api.init("driver-name", setup_handler=setup_handler)
+
         :param config_manager: Device configuration manager instance
-        :param discovery_class: Optional initialized discovery class instance for auto-discovery.
-                               Pass None if the device does not support discovery.
+        :param discovery: Optional initialized discovery instance for auto-discovery.
+                         Pass None if the device does not support discovery.
         :return: Async function that handles SetupDriver messages
         """
         setup_flow = None
@@ -101,7 +114,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
             if setup_flow is None:
                 _LOG.info("Creating new %s instance", cls.__name__)
-                setup_flow = cls(config_manager, discovery_class)
+                setup_flow = cls(config_manager, discovery=discovery)
 
             return await setup_flow.handle_driver_setup(msg)
 
