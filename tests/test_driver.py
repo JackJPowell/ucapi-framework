@@ -105,6 +105,27 @@ def mock_loop():
     loop.close()
 
 
+# Mock collection that tracks added entities
+class MockEntityCollection:
+    def __init__(self):
+        self._entities = []
+
+    def add(self, entity):
+        self._entities.append(entity)
+
+    def remove(self, entity_id):
+        self._entities = [e for e in self._entities if e.id != entity_id]
+
+    def contains(self, entity_id):
+        return any(e.id == entity_id for e in self._entities)
+
+    def clear(self):
+        self._entities.clear()
+
+    def __iter__(self):
+        return iter(self._entities)
+
+
 @pytest.fixture
 def driver(mock_loop):
     """Create a test driver instance."""
@@ -116,7 +137,7 @@ def driver(mock_loop):
     # Mock the API
     driver.api = MagicMock()
     driver.api.configured_entities = MagicMock()
-    driver.api.available_entities = MagicMock()
+    driver.api.available_entities = MockEntityCollection()
     driver.api.set_device_state = AsyncMock()
     return driver
 
@@ -137,8 +158,20 @@ class TestBaseIntegrationDriver:
         assert driver._configured_devices == {}
 
     @pytest.mark.asyncio
-    async def test_on_r2_connect_cmd(self, driver, mock_loop):
+    async def test_on_r2_connect_cmd(self):
         """Test Remote Two connect command."""
+        # Use real loop for this test since we need background tasks
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = MagicMock()
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.set_device_state = AsyncMock()
+
         # Add a device
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
@@ -150,13 +183,37 @@ class TestBaseIntegrationDriver:
             ucapi.DeviceStates.CONNECTED
         )
 
+        # Give the background task time to start and run
+        await asyncio.sleep(0.01)
+
         # Should connect all devices
         device = driver._configured_devices["dev1"]
         assert device.connected is True
 
+        # Wait for all pending tasks to complete (event handlers)
+        pending = [
+            t
+            for t in asyncio.all_tasks(loop)
+            if t != asyncio.current_task(loop) and not t.done()
+        ]
+        if pending:
+            await asyncio.wait(pending, timeout=0.1)
+
     @pytest.mark.asyncio
-    async def test_on_r2_disconnect_cmd(self, driver):
+    async def test_on_r2_disconnect_cmd(self):
         """Test Remote Two disconnect command."""
+        # Use real loop for this test since we need background tasks
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = MagicMock()
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.set_device_state = AsyncMock()
+
         # Add and connect a device
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
@@ -165,7 +222,19 @@ class TestBaseIntegrationDriver:
 
         await driver.on_r2_disconnect_cmd()
 
+        # Give the background task time to start and run
+        await asyncio.sleep(0.01)
+
         assert device.connected is False
+
+        # Wait for all pending tasks to complete (event handlers)
+        pending = [
+            t
+            for t in asyncio.all_tasks(loop)
+            if t != asyncio.current_task(loop) and not t.done()
+        ]
+        if pending:
+            await asyncio.wait(pending, timeout=0.1)
 
     @pytest.mark.asyncio
     async def test_on_r2_enter_standby(self, driver):
@@ -187,16 +256,41 @@ class TestBaseIntegrationDriver:
         assert dev2.connected is False
 
     @pytest.mark.asyncio
-    async def test_on_r2_exit_standby(self, driver):
+    async def test_on_r2_exit_standby(self):
         """Test exiting standby mode."""
+        # Use real loop for this test since we need background tasks
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = MagicMock()
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.set_device_state = AsyncMock()
+
         # Add devices
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
         await driver.on_r2_exit_standby()
 
+        # Give the background task time to start and run
+        await asyncio.sleep(0.01)
+
         device = driver._configured_devices["dev1"]
         assert device.connected is True
+
+        # Wait for all pending tasks to complete (event handlers)
+        # Get all tasks except the current one
+        pending = [
+            t
+            for t in asyncio.all_tasks(loop)
+            if t != asyncio.current_task(loop) and not t.done()
+        ]
+        if pending:
+            await asyncio.wait(pending, timeout=0.1)
 
     @pytest.mark.asyncio
     async def test_on_subscribe_entities_existing_device(self, driver):
@@ -215,6 +309,9 @@ class TestBaseIntegrationDriver:
 
         # Should update entity state
         driver.api.configured_entities.update_attributes.assert_called()
+
+        # Give any background event handler tasks time to complete
+        await asyncio.sleep(0.01)
 
     @pytest.mark.asyncio
     async def test_on_subscribe_entities_new_device(self, driver):
@@ -298,6 +395,9 @@ class TestBaseIntegrationDriver:
         driver.api.configured_entities.update_attributes.assert_called()
         driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
 
+        # Give any background event handler tasks time to complete
+        await asyncio.sleep(0.01)
+
     @pytest.mark.asyncio
     async def test_on_device_disconnected(self, driver):
         """Test device disconnected event handler."""
@@ -323,9 +423,8 @@ class TestBaseIntegrationDriver:
 
         await driver.on_device_connection_error("dev1", "Connection timeout")
 
-        # Should update entity to UNAVAILABLE and set device state to ERROR
+        # Should update entity to UNAVAILABLE (don't set integration to ERROR per reference implementation)
         driver.api.configured_entities.update_attributes.assert_called()
-        driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.ERROR)
 
     def test_get_device_config(self, driver):
         """Test getting device configuration."""
@@ -511,6 +610,10 @@ class TestBaseIntegrationDriver:
 
     def test_get_entity_ids_for_device(self, driver):
         """Test getting entity IDs for a device."""
+        # Add a device so entities are registered
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
         entity_ids = driver.get_entity_ids_for_device("dev1")
 
         assert entity_ids == ["media_player.dev1"]

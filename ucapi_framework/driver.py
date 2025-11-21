@@ -125,7 +125,8 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         _LOG.debug("Client connect command: connecting device(s)")
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
         for device in self._configured_devices.values():
-            await device.connect()
+            # start background task
+            self._loop.create_task(device.connect())
 
     async def on_r2_disconnect_cmd(self) -> None:
         """
@@ -136,7 +137,8 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Client disconnect command: disconnecting device(s)")
         for device in self._configured_devices.values():
-            await device.disconnect()
+            # start background task
+            self._loop.create_task(device.disconnect())
 
     async def on_r2_enter_standby(self) -> None:
         """
@@ -158,7 +160,8 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Exit standby event: connecting device(s)")
         for device in self._configured_devices.values():
-            await device.connect()
+            # start background task
+            self._loop.create_task(device.connect())
 
     async def on_subscribe_entities(self, entity_ids: list[str]) -> None:
         """
@@ -273,17 +276,10 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             self._configured_devices[device_id] = device
 
         if connect:
-            _LOG.debug("[%s] Creating connection task", device_id)
-            self._loop.create_task(self._safe_connect(device))
+            # start background connection task
+            self._loop.create_task(device.connect())
 
         self.register_available_entities(device_config, device)
-
-    async def _safe_connect(self, device: DeviceT) -> None:
-        """Safely connect to device with error handling."""
-        try:
-            await device.connect()
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOG.error("Failed to connect to device: %s", err)
 
     def setup_device_event_handlers(self, device: DeviceT) -> None:
         """
@@ -337,6 +333,8 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             _LOG.warning("Device %s is not configured", device_id)
             return
 
+        await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
+
         device = self._configured_devices[device_id]
         state = (
             self.map_device_state(device.state)
@@ -353,8 +351,6 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             self.api.configured_entities.update_attributes(
                 entity_id, {media_player.Attributes.STATE: state}
             )  # Use media_player state as a stand-in
-
-        await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
     async def on_device_disconnected(self, device_id: str) -> None:
         """
@@ -392,8 +388,6 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 entity_id,
                 {media_player.Attributes.STATE: media_player.States.UNAVAILABLE},
             )  # Use media_player state as a stand-in
-
-        await self.api.set_device_state(ucapi.DeviceStates.ERROR)
 
     async def on_device_update(
         self, device_id: str, update: dict[str, Any] | None
