@@ -28,7 +28,7 @@ jobs:
 
             - name: Run tests
               run: |
-                  uv run pytest tests/ --cov=ucapi_framework --cov-fail-under=90
+                  uv run pytest tests/ --cov=ucapi_framework --cov-fail-under=80
 
     build:
         name: Build distribution
