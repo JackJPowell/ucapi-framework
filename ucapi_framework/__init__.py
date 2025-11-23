@@ -26,6 +26,7 @@ from .device import (
     StatelessHTTPDevice,
     PollingDevice,
     WebSocketDevice,
+    WebSocketPollingDevice,
 )
 from .discovery import BaseDiscovery, DiscoveredDevice
 
@@ -38,6 +39,7 @@ __all__ = [
     "StatelessHTTPDevice",
     "PollingDevice",
     "WebSocketDevice",
+    "WebSocketPollingDevice",
     "BaseDiscovery",
     "DiscoveredDevice",
     "create_entity_id",
