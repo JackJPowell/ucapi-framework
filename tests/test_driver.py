@@ -65,13 +65,15 @@ class ConcreteDriver(BaseIntegrationDriver[DeviceForTests, DeviceConfigForTests]
 
     def map_device_state(self, device_state) -> media_player.States:
         """Map device state to media player state."""
-        if device_state == "playing":
+        # Handle both uppercase and lowercase for testing
+        state = device_state.lower() if isinstance(device_state, str) else device_state
+        if state == "playing":
             return media_player.States.PLAYING
-        elif device_state == "paused":
+        elif state == "paused":
             return media_player.States.PAUSED
-        elif device_state == "on":
+        elif state == "on":
             return media_player.States.ON
-        elif device_state == "off":
+        elif state == "off":
             return media_player.States.OFF
         return media_player.States.UNKNOWN
 
@@ -720,6 +722,207 @@ class TestBaseIntegrationDriver:
         # Should not raise
         await driver.on_device_update("dev1", {"state": "playing"})
         await driver.on_device_update("dev1", None)
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_media_player(self):
+        """Test on_device_update with media_player entity."""
+        # Use real event loop and real entity collections
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        # Use real entity collections
+        driver.api = MagicMock()
+        driver.api.configured_entities = ucapi.Entities("configured", loop)
+        driver.api.available_entities = ucapi.Entities("available", loop)
+        driver.api.set_device_state = AsyncMock()
+
+        # Create a device (but don't add it - we're manually managing entities for this test)
+        device_config = DeviceConfigForTests("mp1", "Media Player", "192.168.1.100")
+        device = DeviceForTests(device_config)
+        driver._configured_devices["mp1"] = device
+
+        # Create a media player entity
+        entity = ucapi.MediaPlayer(
+            "media_player.mp1",
+            "Media Player",
+            [media_player.Features.ON_OFF, media_player.Features.VOLUME],
+            {
+                media_player.Attributes.STATE: media_player.States.OFF,
+                media_player.Attributes.VOLUME: 50,
+                media_player.Attributes.MUTED: False,
+            },
+        )
+        entity.device_id = "mp1"
+        driver.api.configured_entities.add(entity)
+
+        # Send update with media player attributes
+        update = {
+            "state": media_player.States.PLAYING.value,
+            "volume": 75,
+            "muted": True,
+            "media_title": "Test Song",
+            "media_artist": "Test Artist",
+            "source": "Spotify",
+        }
+        await driver.on_device_update("mp1", update)
+
+        # Verify attributes were updated
+        updated_entity = driver.api.configured_entities.get("media_player.mp1")
+        assert (
+            updated_entity.attributes[media_player.Attributes.STATE]
+            == media_player.States.PLAYING
+        )
+        assert updated_entity.attributes[media_player.Attributes.VOLUME] == 75
+        assert updated_entity.attributes[media_player.Attributes.MUTED] is True
+        assert (
+            updated_entity.attributes[media_player.Attributes.MEDIA_TITLE]
+            == "Test Song"
+        )
+        assert (
+            updated_entity.attributes[media_player.Attributes.MEDIA_ARTIST]
+            == "Test Artist"
+        )
+        assert updated_entity.attributes[media_player.Attributes.SOURCE] == "Spotify"
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_multiple_entities(self):
+        """Test on_device_update with multiple entities on same device."""
+        # Use real event loop and real entity collections
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = ucapi.Entities("configured", loop)
+        driver.api.available_entities = ucapi.Entities("available", loop)
+        driver.api.set_device_state = AsyncMock()
+
+        # Create a device (but don't add it - we're manually managing entities for this test)
+        device_config = DeviceConfigForTests("multi1", "Multi Device", "192.168.1.101")
+        device = DeviceForTests(device_config)
+        driver._configured_devices["multi1"] = device
+
+        # Create multiple entities
+        mp_entity = ucapi.MediaPlayer(
+            "media_player.multi1",
+            "Media Player",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        mp_entity.device_id = "multi1"
+        driver.api.configured_entities.add(mp_entity)
+
+        # Send update with state change
+        update = {"state": media_player.States.ON.value}
+        await driver.on_device_update("multi1", update)
+
+        # Verify entity was updated
+        updated_mp = driver.api.configured_entities.get("media_player.multi1")
+        assert (
+            updated_mp.attributes[media_player.Attributes.STATE]
+            == media_player.States.ON
+        )
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_partial_attributes(self):
+        """Test on_device_update only updates attributes present in update dict."""
+        # Use real event loop and real entity collections
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = ucapi.Entities("configured", loop)
+        driver.api.available_entities = ucapi.Entities("available", loop)
+        driver.api.set_device_state = AsyncMock()
+
+        # Create a device
+        device_config = DeviceConfigForTests("mp2", "Media Player 2", "192.168.1.102")
+        device = DeviceForTests(device_config)
+        driver.add_configured_device(device)
+
+        # Create entity with multiple attributes
+        entity = ucapi.MediaPlayer(
+            "media_player.mp2",
+            "Media Player 2",
+            [media_player.Features.ON_OFF, media_player.Features.VOLUME],
+            {
+                media_player.Attributes.STATE: media_player.States.ON,
+                media_player.Attributes.VOLUME: 50,
+                media_player.Attributes.MUTED: False,
+            },
+        )
+        entity.device_id = "mp2"
+        driver.api.configured_entities.add(entity)
+
+        # Send update with only volume (not state)
+        update = {"volume": 80}
+        await driver.on_device_update("mp2", update)
+
+        # Verify only volume was updated, state unchanged
+        updated_entity = driver.api.configured_entities.get("media_player.mp2")
+        assert (
+            updated_entity.attributes[media_player.Attributes.STATE]
+            == media_player.States.ON
+        )
+        assert updated_entity.attributes[media_player.Attributes.VOLUME] == 80
+        assert updated_entity.attributes[media_player.Attributes.MUTED] is False
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_available_entities(self):
+        """Test on_device_update works with available entities too."""
+        # Use real event loop and real entity collections
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            loop=loop,
+            device_class=DeviceForTests,
+            entity_classes=[media_player.MediaPlayer],
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = ucapi.Entities("configured", loop)
+        driver.api.available_entities = ucapi.Entities("available", loop)
+        driver.api.set_device_state = AsyncMock()
+
+        # Create a device (but don't add it - we're manually managing entities for this test)
+        device_config = DeviceConfigForTests(
+            "avail1", "Available Device", "192.168.1.103"
+        )
+        device = DeviceForTests(device_config)
+        driver._configured_devices["avail1"] = device
+
+        # Create an available entity (not configured)
+        entity = ucapi.MediaPlayer(
+            "media_player.avail1",
+            "Available Player",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        entity.device_id = "avail1"
+        driver.api.available_entities.add(entity)
+
+        # Send update
+        update = {"state": media_player.States.PLAYING.value}
+        await driver.on_device_update("avail1", update)
+
+        # Verify available entity was updated
+        updated_entity = driver.api.available_entities.get("media_player.avail1")
+        assert (
+            updated_entity.attributes[media_player.Attributes.STATE]
+            == media_player.States.PLAYING
+        )
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_nonexistent_entity(self, driver):
+        """Test on_device_update with no entities for device."""
+        # Should not raise even if device has no entities
+        await driver.on_device_update("nonexistent", {"state": "on"})
 
 
 class TestEntityIdHelpers:
