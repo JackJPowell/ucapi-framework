@@ -81,7 +81,7 @@ class ConcreteSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             address="192.168.1.100",
         )
 
-    async def create_device_from_manual_entry(self, input_values):
+    async def query_device(self, input_values):
         """Create device from manual entry."""
         # Validate required fields
         identifier = input_values.get("identifier")
@@ -1053,7 +1053,7 @@ class TestSetupFlowDiscoveryErrorHandling:
             ):
                 return None
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Required abstract method."""
                 _ = input_values  # Unused in test
                 return {"id": "manual"}
@@ -1096,7 +1096,7 @@ class TestSetupFlowDiscoveryErrorHandling:
             def deserialize_device(self, device_data):
                 return device_data
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Required abstract method."""
                 _ = input_values  # Unused in test
                 return {"id": "manual"}
@@ -1132,7 +1132,7 @@ class TestSetupFlowReturnTypes:
         class ErrorReturningSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that returns errors from manual entry."""
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Return error if validation fails."""
                 host = input_values.get("host", "").strip()
                 if not host:
@@ -1173,7 +1173,7 @@ class TestSetupFlowReturnTypes:
         class FormRedisplaySetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that re-displays form with validation errors."""
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Re-display form if validation fails."""
                 identifier = input_values.get("identifier", "").strip()
                 if not identifier:
@@ -1240,7 +1240,7 @@ class TestSetupFlowReturnTypes:
                     identifier=device_id, name=f"Device {device_id}", address="127.0.0.1"
                 )
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Required abstract method."""
                 return DeviceConfigForTests(
                     identifier="manual", name="Manual", address="127.0.0.1"
@@ -1287,7 +1287,7 @@ class TestSetupFlowReturnTypes:
                     identifier=device_id, name=f"Device {device_id}", address="127.0.0.1"
                 )
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Required abstract method."""
                 return DeviceConfigForTests(
                     identifier="manual", name="Manual", address="127.0.0.1"
@@ -1317,7 +1317,7 @@ class TestSetupFlowReturnTypes:
         class StandardSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Standard setup flow that returns config."""
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Return valid config."""
                 return DeviceConfigForTests(
                     identifier="test",
@@ -1363,7 +1363,7 @@ class TestSetupFlowReturnTypes:
                     address="192.168.1.100",
                 )
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 """Required abstract method."""
                 return DeviceConfigForTests(
                     identifier="manual", name="Manual", address="127.0.0.1"
@@ -1400,7 +1400,7 @@ class TestAdditionalConfigurationReturnTypes:
                 super().__init__(config, **kwargs)
                 self.config_returned = False
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 # Create initial partial device
                 return DeviceConfigForTests(
                     identifier=input_values["id"],
@@ -1472,7 +1472,7 @@ class TestAdditionalConfigurationReturnTypes:
         class FlowWithAdditionalConfigModifyingPending(BaseSetupFlow):
             """Flow that modifies pending config and returns None."""
 
-            async def create_device_from_manual_entry(self, input_values):
+            async def query_device(self, input_values):
                 return DeviceConfigForTests(
                     identifier=input_values["id"],
                     name="Initial Name",

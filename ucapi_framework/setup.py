@@ -374,15 +374,17 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Internal handler for pre-discovery screens.
 
-        Calls the overridable handle_pre_discovery_response and proceeds to
-        discovery if it returns None, or shows another screen if returned.
+        Automatically stores input values in self._pre_discovery_data, then calls
+        the overridable handle_pre_discovery_response and proceeds to discovery
+        if it returns None, or shows another screen if returned.
 
         :param msg: User data response
         :return: Setup action
         """
         try:
-            # Store the input values
+            # Automatically store all input values
             self._pre_discovery_data.update(msg.input_values)
+            _LOG.debug("Pre-discovery data collected: %s", list(msg.input_values.keys()))
 
             # Call the overridable method
             result = await self.handle_pre_discovery_response(msg)
@@ -501,11 +503,17 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Handle manual entry form submission.
 
+        Merges pre-discovery data with manual entry input before calling query_device.
+
         :param msg: User data response
         :return: Setup action
         """
         try:
-            result = await self.create_device_from_manual_entry(msg.input_values)
+            # Merge pre-discovery data with manual entry input
+            # Manual entry values take precedence over pre-discovery
+            combined_input = {**self._pre_discovery_data, **msg.input_values}
+            
+            result = await self.query_device(combined_input)
 
             # Check if the result is an error or screen to display
             if isinstance(result, (SetupError, RequestUserInput)):
@@ -525,13 +533,18 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Internal handler for additional configuration screens.
 
-        Calls the overridable handle_additional_configuration_response and
-        finalizes setup based on what it returns.
+        Automatically populates self._pending_device_config from msg.input_values
+        where field names match config attributes, then calls the overridable
+        handle_additional_configuration_response and finalizes setup based on
+        what it returns.
 
         :param msg: User data response
         :return: Setup action
         """
         try:
+            # Automatically populate pending config from input values
+            self._auto_populate_config(msg.input_values)
+            
             # Call the overridable method
             result = await self.handle_additional_configuration_response(msg)
 
@@ -696,55 +709,163 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             _LOG.error("Restore error: %s", err)
             return SetupError(error_type=IntegrationSetupError.OTHER)
 
+    def _auto_populate_config(self, input_values: dict[str, Any]) -> None:
+        """
+        Automatically populate pending device config from input values.
+
+        Matches field names from input_values to attributes on self._pending_device_config
+        and automatically sets them. This eliminates the need for manual field mapping
+        in most cases.
+
+        Only populates attributes that:
+        1. Exist on the pending device config
+        2. Are present in input_values
+        3. Are not None in input_values
+
+        :param input_values: User input values from form submission
+        """
+        if self._pending_device_config is None:
+            _LOG.warning("Cannot auto-populate: _pending_device_config is None")
+            return
+
+        populated_fields = []
+        for field_name, value in input_values.items():
+            # Skip None values and internal fields
+            if value is None or field_name.startswith("_"):
+                continue
+
+            # Check if the config has this attribute
+            if hasattr(self._pending_device_config, field_name):
+                try:
+                    setattr(self._pending_device_config, field_name, value)
+                    populated_fields.append(field_name)
+                except AttributeError:
+                    # Attribute might be read-only or a property
+                    _LOG.debug(
+                        "Could not set attribute '%s' on %s (may be read-only)",
+                        field_name,
+                        type(self._pending_device_config).__name__
+                    )
+
+        if populated_fields:
+            _LOG.debug(
+                "Auto-populated %s fields: %s",
+                type(self._pending_device_config).__name__,
+                ", ".join(populated_fields)
+            )
+
     # ========================================================================
     # Abstract Methods (Must be implemented by subclasses)
     # ========================================================================
 
     @abstractmethod
-    async def create_device_from_manual_entry(
+    async def query_device(
         self, input_values: dict[str, Any]
     ) -> ConfigT | SetupError | RequestUserInput:
         """
-        Create device configuration from manual entry.
+        Query and validate device using collected information.
+
+        This method is called after the user provides device information (via manual entry
+        or discovery). This is where you typically have enough info to query the device,
+        validate connectivity, fetch additional data, or perform authentication.
+
+        Based on the query results, you can:
+        - Return a complete device config to finish setup
+        - Show additional screens to collect more information
+        - Return an error if validation fails
 
         This method can return:
-        - ConfigT: A valid device configuration to proceed with setup
-        - SetupError: An error to abort the setup with an error message
-        - RequestUserInput: A screen to display (e.g., to re-show the form with validation errors)
+        - **ConfigT**: A valid device configuration - if no additional screens needed, setup completes.
+                      If you need additional screens, DON'T return the config - store it in
+                      self._pending_device_config and return RequestUserInput instead.
+        - **SetupError**: An error to abort the setup with an error message
+        - **RequestUserInput**: A screen to display for additional configuration or validation.
+                               **IMPORTANT:** To show additional screens after this one, you MUST
+                               set self._pending_device_config BEFORE returning RequestUserInput.
+                               The response will then route to handle_additional_configuration_response().
 
-        Example - Validation with form re-display:
-            async def create_device_from_manual_entry(self, input_values):
+        Example - Simple case (no additional screens):
+            async def query_device(self, input_values):
+                # Query the device to validate connectivity
+                device_info = await self.api.get_device_info(input_values["host"])
+                
+                if not device_info:
+                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+                
+                # Just return the config - setup completes automatically
+                return MyDeviceConfig(
+                    identifier=device_info["id"],
+                    name=input_values["name"],
+                    address=input_values["host"],
+                    port=int(input_values.get("port", 8080)),
+                    version=device_info["version"]
+                )
+
+        Example - With validation:
+            async def query_device(self, input_values):
                 host = input_values.get("host", "").strip()
                 if not host:
-                    # Show the form again with an error message
+                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+                
+                # Test connection
+                if not await self.api.test_connection(host):
+                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+                
+                return MyDeviceConfig(
+                    identifier=host,
+                    name=input_values.get("name", host),
+                    address=host
+                )
+
+        Example - Multi-screen flow (query device, then show additional options):
+            async def query_device(self, input_values):
+                # Query the device API to validate and fetch available options
+                auth_response = await self.api.authenticate(
+                    input_values["host"],
+                    input_values["token"]
+                )
+                
+                if not auth_response["valid"]:
+                    return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)
+                
+                # IMPORTANT: Store config in _pending_device_config for multi-screen flows
+                self._pending_device_config = MyDeviceConfig(
+                    identifier=input_values["host"],
+                    name=input_values["name"],
+                    token=auth_response["token"],
+                    available_servers=auth_response["servers"]  # Data needed for next screen
+                )
+                
+                # Return screen - response will route to handle_additional_configuration_response
+                return RequestUserInput(
+                    {"en": "Select Server"},
+                    [{"id": "server", "label": {"en": "Server"},
+                      "field": {"dropdown": {"items": self._build_server_dropdown()}}}]
+                )
+            
+            async def handle_additional_configuration_response(self, msg):
+                # Access stored config and new input
+                self._pending_device_config.server = msg.input_values["server"]
+                return None  # Save and complete (or return modified config)
+
+        Example - Re-display form with validation error:
+            async def query_device(self, input_values):
+                host = input_values.get("host", "").strip()
+                if not host:
+                    # Show the form again with error (no _pending_device_config set)
                     return RequestUserInput(
                         {"en": "Invalid Input"},
                         [
-                            {
-                                "id": "error",
-                                "label": {"en": "Error"},
-                                "field": {"label": {"value": {"en": "Host is required"}}}
-                            },
+                            {"id": "error", "label": {"en": "Error"},
+                             "field": {"label": {"value": {"en": "Host is required"}}}},
                             # ... rest of the form fields
                         ]
                     )
-                return MyDeviceConfig(host=host, ...)
+                
+                return MyDeviceConfig(identifier=host, name=host, address=host)
 
-        Example - Return error:
-            async def create_device_from_manual_entry(self, input_values):
-                host = input_values.get("host")
-                if not self._validate_host(host):
-                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                return MyDeviceConfig(host=host, ...)
-
-        Example - Raise exception (alternative approach):
-            async def create_device_from_manual_entry(self, input_values):
-                host = input_values.get("host")
-                if not host:
-                    raise ValueError("Host is required")
-                return MyDeviceConfig(host=host, ...)
-
-        :param input_values: User input values from the manual entry form
+        :param input_values: User input values from the manual entry form.
+                            Also includes self._pre_discovery_data if pre-discovery screens were shown.
         :return: Device configuration, SetupError, or RequestUserInput to re-display form
         """
 
@@ -814,17 +935,23 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         full list of discovered devices.
 
         This method can return:
-        - ConfigT: A valid device configuration to proceed with setup
-        - SetupError: An error to abort the setup with an error message
-        - RequestUserInput: A screen to display (e.g., for additional validation or authentication)
+        - **ConfigT**: A valid device configuration - if no additional screens needed, setup completes.
+                      If you need additional screens, DON'T return the config - store it in
+                      self._pending_device_config and return RequestUserInput instead.
+        - **SetupError**: An error to abort the setup with an error message
+        - **RequestUserInput**: A screen to display for additional configuration.
+                               **IMPORTANT:** To show additional screens after this one, you MUST
+                               set self._pending_device_config BEFORE returning RequestUserInput.
+                               The response will then route to handle_additional_configuration_response().
 
-        Example - Basic usage (recommended):
+        Example - Simple case (no additional screens):
             async def create_device_from_discovery(self, device_id, additional_data):
                 # Look up the device by identifier
                 discovered = self.get_discovered_devices(device_id)
                 if not discovered:
                     return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
 
+                # Just return the config - setup completes automatically
                 return MyDeviceConfig(
                     identifier=discovered.identifier,
                     name=discovered.name,
@@ -832,7 +959,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     port=discovered.extra_data.get("port", 80)
                 )
 
-        Example - With validation:
+        Example - With connection test:
             async def create_device_from_discovery(self, device_id, additional_data):
                 discovered = self.get_discovered_devices(device_id)
                 if not discovered:
@@ -843,18 +970,32 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 
                 return MyDeviceConfig.from_discovered(discovered)
 
-        Example - Show authentication screen:
+        Example - Multi-screen flow (authentication required):
             async def create_device_from_discovery(self, device_id, additional_data):
                 discovered = self.get_discovered_devices(device_id)
                 if not discovered:
                     return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
 
-                if discovered.extra_data.get("requires_auth") and not additional_data.get("password"):
+                # Check if auth is needed
+                auth_required = discovered.extra_data.get("requires_auth", False)
+                
+                if auth_required:
+                    # IMPORTANT: Store config in _pending_device_config for multi-screen flows
+                    self._pending_device_config = MyDeviceConfig(
+                        identifier=discovered.identifier,
+                        name=discovered.name,
+                        address=discovered.address
+                    )
+                    
+                    # Return screen - response will route to handle_additional_configuration_response
                     return RequestUserInput(
                         {"en": "Authentication Required"},
-                        [{"id": "password", "label": {"en": "Password"}, "field": {"text": {"value": ""}}}]
+                        [{"id": "password", "label": {"en": "Password"}, 
+                          "field": {"text": {"value": ""}}}]
                     )
-                return MyDeviceConfig.from_discovered(discovered, additional_data.get("password"))
+                
+                # No auth needed, return config directly
+                return MyDeviceConfig.from_discovered(discovered)
 
         :param device_id: Discovered device identifier
         :param additional_data: Additional user input data
@@ -1161,16 +1302,36 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Request additional configuration screens after device creation.
 
-        Override this method to show additional setup screens that can modify
-        the device configuration. This is called after create_device_from_manual_entry
+        Override this method to show additional setup screens that collect more
+        information about the device. This is called after query_device
         or create_device_from_discovery but BEFORE the device is saved.
 
-        The device config is stored in self._pending_device_config and can be
-        modified. To show another screen:
+        **AUTO-POPULATION:** Any fields returned by this screen will automatically
+        populate matching attributes on self._pending_device_config. You typically
+        don't need to manually handle the response!
 
-        1. Modify self._pending_device_config as needed
-        2. Return a RequestUserInput for the next screen
-        3. Handle the response in handle_additional_configuration_response()
+        Example - Simple additional screen:
+            async def get_additional_configuration_screen(self, device_config, previous_input):
+                return RequestUserInput(
+                    {"en": "Additional Settings"},
+                    [
+                        {"id": "token", "label": {"en": "API Token"}, 
+                         "field": {"text": {"value": ""}}},
+                        {"id": "zone", "label": {"en": "Zone"}, 
+                         "field": {"number": {"value": 1}}}
+                    ]
+                )
+                # token and zone will auto-populate if device_config has those attributes!
+
+        Example - Conditional screen:
+            async def get_additional_configuration_screen(self, device_config, previous_input):
+                if device_config.requires_auth:
+                    return RequestUserInput(
+                        {"en": "Authentication"},
+                        [{"id": "password", "label": {"en": "Password"}, 
+                          "field": {"text": {"value": ""}}}]
+                    )
+                return None  # No additional screen needed
 
         :param device_config: The device configuration (also in self._pending_device_config)
         :param previous_input: Input values from the previous screen
@@ -1189,40 +1350,57 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         Override this method to process responses from custom setup screens
         created by get_additional_configuration_screen().
 
+        **AUTO-POPULATION:** The framework automatically populates self._pending_device_config
+        from msg.input_values where field names match config attributes. In most cases,
+        you don't need to override this method at all!
+
         Return one of:
-        - **ConfigT** (device config): Complete and save this device config
+        - **None** (recommended): Auto-populated fields are saved automatically
+        - **ConfigT** (device config): Replace pending config and save this one
         - **RequestUserInput**: Show another configuration screen
         - **SetupError**: Abort setup with an error
-        - **SetupComplete** or **None**: Save self._pending_device_config and complete
 
-        **Two patterns for building device config:**
+        Example - No override needed (auto-population):
+            # If your screen has fields like "token" and "zone" that match
+            # attributes on your device config, they're automatically set!
+            # No need to override handle_additional_configuration_response at all.
 
-        Pattern 1 - Modify self._pending_device_config and return None:
+        Example - With validation:
             async def handle_additional_configuration_response(self, msg):
-                # Update the pending device config with additional data
-                self._pending_device_config.token = msg.input_values["token"]
-                self._pending_device_config.zone = msg.input_values["zone"]
-                return None  # Save pending config and complete
-
-        Pattern 2 - Return a complete device config:
-            async def handle_additional_configuration_response(self, msg):
-                # Collect all data and create/return final device config
-                token = msg.input_values["token"]
-                zone = msg.input_values["zone"]
+                # Fields already auto-populated, just validate
+                if not self._pending_device_config.token:
+                    return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)
                 
-                # Create complete device config
+                # Or add computed fields
+                self._pending_device_config.full_url = (
+                    f"https://{self._pending_device_config.address}:8080"
+                )
+                return None  # Save and complete
+
+        Example - Show another screen:
+            async def handle_additional_configuration_response(self, msg):
+                # Check if we need authentication
+                if self._pending_device_config.requires_auth:
+                    return RequestUserInput(
+                        {"en": "Enter Password"},
+                        [{"id": "password", "label": {"en": "Password"}, 
+                          "field": {"text": {"value": ""}}}]
+                    )
+                return None
+
+        Example - Replace entire config (advanced):
+            async def handle_additional_configuration_response(self, msg):
+                # Create completely new config (rarely needed)
                 return MyDeviceConfig(
                     identifier=self._pending_device_config.identifier,
                     name=self._pending_device_config.name,
                     address=self._pending_device_config.address,
-                    token=token,
-                    zone=zone
+                    token=msg.input_values["token"],  # Manual access if needed
                 )
-                # This config will be saved and setup will complete
 
         :param msg: User data response from additional screen
         :return: Device config to save, SetupAction, or None to complete
         """
         _ = msg  # Mark as intentionally unused
-        # Default: No additional handling, save device and complete
+        # Default: No additional handling, auto-populated fields are saved
         return None
