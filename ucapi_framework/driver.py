@@ -719,9 +719,9 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         # Iterate through all available entities
         for entity in self.api.available_entities.get_all():
             # Use device_from_entity_id to extract the device from each entity
-            entity_device_id = self.device_from_entity_id(entity.id)
+            entity_device_id = self.device_from_entity_id(entity["entity_id"])
             if entity_device_id == device_id:
-                entity_ids.append(entity.id)
+                entity_ids.append(entity["entity_id"])
 
         return entity_ids
 

@@ -120,7 +120,17 @@ class MockEntityCollection:
         return any(e.id == entity_id for e in self._entities)
 
     def get_all(self):
-        return self._entities
+        # Return list of dicts matching ucapi Entities.get_all() behavior
+        return [
+            {
+                "entity_id": entity.id,
+                "entity_type": entity.entity_type,
+                "device_id": getattr(entity, "device_id", None),
+                "features": entity.features,
+                "name": entity.name,
+            }
+            for entity in self._entities
+        ]
 
     def clear(self):
         self._entities.clear()
