@@ -64,25 +64,27 @@ class ConcreteSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
 
     async def discover_devices(self):
         if self.discovery:
-            return await self.discovery.discover()
+            devices = await self.discovery.discover()
+            # Store devices for later lookup
+            self.discovery._discovered_devices = devices
+            return devices
         return []
 
-    async def create_device_from_discovery(self, device_id, additional_data=None):
-        """Create device from discovered device."""
-        # Validate that device exists in discovered devices
-        if self.discovery:
-            discovered = await self.discovery.discover()
-            if not any(d.identifier == device_id for d in discovered):
-                raise ValueError(f"Device {device_id} not found")
-
-        return DeviceConfigForTests(
-            identifier=device_id,
-            name=f"Device {device_id}",
-            address="192.168.1.100",
-        )
+    async def prepare_input_from_discovery(self, discovered, additional_input):
+        """Convert discovered device to input_values format."""
+        # Map discovered device to the format expected by query_device
+        return {
+            "identifier": discovered.identifier,
+            "name": discovered.name,
+            "address": discovered.address,
+            "port": discovered.extra_data.get("port", 8080)
+            if discovered.extra_data
+            else 8080,
+            **{k: v for k, v in additional_input.items() if k != "choice"},
+        }
 
     async def query_device(self, input_values):
-        """Create device from manual entry."""
+        """Create device from input values (works for both manual and discovery)."""
         # Validate required fields
         identifier = input_values.get("identifier")
         name = input_values.get("name")
@@ -634,10 +636,17 @@ class TestSetupFlowAdvanced:
         assert isinstance(result, SetupError)
 
     @pytest.mark.asyncio
-    async def test_create_device_from_discovery_not_found(self, setup_flow):
-        """Test error when device not found during creation from discovery."""
-        with pytest.raises(ValueError, match="Device nonexistent not found"):
-            await setup_flow.create_device_from_discovery("nonexistent", {})
+    async def test_discovery_device_not_found_shows_manual_entry(self, setup_flow):
+        """Test fallback to manual entry when discovered device not found."""
+        # Simulate selecting a device that doesn't exist in discovery results
+        msg = UserDataResponse(input_values={"choice": "nonexistent"})
+        setup_flow._setup_step = SetupSteps.DISCOVER
+
+        result = await setup_flow._handle_device_selection(msg)
+
+        # Should fall back to manual entry form
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.MANUAL_ENTRY
 
     @pytest.mark.asyncio
     async def test_handler_factory_creates_instance_on_first_call(self, config_manager):
@@ -1034,16 +1043,13 @@ class TestSetupFlowDiscoveryErrorHandling:
         class TestSetupFlow(BaseSetupFlow):
             """Test flow with failing discovery."""
 
-            def serialize_device(self, device):
-                return {"id": device.id}
-
-            def deserialize_device(self, device_data):
-                return device_data
-
-            async def create_device_from_discovery(
-                self, device_id, additional_data=None
-            ):
-                return {"id": device_id}
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                """Convert discovered device to input format."""
+                return {
+                    "identifier": discovered.identifier,
+                    "name": discovered.name,
+                    **additional_input,
+                }
 
             async def get_pre_discovery_screen(self):
                 return None
@@ -1078,28 +1084,36 @@ class TestSetupFlowDiscoveryErrorHandling:
         assert devices == []
 
     @pytest.mark.asyncio
-    async def test_create_device_not_implemented_with_discovery(self, config_manager):
-        """Test create_device_from_discovery raises error when not overridden."""
+    async def test_discovery_uses_default_prepare_input(self, config_manager):
+        """Test discovery uses default prepare_input_from_discovery implementation."""
+
+        from ucapi_framework.discovery import DiscoveredDevice
 
         class DummyDiscovery:
             """Mock discovery."""
 
+            def __init__(self):
+                self.devices = [
+                    DiscoveredDevice(
+                        identifier="test_device",
+                        name="Test Device",
+                        address="192.168.1.100",
+                    )
+                ]
+
             async def discover(self):
-                return [{"id": "test"}]
+                return self.devices
 
         class MinimalSetupFlow(BaseSetupFlow):
-            """Setup flow that doesn't override create_device_from_discovery."""
-
-            def serialize_device(self, device):
-                return device
-
-            def deserialize_device(self, device_data):
-                return device_data
+            """Setup flow that uses default prepare_input_from_discovery."""
 
             async def query_device(self, input_values):
-                """Required abstract method."""
-                _ = input_values  # Unused in test
-                return {"id": "manual"}
+                """Create device from input values."""
+                return DeviceConfigForTests(
+                    identifier=input_values["identifier"],
+                    name=input_values["name"],
+                    address=input_values["address"],
+                )
 
             def get_manual_entry_form(self):
                 """Required abstract method."""
@@ -1114,12 +1128,21 @@ class TestSetupFlowDiscoveryErrorHandling:
                     ],
                 )
 
-        # Use setup flow that doesn't override create_device_from_discovery
-        setup_flow = MinimalSetupFlow(config_manager, discovery=DummyDiscovery())
+        # Use setup flow with default prepare_input_from_discovery
+        discovery = DummyDiscovery()
+        setup_flow = MinimalSetupFlow(config_manager, discovery=discovery)
 
-        # Should raise NotImplementedError
-        with pytest.raises(NotImplementedError, match="must be overridden"):
-            await setup_flow.create_device_from_discovery("test", {})
+        # Test the default prepare_input_from_discovery
+        discovered = discovery.devices[0]
+        input_values = await setup_flow.prepare_input_from_discovery(
+            discovered, {"extra": "data"}
+        )
+
+        # Should map to default fields matching DiscoveredDevice attributes
+        assert input_values["identifier"] == "test_device"
+        assert input_values["address"] == "192.168.1.100"
+        assert input_values["name"] == "Test Device"
+        assert input_values["extra"] == "data"
 
 
 class TestSetupFlowReturnTypes:
@@ -1136,7 +1159,9 @@ class TestSetupFlowReturnTypes:
                 """Return error if validation fails."""
                 host = input_values.get("host", "").strip()
                 if not host:
-                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+                    return SetupError(
+                        error_type=IntegrationSetupError.CONNECTION_REFUSED
+                    )
                 return DeviceConfigForTests(
                     identifier="test", name="Test", address=host
                 )
@@ -1184,9 +1209,7 @@ class TestSetupFlowReturnTypes:
                                 "id": "error",
                                 "label": {"en": "Error"},
                                 "field": {
-                                    "label": {
-                                        "value": {"en": "Identifier is required"}
-                                    }
+                                    "label": {"value": {"en": "Identifier is required"}}
                                 },
                             },
                             {
@@ -1232,28 +1255,44 @@ class TestSetupFlowReturnTypes:
         class ErrorReturningDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that returns errors from discovery."""
 
-            async def create_device_from_discovery(self, device_id, additional_data):
-                """Return error if device connection fails."""
-                if device_id == "unreachable":
-                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                return DeviceConfigForTests(
-                    identifier=device_id, name=f"Device {device_id}", address="127.0.0.1"
-                )
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                """Convert discovered device to input format."""
+                return {
+                    "identifier": discovered.identifier,
+                    "name": discovered.name,
+                    "address": discovered.address,
+                    **additional_input,
+                }
 
             async def query_device(self, input_values):
-                """Required abstract method."""
+                """Return error if device connection fails."""
+                if input_values.get("identifier") == "unreachable":
+                    return SetupError(
+                        error_type=IntegrationSetupError.CONNECTION_REFUSED
+                    )
                 return DeviceConfigForTests(
-                    identifier="manual", name="Manual", address="127.0.0.1"
+                    identifier=input_values["identifier"],
+                    name=input_values["name"],
+                    address=input_values.get("address", "127.0.0.1"),
                 )
 
             def get_manual_entry_form(self):
                 """Required abstract method."""
                 return RequestUserInput(
-                    {"en": "Manual Entry"}, [{"id": "id", "field": {"text": {"value": ""}}}]
+                    {"en": "Manual Entry"},
+                    [{"id": "id", "field": {"text": {"value": ""}}}],
                 )
 
         setup_flow = ErrorReturningDiscoveryFlow(config_manager, discovery=discovery)
         setup_flow._setup_step = SetupSteps.DISCOVER
+
+        # Add the "unreachable" device to mock discovery
+        from ucapi_framework.discovery import DiscoveredDevice
+
+        unreachable_device = DiscoveredDevice(
+            "unreachable", "Unreachable Device", "192.168.1.99"
+        )
+        discovery._discovered_devices.append(unreachable_device)
 
         # Test with unreachable device
         msg = UserDataResponse(input_values={"choice": "unreachable"})
@@ -1263,15 +1302,26 @@ class TestSetupFlowReturnTypes:
         assert result.error_type == IntegrationSetupError.CONNECTION_REFUSED
 
     @pytest.mark.asyncio
-    async def test_discovery_returns_request_user_input(self, config_manager, discovery):
+    async def test_discovery_returns_request_user_input(
+        self, config_manager, discovery
+    ):
         """Test that discovery device creation can return RequestUserInput for auth."""
 
         class AuthRequestingDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that requests authentication during discovery."""
 
-            async def create_device_from_discovery(self, device_id, additional_data):
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                """Convert discovered device to input format."""
+                return {
+                    "identifier": discovered.identifier,
+                    "name": discovered.name,
+                    "address": discovered.address,
+                    **additional_input,
+                }
+
+            async def query_device(self, input_values):
                 """Request authentication if not provided."""
-                password = additional_data.get("password")
+                password = input_values.get("password")
                 if not password:
                     return RequestUserInput(
                         {"en": "Authentication Required"},
@@ -1284,23 +1334,23 @@ class TestSetupFlowReturnTypes:
                         ],
                     )
                 return DeviceConfigForTests(
-                    identifier=device_id, name=f"Device {device_id}", address="127.0.0.1"
-                )
-
-            async def query_device(self, input_values):
-                """Required abstract method."""
-                return DeviceConfigForTests(
-                    identifier="manual", name="Manual", address="127.0.0.1"
+                    identifier=input_values["identifier"],
+                    name=input_values["name"],
+                    address=input_values.get("address", "127.0.0.1"),
                 )
 
             def get_manual_entry_form(self):
                 """Required abstract method."""
                 return RequestUserInput(
-                    {"en": "Manual Entry"}, [{"id": "id", "field": {"text": {"value": ""}}}]
+                    {"en": "Manual Entry"},
+                    [{"id": "id", "field": {"text": {"value": ""}}}],
                 )
 
         setup_flow = AuthRequestingDiscoveryFlow(config_manager, discovery=discovery)
         setup_flow._setup_step = SetupSteps.DISCOVER
+
+        # Populate discovered devices (normally done by discover())
+        discovery._discovered_devices = await discovery.discover()
 
         # Test with missing password
         msg = UserDataResponse(input_values={"choice": "dev1"})
@@ -1355,28 +1405,35 @@ class TestSetupFlowReturnTypes:
         class StandardDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Standard setup flow that returns config from discovery."""
 
-            async def create_device_from_discovery(self, device_id, additional_data):
-                """Return valid config."""
-                return DeviceConfigForTests(
-                    identifier=device_id,
-                    name=f"Device {device_id}",
-                    address="192.168.1.100",
-                )
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                """Convert discovered device to input format."""
+                return {
+                    "identifier": discovered.identifier,
+                    "name": discovered.name,
+                    "address": discovered.address,
+                    **additional_input,
+                }
 
             async def query_device(self, input_values):
-                """Required abstract method."""
+                """Return valid config for both discovery and manual."""
                 return DeviceConfigForTests(
-                    identifier="manual", name="Manual", address="127.0.0.1"
+                    identifier=input_values.get("identifier", "manual"),
+                    name=input_values.get("name", "Manual"),
+                    address=input_values.get("address", "127.0.0.1"),
                 )
 
             def get_manual_entry_form(self):
                 """Required abstract method."""
                 return RequestUserInput(
-                    {"en": "Manual Entry"}, [{"id": "id", "field": {"text": {"value": ""}}}]
+                    {"en": "Manual Entry"},
+                    [{"id": "id", "field": {"text": {"value": ""}}}],
                 )
 
         setup_flow = StandardDiscoveryFlow(config_manager, discovery=discovery)
         setup_flow._setup_step = SetupSteps.DISCOVER
+
+        # Populate discovered devices (normally done by discover())
+        discovery._discovered_devices = await discovery.discover()
 
         # Test with valid device
         msg = UserDataResponse(input_values={"choice": "dev1"})
@@ -1466,7 +1523,9 @@ class TestAdditionalConfigurationReturnTypes:
         assert device.port == 9090  # Token used as port
 
     @pytest.mark.asyncio
-    async def test_additional_config_modifies_pending_returns_none(self, config_manager):
+    async def test_additional_config_modifies_pending_returns_none(
+        self, config_manager
+    ):
         """Test modifying pending config and returning None (Pattern 1)."""
 
         class FlowWithAdditionalConfigModifyingPending(BaseSetupFlow):

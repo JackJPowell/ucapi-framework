@@ -1,8 +1,6 @@
 """Tests for discovery classes."""
 
-import asyncio
-from dataclasses import dataclass
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -116,17 +114,17 @@ class TestBaseDiscovery:
     async def test_devices_property(self):
         """Test devices property returns discovered devices."""
         discovery = ConcreteDiscovery()
-        
+
         # Initially empty
         assert discovery.devices == []
-        
+
         # After discovery, devices are accessible
         await discovery.discover()
-        
+
         assert len(discovery.devices) == 2
         assert discovery.devices[0].identifier == "dev1"
         assert discovery.devices[1].identifier == "dev2"
-        
+
         # Clear and verify
         discovery.clear()
         assert discovery.devices == []
@@ -273,7 +271,9 @@ class TestSDDPDiscovery:
             timeout=10,
         )
 
-        assert discovery.search_pattern == "urn:samsung.com:device:RemoteControlReceiver:1"
+        assert (
+            discovery.search_pattern == "urn:samsung.com:device:RemoteControlReceiver:1"
+        )
         assert discovery.timeout == 10
 
     def test_default_search_pattern(self):

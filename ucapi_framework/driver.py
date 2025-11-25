@@ -26,7 +26,13 @@ _LOG = logging.getLogger(__name__)
 # Common attribute names for device configuration extraction
 _DEVICE_ID_ATTRIBUTES = ("identifier", "id", "device_id")
 _DEVICE_NAME_ATTRIBUTES = ("name", "friendly_name", "device_name")
-_DEVICE_ADDRESS_ATTRIBUTES = ("address", "host_address", "ip_address", "device_address", "host")
+_DEVICE_ADDRESS_ATTRIBUTES = (
+    "address",
+    "host_address",
+    "ip_address",
+    "device_address",
+    "host",
+)
 
 
 def _get_first_valid_attr(obj: Any, *attrs: str) -> str | None:
@@ -115,13 +121,13 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         self.api = uc.IntegrationAPI(loop)
         self._loop = loop
         self._device_class = device_class
-        
+
         # Allow passing a single EntityTypes or a list
         if isinstance(entity_classes, EntityTypes):
             self._entity_classes = [entity_classes]
         else:
             self._entity_classes = entity_classes
-            
+
         self._configured_devices: dict[str, DeviceT] = {}
         self.config = None  # Will be set by integration after initialization
         self._setup_event_handlers()

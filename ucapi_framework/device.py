@@ -749,9 +749,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
             ping_timeout=ping_timeout,
             config_manager=config_manager,
         )
-        PollingDevice.__init__(
-            self, device_config, loop, poll_interval, config_manager
-        )
+        PollingDevice.__init__(self, device_config, loop, poll_interval, config_manager)
         self._keep_polling_on_disconnect = keep_polling_on_disconnect
 
     async def connect(self) -> None:
@@ -816,7 +814,9 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
         """
         # Determine whether to stop polling
         should_stop_polling = (
-            stop_polling if stop_polling is not None else not self._keep_polling_on_disconnect
+            stop_polling
+            if stop_polling is not None
+            else not self._keep_polling_on_disconnect
         )
 
         if should_stop_polling:

@@ -384,7 +384,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         try:
             # Automatically store all input values
             self._pre_discovery_data.update(msg.input_values)
-            _LOG.debug("Pre-discovery data collected: %s", list(msg.input_values.keys()))
+            _LOG.debug(
+                "Pre-discovery data collected: %s", list(msg.input_values.keys())
+            )
 
             # Call the overridable method
             result = await self.handle_pre_discovery_response(msg)
@@ -466,19 +468,29 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Handle user selecting a discovered device.
 
+        Converts discovered device data to input_values format and calls query_device,
+        just like manual entry does. Falls back to manual entry if device not found.
+
         :param msg: User data response
         :return: Setup action
         """
         device_id = msg.input_values.get("choice")
         if not device_id:
-            return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
+            _LOG.warning("No device selected, showing manual entry")
+            return await self._handle_manual_entry()
 
-        # Extract additional input values
-        additional_data = self.extract_additional_setup_data(msg.input_values)
+        # Look up the discovered device
+        discovered = self.get_discovered_devices(device_id)
+        if not discovered:
+            _LOG.info("Discovered device not found: %s, showing manual entry", device_id)
+            return await self._handle_manual_entry()
 
-        # Create device from discovery
+        # Convert discovered device to input_values format
         try:
-            result = await self.create_device_from_discovery(device_id, additional_data)
+            input_values = await self.prepare_input_from_discovery(discovered, msg.input_values)
+            
+            # Call query_device just like manual entry does
+            result = await self.query_device(input_values)
 
             # Check if the result is an error or screen to display
             if isinstance(result, (SetupError, RequestUserInput)):
@@ -512,7 +524,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             # Merge pre-discovery data with manual entry input
             # Manual entry values take precedence over pre-discovery
             combined_input = {**self._pre_discovery_data, **msg.input_values}
-            
+
             result = await self.query_device(combined_input)
 
             # Check if the result is an error or screen to display
@@ -544,7 +556,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         try:
             # Automatically populate pending config from input values
             self._auto_populate_config(msg.input_values)
-            
+
             # Call the overridable method
             result = await self.handle_additional_configuration_response(msg)
 
@@ -566,11 +578,11 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                         "handle_additional_configuration_response returned a class (%s) instead of an instance. "
                         "Did you forget to instantiate the device config? "
                         "Use: return MyDeviceConfig(...) instead of: return MyDeviceConfig",
-                        result.__name__
+                        result.__name__,
                     )
                     self._pending_device_config = None
                     return SetupError(error_type=IntegrationSetupError.OTHER)
-                
+
                 # User returned a device config instance - use it as the final config
                 self._pending_device_config = result
 
@@ -583,7 +595,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             _LOG.debug(
                 "Saving device config: type=%s, is_instance=%s",
                 type(self._pending_device_config).__name__,
-                not isinstance(self._pending_device_config, type)
+                not isinstance(self._pending_device_config, type),
             )
 
             # Save the device and complete
@@ -597,13 +609,14 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         except Exception as err:  # pylint: disable=broad-except
             import traceback
+
             _LOG.error("Error in additional configuration: %s", err)
             _LOG.error("Error details: %s", traceback.format_exc())
             if self._pending_device_config is not None:
                 _LOG.error(
                     "Pending device config type: %s, repr: %s",
                     type(self._pending_device_config),
-                    repr(self._pending_device_config)[:200]
+                    repr(self._pending_device_config)[:200],
                 )
             self._pending_device_config = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
@@ -744,14 +757,14 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     _LOG.debug(
                         "Could not set attribute '%s' on %s (may be read-only)",
                         field_name,
-                        type(self._pending_device_config).__name__
+                        type(self._pending_device_config).__name__,
                     )
 
         if populated_fields:
             _LOG.debug(
                 "Auto-populated %s fields: %s",
                 type(self._pending_device_config).__name__,
-                ", ".join(populated_fields)
+                ", ".join(populated_fields),
             )
 
     # ========================================================================
@@ -788,10 +801,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             async def query_device(self, input_values):
                 # Query the device to validate connectivity
                 device_info = await self.api.get_device_info(input_values["host"])
-                
+
                 if not device_info:
                     return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                
+
                 # Just return the config - setup completes automatically
                 return MyDeviceConfig(
                     identifier=device_info["id"],
@@ -806,11 +819,11 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 host = input_values.get("host", "").strip()
                 if not host:
                     return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                
+
                 # Test connection
                 if not await self.api.test_connection(host):
                     return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                
+
                 return MyDeviceConfig(
                     identifier=host,
                     name=input_values.get("name", host),
@@ -824,10 +837,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     input_values["host"],
                     input_values["token"]
                 )
-                
+
                 if not auth_response["valid"]:
                     return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)
-                
+
                 # IMPORTANT: Store config in _pending_device_config for multi-screen flows
                 self._pending_device_config = MyDeviceConfig(
                     identifier=input_values["host"],
@@ -835,14 +848,14 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     token=auth_response["token"],
                     available_servers=auth_response["servers"]  # Data needed for next screen
                 )
-                
+
                 # Return screen - response will route to handle_additional_configuration_response
                 return RequestUserInput(
                     {"en": "Select Server"},
                     [{"id": "server", "label": {"en": "Server"},
                       "field": {"dropdown": {"items": self._build_server_dropdown()}}}]
                 )
-            
+
             async def handle_additional_configuration_response(self, msg):
                 # Access stored config and new input
                 self._pending_device_config.server = msg.input_values["server"]
@@ -861,7 +874,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                             # ... rest of the form fields
                         ]
                     )
-                
+
                 return MyDeviceConfig(identifier=host, name=host, address=host)
 
         :param input_values: User input values from the manual entry form.
@@ -908,6 +921,8 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         try:
             devices = await self.discovery.discover()
+            # Store devices in discovery instance for later lookup
+            self.discovery._discovered_devices = devices
             _LOG.info(
                 "%s: Discovered %d device(s)", self.__class__.__name__, len(devices)
             )
@@ -916,116 +931,76 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             _LOG.info("%s: Discovery failed: %s", self.__class__.__name__, err)
             return []
 
-    async def create_device_from_discovery(
-        self, device_id: str, additional_data: dict[str, Any]
-    ) -> ConfigT | SetupError | RequestUserInput:
+    async def prepare_input_from_discovery(
+        self, discovered: DiscoveredDevice, additional_input: dict[str, Any]
+    ) -> dict[str, Any]:
         """
-        Create device configuration from discovered device.
-
-        DEFAULT IMPLEMENTATION: Raises NotImplementedError.
+        Convert discovered device data to input_values format for query_device.
 
         **You must override this method if you provide a discovery_class.**
 
-        This method is called when a user selects a discovered device from the
-        dropdown. If you pass a discovery_class to __init__, you MUST override
-        this method to create a configuration from the discovered device data.
+        This method transforms a discovered device into the same input_values format
+        that manual entry produces. This allows query_device() to work uniformly for
+        both discovery and manual entry paths.
 
-        The framework has already performed discovery and stored the results.
-        Use self.get_discovered_devices() or self.discovery.devices to access the
-        full list of discovered devices.
+        The returned dictionary should match the field names from your manual entry form,
+        so query_device() can process both sources identically.
 
-        This method can return:
-        - **ConfigT**: A valid device configuration - if no additional screens needed, setup completes.
-                      If you need additional screens, DON'T return the config - store it in
-                      self._pending_device_config and return RequestUserInput instead.
-        - **SetupError**: An error to abort the setup with an error message
-        - **RequestUserInput**: A screen to display for additional configuration.
-                               **IMPORTANT:** To show additional screens after this one, you MUST
-                               set self._pending_device_config BEFORE returning RequestUserInput.
-                               The response will then route to handle_additional_configuration_response().
+        DEFAULT IMPLEMENTATION: Returns a basic dictionary with common fields.
+        Override this to customize the mapping for your integration.
 
-        Example - Simple case (no additional screens):
-            async def create_device_from_discovery(self, device_id, additional_data):
-                # Look up the device by identifier
-                discovered = self.get_discovered_devices(device_id)
-                if not discovered:
-                    return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
+        :param discovered: The discovered device selected by the user
+        :param additional_input: Additional user input from the discovery screen
+                                (e.g., from get_additional_discovery_fields)
+        :return: Dictionary of input values in the same format as manual entry
 
-                # Just return the config - setup completes automatically
-                return MyDeviceConfig(
-                    identifier=discovered.identifier,
-                    name=discovered.name,
-                    address=discovered.address,
-                    port=discovered.extra_data.get("port", 80)
-                )
+        Example - Basic mapping:
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                return {
+                    "identifier": discovered.identifier,
+                    "address": discovered.address,
+                    "name": discovered.name,
+                    "port": discovered.extra_data.get("port", 8080),
+                    # Include any additional fields from discovery screen
+                    **additional_input
+                }
 
-        Example - With connection test:
-            async def create_device_from_discovery(self, device_id, additional_data):
-                discovered = self.get_discovered_devices(device_id)
-                if not discovered:
-                    return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
-                
-                if not await self._test_connection(discovered.address):
-                    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
-                
-                return MyDeviceConfig.from_discovered(discovered)
+        Example - With data transformation:
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                # Extract specific data from extra_data
+                return {
+                    "identifier": discovered.identifier,
+                    "address": discovered.address,
+                    "name": additional_input.get("name", discovered.name),  # Allow override
+                    "model": discovered.extra_data.get("model"),
+                    "firmware": discovered.extra_data.get("version"),
+                }
 
-        Example - Multi-screen flow (authentication required):
-            async def create_device_from_discovery(self, device_id, additional_data):
-                discovered = self.get_discovered_devices(device_id)
-                if not discovered:
-                    return SetupError(error_type=IntegrationSetupError.NOT_FOUND)
-
-                # Check if auth is needed
-                auth_required = discovered.extra_data.get("requires_auth", False)
-                
-                if auth_required:
-                    # IMPORTANT: Store config in _pending_device_config for multi-screen flows
-                    self._pending_device_config = MyDeviceConfig(
-                        identifier=discovered.identifier,
-                        name=discovered.name,
-                        address=discovered.address
-                    )
-                    
-                    # Return screen - response will route to handle_additional_configuration_response
-                    return RequestUserInput(
-                        {"en": "Authentication Required"},
-                        [{"id": "password", "label": {"en": "Password"}, 
-                          "field": {"text": {"value": ""}}}]
-                    )
-                
-                # No auth needed, return config directly
-                return MyDeviceConfig.from_discovered(discovered)
-
-        :param device_id: Discovered device identifier
-        :param additional_data: Additional user input data
-        :return: Device configuration, SetupError, or RequestUserInput
-        :raises NotImplementedError: If not overridden when discovery_class is provided
+        Example - With filtering:
+            async def prepare_input_from_discovery(self, discovered, additional_input):
+                # Only include relevant additional input fields
+                return {
+                    "identifier": discovered.identifier,
+                    "address": discovered.address,
+                    "name": discovered.name,
+                    # Only include specific additional fields, not "choice"
+                    "zone": additional_input.get("zone", 1),
+                    "volume_step": additional_input.get("volume_step", 5),
+                }
         """
-        if self.discovery is None:
-            # This shouldn't happen since _handle_discovery checks for None,
-            # but we'll be defensive
-            _LOG.error(
-                "%s: create_device_from_discovery() called but no discovery class was provided",
-                self.__class__.__name__,
-            )
-            raise NotImplementedError(
-                f"{self.__class__.__name__}: Cannot create device from discovery "
-                "because no discovery_class was provided to __init__()"
-            )
-
-        _ = device_id  # Mark as intentionally unused
-        _ = additional_data
-
-        _LOG.error(
-            "%s: create_device_from_discovery() called but not overridden - "
-            "you must implement this method when using a discovery_class",
-            self.__class__.__name__,
-        )
-        raise NotImplementedError(
-            f"{self.__class__.__name__}.create_device_from_discovery() must be "
-            f"overridden when using discovery_class ({type(self.discovery).__name__})"
-        )
+        # Default implementation: basic mapping with additional input merged in
+        input_values = {
+            "identifier": discovered.identifier,
+            "address": discovered.address,
+            "name": discovered.name,
+        }
+        
+        # Merge additional input, filtering out internal fields
+        for key, value in additional_input.items():
+            if not key.startswith("_") and key not in ("choice",):
+                input_values[key] = value
+        
+        return input_values
 
     # ========================================================================
     # Helper Methods
@@ -1304,7 +1279,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         Override this method to show additional setup screens that collect more
         information about the device. This is called after query_device
-        or create_device_from_discovery but BEFORE the device is saved.
+        (for both manual entry and discovery paths) but BEFORE the device is saved.
 
         **AUTO-POPULATION:** Any fields returned by this screen will automatically
         populate matching attributes on self._pending_device_config. You typically
@@ -1315,9 +1290,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 return RequestUserInput(
                     {"en": "Additional Settings"},
                     [
-                        {"id": "token", "label": {"en": "API Token"}, 
+                        {"id": "token", "label": {"en": "API Token"},
                          "field": {"text": {"value": ""}}},
-                        {"id": "zone", "label": {"en": "Zone"}, 
+                        {"id": "zone", "label": {"en": "Zone"},
                          "field": {"number": {"value": 1}}}
                     ]
                 )
@@ -1328,7 +1303,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 if device_config.requires_auth:
                     return RequestUserInput(
                         {"en": "Authentication"},
-                        [{"id": "password", "label": {"en": "Password"}, 
+                        [{"id": "password", "label": {"en": "Password"},
                           "field": {"text": {"value": ""}}}]
                     )
                 return None  # No additional screen needed
@@ -1370,7 +1345,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 # Fields already auto-populated, just validate
                 if not self._pending_device_config.token:
                     return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)
-                
+
                 # Or add computed fields
                 self._pending_device_config.full_url = (
                     f"https://{self._pending_device_config.address}:8080"
@@ -1383,7 +1358,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 if self._pending_device_config.requires_auth:
                     return RequestUserInput(
                         {"en": "Enter Password"},
-                        [{"id": "password", "label": {"en": "Password"}, 
+                        [{"id": "password", "label": {"en": "Password"},
                           "field": {"text": {"value": ""}}}]
                     )
                 return None
