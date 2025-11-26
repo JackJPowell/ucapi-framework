@@ -156,8 +156,12 @@ class BaseDeviceInterface(ABC):
         return self._state
 
     @abstractmethod
-    async def connect(self) -> None:
-        """Establish connection to the device."""
+    async def connect(self) -> bool:
+        """
+        Establish connection to the device.
+        
+        :return: True if connection successful, False otherwise
+        """
 
     @abstractmethod
     async def disconnect(self) -> None:
@@ -185,12 +189,14 @@ class StatelessHTTPDevice(BaseDeviceInterface):
         self._is_connected = False
         self._session_timeout = aiohttp.ClientTimeout(total=10)
 
-    async def connect(self) -> None:
+    async def connect(self) -> bool:
         """
         Establish connection (verify device is reachable).
 
         For stateless devices, this typically means verifying the device
         responds to a basic request.
+        
+        :return: True if connection successful, False otherwise
         """
         _LOG.debug("[%s] Connecting to device at %s", self.log_id, self.address)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -200,10 +206,12 @@ class StatelessHTTPDevice(BaseDeviceInterface):
             self._is_connected = True
             self.events.emit(DeviceEvents.CONNECTED, self.identifier)
             _LOG.info("[%s] Connected", self.log_id)
+            return True
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOG.error("[%s] Connection error: %s", self.log_id, err)
             self.events.emit(DeviceEvents.ERROR, self.identifier, str(err))
             self._is_connected = False
+            return False
 
     async def disconnect(self) -> None:
         """Disconnect from device (mark as disconnected)."""
@@ -271,14 +279,18 @@ class PollingDevice(BaseDeviceInterface):
         self._poll_task: asyncio.Task | None = None
         self._stop_polling = asyncio.Event()
 
-    async def connect(self) -> None:
-        """Establish connection and start polling."""
+    async def connect(self) -> bool:
+        """
+        Establish connection and start polling.
+        
+        :return: True if connection successful, False otherwise
+        """
         # Prevent multiple concurrent connections
         if self._poll_task and not self._poll_task.done():
             _LOG.debug(
                 "[%s] Already connected and polling, skipping connect", self.log_id
             )
-            return
+            return True
 
         _LOG.debug("[%s] Connecting and starting poll", self.log_id)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -289,9 +301,11 @@ class PollingDevice(BaseDeviceInterface):
             self._poll_task = asyncio.create_task(self._poll_loop())
             self.events.emit(DeviceEvents.CONNECTED, self.identifier)
             _LOG.info("[%s] Connected and polling started", self.log_id)
+            return True
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOG.error("[%s] Connection error: %s", self.log_id, err)
             self.events.emit(DeviceEvents.ERROR, self.identifier, str(err))
+            return False
 
     async def disconnect(self) -> None:
         """Stop polling and disconnect."""
@@ -404,17 +418,19 @@ class WebSocketDevice(BaseDeviceInterface):
         self._backoff_current = reconnect_interval
         self._is_connected = False
 
-    async def connect(self) -> None:
+    async def connect(self) -> bool:
         """
         Establish WebSocket connection with automatic reconnection.
 
         If reconnection is enabled, this will continuously attempt to
         maintain a connection until disconnect() is called.
+        
+        :return: True if connection task started successfully, False otherwise
         """
         # Prevent multiple concurrent connection tasks
         if self._ws_task and not self._ws_task.done():
             _LOG.debug("[%s] WebSocket connection task already running", self.log_id)
-            return
+            return True
 
         _LOG.debug(
             "[%s] Starting WebSocket connection to %s", self.log_id, self.address
@@ -428,6 +444,8 @@ class WebSocketDevice(BaseDeviceInterface):
         else:
             # Single connection attempt
             self._ws_task = asyncio.create_task(self._single_connect())
+        
+        return True
 
     async def disconnect(self) -> None:
         """Close WebSocket connection and stop reconnection attempts."""
@@ -767,12 +785,14 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
         PollingDevice.__init__(self, device_config, loop, poll_interval, config_manager)
         self._keep_polling_on_disconnect = keep_polling_on_disconnect
 
-    async def connect(self) -> None:
+    async def connect(self) -> bool:
         """
         Establish WebSocket connection and start polling.
 
         Both WebSocket and polling tasks run concurrently. If WebSocket connection
         fails, polling continues to provide state updates.
+        
+        :return: True if at least polling started successfully, False otherwise
         """
         # Prevent multiple concurrent connections
         if (self._ws_task and not self._ws_task.done()) or (
@@ -784,7 +804,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
                 self._ws_task is not None,
                 self._poll_task is not None,
             )
-            return
+            return True
 
         _LOG.debug("[%s] Connecting WebSocket and starting polling", self.log_id)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -812,6 +832,9 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
             self._is_connected = False
             # Polling continues even if WebSocket fails
             _LOG.info("[%s] Polling started (WebSocket unavailable)", self.log_id)
+        
+        # Return True since at least polling is running
+        return True
 
     async def disconnect(self, stop_polling: bool | None = None) -> None:
         """
@@ -954,16 +977,20 @@ class ExternalClientDevice(BaseDeviceInterface):
         self._max_reconnect_attempts = max_reconnect_attempts
         self._is_connected = False
 
-    async def connect(self) -> None:
-        """Connect to device via external client and start watchdog."""
+    async def connect(self) -> bool:
+        """
+        Connect to device via external client and start watchdog.
+        
+        :return: True if connection successful, False otherwise
+        """
         # Check if external client is already connected
         if self.check_client_connected():
             _LOG.debug("[%s] External client already connected, skipping", self.log_id)
-            return
+            return True
 
         if self._watchdog_task and not self._watchdog_task.done():
             _LOG.debug("[%s] Watchdog already running, skipping", self.log_id)
-            return
+            return True
 
         _LOG.debug("[%s] Connecting via external client", self.log_id)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -972,6 +999,9 @@ class ExternalClientDevice(BaseDeviceInterface):
             # Start watchdog to monitor connection
             self._stop_watchdog.clear()
             self._watchdog_task = asyncio.create_task(self._watchdog_loop())
+            return True
+        
+        return False
 
     async def _connect_client_internal(self) -> bool:
         """
@@ -1202,11 +1232,16 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         self._backoff_max = backoff_max
         self._backoff_current = BACKOFF_SEC
 
-    async def connect(self) -> None:
-        """Establish persistent connection with reconnection logic."""
+    async def connect(self) -> bool:
+        """
+        Establish persistent connection with reconnection logic.
+        
+        :return: True if connection task started successfully, False otherwise
+        """
         _LOG.debug("[%s] Starting persistent connection", self.log_id)
         self._stop_reconnect.clear()
         self._reconnect_task = asyncio.create_task(self._connection_loop())
+        return True
 
     async def disconnect(self) -> None:
         """Close persistent connection."""
