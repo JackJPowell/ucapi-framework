@@ -192,6 +192,10 @@ class TestBaseDeviceInterface:
             def log_id(self):
                 return "test"
 
+            @property
+            def is_connected(self):
+                return False
+
             async def connect(self):
                 pass
 
@@ -223,6 +227,10 @@ class TestBaseDeviceInterface:
             @property
             def log_id(self):
                 return "test"
+
+            @property
+            def is_connected(self):
+                return False
 
             async def connect(self):
                 pass
@@ -257,6 +265,10 @@ class TestBaseDeviceInterface:
             def log_id(self):
                 return "test"
 
+            @property
+            def is_connected(self):
+                return False
+
             async def connect(self):
                 pass
 
@@ -285,6 +297,10 @@ class TestBaseDeviceInterface:
             @property
             def log_id(self):
                 return "test"
+
+            @property
+            def is_connected(self):
+                return False
 
             async def connect(self):
                 pass
@@ -324,6 +340,10 @@ class TestBaseDeviceInterface:
             def log_id(self):
                 return "test"
 
+            @property
+            def is_connected(self):
+                return False
+
             async def connect(self):
                 pass
 
@@ -357,6 +377,10 @@ class TestBaseDeviceInterface:
             def log_id(self):
                 return "test"
 
+            @property
+            def is_connected(self):
+                return False
+
             async def connect(self):
                 pass
 
@@ -387,6 +411,10 @@ class TestBaseDeviceInterface:
             @property
             def log_id(self):
                 return "test"
+
+            @property
+            def is_connected(self):
+                return False
 
             async def connect(self):
                 pass
@@ -424,6 +452,10 @@ class TestBaseDeviceInterface:
             @property
             def log_id(self):
                 return "test"
+
+            @property
+            def is_connected(self):
+                return self._state == "connected"
 
             async def connect(self):
                 self._state = "connected"

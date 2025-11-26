@@ -120,6 +120,7 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         loop: asyncio.AbstractEventLoop,
         device_class: type[DeviceT],
         entity_classes: list[EntityTypes] | EntityTypes,
+        require_connection_before_registry: bool = False,
     ):
         """
         Initialize the integration driver.
@@ -128,10 +129,15 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         :param device_class: The device interface class to instantiate
         :param entity_classes: EntityTypes or list of EntityTypes (e.g., EntityTypes.MEDIA_PLAYER)
                                Single EntityTypes value will be converted to a list
+        :param require_connection_before_registry: If True, ensure device connection
+                                                   before subscribing to entities and re-register
+                                                   available entities after connection. Useful for hub-based
+                                                   integrations that populate entities dynamically on connection.
         """
         self.api = uc.IntegrationAPI(loop)
         self._loop = loop
         self._device_class = device_class
+        self._require_connection_before_registry = require_connection_before_registry
 
         # Allow passing a single EntityTypes or a list
         if isinstance(entity_classes, EntityTypes):
@@ -215,13 +221,40 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         """
         Handle entity subscription events.
 
-        Default implementation: adds devices for subscribed entities and updates their state.
-        Override to customize subscription behavior.
+        Default implementation:
+        1. Ensures device connection if require_connection_before_entities is True
+        2. Adds devices for subscribed entities
+        3. Calls refresh_entity_state() for each entity to update their state
+
+        Override to customize subscription behavior, or override refresh_entity_state()
+        to customize how individual entity states are refreshed.
 
         :param entity_ids: List of entity identifiers being subscribed
         """
         _LOG.debug("Subscribe entities event: %s", entity_ids)
 
+        if not entity_ids:
+            return
+
+        # Ensure connection if configured
+        if self._require_connection_before_registry:
+            device_id = self.device_from_entity_id(entity_ids[0])
+            if device_id:
+                if not await self._ensure_device_connected(device_id):
+                    _LOG.error(
+                        "Failed to connect to device %s for entity subscription",
+                        device_id,
+                    )
+                    return
+
+                # Re-register available entities after connection
+                # This allows hub-based integrations to populate entities dynamically from the hub
+                device = self._configured_devices.get(device_id)
+                device_config = self.get_device_config(device_id)
+                if device and device_config:
+                    self.register_available_entities(device_config, device)
+
+        # Add devices for entities that aren't configured yet
         for entity_id in entity_ids:
             device_id = self.device_from_entity_id(entity_id)
             if device_id is None:
@@ -229,30 +262,23 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
 
             # Check if device is already configured
             if device_id in self._configured_devices:
-                device = self._configured_devices[device_id]
-                _LOG.info("Entity '%s' subscribing to existing device", entity_id)
-                _LOG.debug("Device State: %s", device.state)
-
-                # Update entity state
-                if device.state is None:
-                    state = media_player.States.UNAVAILABLE
-                else:
-                    state = self.map_device_state(device.state)
-
-                self.api.configured_entities.update_attributes(
-                    entity_id, {media_player.Attributes.STATE: state}
-                )
                 continue
 
             # Device not configured yet, add it
             device_config = self.get_device_config(device_id)
             if device_config:
-                # Add without connecting - connection will be handled by CONNECT event
-                self.add_configured_device(device_config, connect=False)
+                # Add without connecting if require_connection_before_registry is True
+                # (connection already established above)
+                connect = not self._require_connection_before_registry
+                self.add_configured_device(device_config, connect=connect)
             else:
                 _LOG.error(
                     "Failed to subscribe entity %s: no device config found", entity_id
                 )
+
+        # Refresh each entity's state
+        for entity_id in entity_ids:
+            await self.refresh_entity_state(entity_id)
 
     async def on_unsubscribe_entities(self, entity_ids: list[str]) -> None:
         """
@@ -292,6 +318,158 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     await device.disconnect()
                     device.events.remove_all_listeners()
                     self._configured_devices.pop(device_id, None)
+
+    async def _ensure_device_connected(self, device_id: str) -> bool:
+        """
+        Ensure device is connected, with retry logic.
+
+        This helper method is used when require_connection_before_registry is True.
+        It attempts to connect to the device with up to 3 retries.
+
+        :param device_id: Device identifier
+        :return: True if device is connected, False otherwise
+        """
+        device = self._configured_devices.get(device_id)
+
+        if not device:
+            # Try to get from config and add it
+            device_config = self.get_device_config(device_id)
+            if device_config:
+                _LOG.debug("Adding device %s from config", device_id)
+                self.add_configured_device(device_config, connect=False)
+                device = self._configured_devices.get(device_id)
+            else:
+                _LOG.error("Device %s not found in configuration", device_id)
+                return False
+
+        # Check if already connected
+        if device.is_connected:
+            _LOG.debug("Device %s already connected", device_id)
+            return True
+
+        # Attempt connection with retries
+        for attempt in range(1, 4):
+            _LOG.debug(
+                "Device %s not connected, attempting to connect (%d/3)",
+                device_id,
+                attempt,
+            )
+            if await device.connect():
+                _LOG.info("Device %s connected successfully", device_id)
+                return True
+
+            await device.disconnect()
+            await asyncio.sleep(0.5)
+
+        _LOG.error("Failed to connect to device %s after 3 attempts", device_id)
+        return False
+
+    async def refresh_entity_state(self, entity_id: str) -> None:
+        """
+        Refresh state for a single entity.
+
+        Default implementation: Updates STATE attribute based on device connection state.
+        For media_player entities, uses map_device_state(). For other entity types,
+        sets STATE to AVAILABLE if connected, UNAVAILABLE otherwise.
+
+        **Override this** to implement integration-specific state refresh logic,
+        especially for hub-based integrations that need to query device data.
+
+        Example for hub-based integration:
+            async def refresh_entity_state(self, entity_id: str) -> None:
+                device_id = self.device_from_entity_id(entity_id)
+                device = self._configured_devices.get(device_id)
+                if not device:
+                    return
+
+                entity_type = self.entity_type_from_entity_id(entity_id)
+                sub_entity_id = self.entity_from_entity_id(entity_id)
+
+                match entity_type:
+                    case EntityTypes.LIGHT.value:
+                        light = next(
+                            (l for l in device.lights if l.device_id == sub_entity_id),
+                            None
+                        )
+                        if light:
+                            self.api.configured_entities.update_attributes(
+                                entity_id,
+                                {
+                                    "state": "ON" if light.current_state > 0 else "OFF",
+                                    "brightness": int(light.current_state * 255 / 100),
+                                }
+                            )
+                    case EntityTypes.BUTTON.value:
+                        scene = next(
+                            (s for s in device.scenes if s.scene_id == sub_entity_id),
+                            None
+                        )
+                        if scene:
+                            self.api.configured_entities.update_attributes(
+                                entity_id, {"state": "AVAILABLE"}
+                            )
+
+        :param entity_id: Entity identifier
+        """
+        device_id = self.device_from_entity_id(entity_id)
+        if device_id is None:
+            return
+
+        device = self._configured_devices.get(device_id)
+        if device is None:
+            _LOG.warning("Device %s not found for entity %s", device_id, entity_id)
+            return
+
+        configured_entity = self.api.configured_entities.get(entity_id)
+        if configured_entity is None:
+            _LOG.debug("Entity %s is not configured, ignoring", entity_id)
+            return
+
+        # Default state refresh based on device connection and entity type
+        if not device.is_connected or device.state is None:
+            state = media_player.States.UNAVAILABLE
+        else:
+            # For media_player entities, use the device state mapping
+            if configured_entity.entity_type == EntityTypes.MEDIA_PLAYER:
+                state = self.map_device_state(device.state)
+            else:
+                # For other entity types, just mark as available
+                state = button.States.AVAILABLE
+
+        # Update the appropriate STATE attribute based on entity type
+        match configured_entity.entity_type:
+            case EntityTypes.BUTTON:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {button.Attributes.STATE: state}
+                )
+            case EntityTypes.CLIMATE:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {climate.Attributes.STATE: state}
+                )
+            case EntityTypes.COVER:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {cover.Attributes.STATE: state}
+                )
+            case EntityTypes.LIGHT:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {light.Attributes.STATE: state}
+                )
+            case EntityTypes.MEDIA_PLAYER:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {media_player.Attributes.STATE: state}
+                )
+            case EntityTypes.REMOTE:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {remote.Attributes.STATE: state}
+                )
+            case EntityTypes.SENSOR:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {sensor.Attributes.STATE: state}
+                )
+            case EntityTypes.SWITCH:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {switch.Attributes.STATE: state}
+                )
 
     # ========================================================================
     # Device Lifecycle Management

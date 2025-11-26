@@ -146,6 +146,11 @@ class BaseDeviceInterface(ABC):
         """Return a log identifier for the device."""
 
     @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """Return True if device is currently connected, False otherwise."""
+
+    @property
     def state(self) -> Any:
         """Return the current device state."""
         return self._state
@@ -205,6 +210,11 @@ class StatelessHTTPDevice(BaseDeviceInterface):
         _LOG.debug("[%s] Disconnecting from device", self.log_id)
         self._is_connected = False
         self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+
+    @property
+    def is_connected(self) -> bool:
+        """Return True if device is currently connected."""
+        return self._is_connected
 
     @abstractmethod
     async def verify_connection(self) -> None:
@@ -297,6 +307,11 @@ class PollingDevice(BaseDeviceInterface):
 
         self._poll_task = None
         self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+
+    @property
+    def is_connected(self) -> bool:
+        """Return True if device is currently connected and polling."""
+        return self._poll_task is not None and not self._poll_task.done()
 
     async def _poll_loop(self) -> None:
         """Main polling loop."""
@@ -947,6 +962,11 @@ class PersistentConnectionDevice(BaseDeviceInterface):
 
         self._reconnect_task = None
         self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+
+    @property
+    def is_connected(self) -> bool:
+        """Return True if device has an active connection."""
+        return self._connection is not None
 
     async def _connection_loop(self) -> None:
         """Main connection loop with automatic reconnection."""

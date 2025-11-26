@@ -27,7 +27,7 @@ class DeviceForTests(BaseDeviceInterface):
 
     def __init__(self, device_config, loop=None, config_manager=None):
         super().__init__(device_config, loop, config_manager)
-        self.connected = False
+        self._connected = False
 
     @property
     def identifier(self) -> str:
@@ -45,12 +45,16 @@ class DeviceForTests(BaseDeviceInterface):
     def log_id(self) -> str:
         return f"{self.name}[{self.identifier}]"
 
+    @property
+    def is_connected(self) -> bool:
+        return self._connected
+
     async def connect(self) -> None:
-        self.connected = True
+        self._connected = True
         self.events.emit(DeviceEvents.CONNECTED, self.identifier)
 
     async def disconnect(self) -> None:
-        self.connected = False
+        self._connected = False
         self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
 
 
@@ -221,7 +225,7 @@ class TestBaseIntegrationDriver:
 
         # Should connect all devices
         device = driver._configured_devices["dev1"]
-        assert device.connected is True
+        assert device.is_connected is True
 
         # Wait for all pending tasks to complete (event handlers)
         pending = [
@@ -258,7 +262,7 @@ class TestBaseIntegrationDriver:
         # Give the background task time to start and run
         await asyncio.sleep(0.01)
 
-        assert device.connected is False
+        assert device.is_connected is False
 
         # Wait for all pending tasks to complete (event handlers)
         pending = [
@@ -285,8 +289,8 @@ class TestBaseIntegrationDriver:
 
         await driver.on_r2_enter_standby()
 
-        assert dev1.connected is False
-        assert dev2.connected is False
+        assert dev1.is_connected is False
+        assert dev2.is_connected is False
 
     @pytest.mark.asyncio
     async def test_on_r2_exit_standby(self):
@@ -313,7 +317,7 @@ class TestBaseIntegrationDriver:
         await asyncio.sleep(0.01)
 
         device = driver._configured_devices["dev1"]
-        assert device.connected is True
+        assert device.is_connected is True
 
         # Wait for all pending tasks to complete (event handlers)
         # Get all tasks except the current one
@@ -334,8 +338,9 @@ class TestBaseIntegrationDriver:
         device = driver._configured_devices["dev1"]
         device._state = "on"
 
-        # Mock configured entity
+        # Mock configured entity with entity_type
         mock_entity = Mock()
+        mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
         driver.api.configured_entities.get.return_value = mock_entity
 
         await driver.on_subscribe_entities(["media_player.dev1"])
@@ -375,7 +380,7 @@ class TestBaseIntegrationDriver:
 
         # Device should be disconnected and removed
         assert "dev1" not in driver._configured_devices
-        assert device.connected is False
+        assert device.is_connected is False
 
     def test_add_configured_device(self, driver):
         """Test adding a configured device."""
