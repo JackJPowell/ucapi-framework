@@ -8,6 +8,7 @@ import pytest
 from ucapi_framework.device import (
     BaseDeviceInterface,
     DeviceEvents,
+    ExternalClientDevice,
     PollingDevice,
     PersistentConnectionDevice,
     StatelessHTTPDevice,
@@ -1460,3 +1461,403 @@ class TestDeviceEvents:
         assert DeviceEvents.PAIRED == 3
         assert DeviceEvents.ERROR == 4
         assert DeviceEvents.UPDATE == 5
+
+
+class ConcreteExternalClientDevice(ExternalClientDevice):
+    """Concrete implementation for testing ExternalClientDevice."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._mock_client_connected = False
+        self.create_client_called = 0
+        self.connect_client_called = 0
+        self.disconnect_client_called = 0
+        self.connect_client_should_fail = False
+
+    @property
+    def identifier(self) -> str:
+        return self.device_config.identifier
+
+    @property
+    def name(self) -> str:
+        return self.device_config.name
+
+    @property
+    def address(self) -> str:
+        return self.device_config.address
+
+    @property
+    def log_id(self) -> str:
+        return f"{self.name}[{self.identifier}]"
+
+    async def create_client(self):
+        """Create the mock client."""
+        self.create_client_called += 1
+        return Mock()
+
+    async def connect_client(self) -> None:
+        """Connect the mock client."""
+        self.connect_client_called += 1
+        if self.connect_client_should_fail:
+            raise ConnectionError("Mock connection failed")
+        self._mock_client_connected = True
+
+    async def disconnect_client(self) -> None:
+        """Disconnect the mock client."""
+        self.disconnect_client_called += 1
+        self._mock_client_connected = False
+
+    def check_client_connected(self) -> bool:
+        """Check if mock client is connected."""
+        return self._mock_client_connected
+
+
+class TestExternalClientDevice:
+    """Tests for ExternalClientDevice class."""
+
+    @pytest.mark.asyncio
+    async def test_connect_creates_client_and_starts_watchdog(self):
+        """Test that connect creates client and starts watchdog."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-1"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, watchdog_interval=60)
+
+        events = []
+        device.events.on(
+            DeviceEvents.CONNECTING, lambda *args: events.append(("CONNECTING", args))
+        )
+        device.events.on(
+            DeviceEvents.CONNECTED, lambda *args: events.append(("CONNECTED", args))
+        )
+
+        await device.connect()
+
+        assert device.create_client_called == 1
+        assert device.connect_client_called == 1
+        assert device._is_connected is True
+        assert device._watchdog_task is not None
+        assert not device._watchdog_task.done()
+        assert ("CONNECTING", (device_config.identifier,)) in events
+        assert ("CONNECTED", (device_config.identifier,)) in events
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_connect_skips_if_client_already_connected(self):
+        """Test that connect skips if external client is already connected."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-2"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+
+        # Simulate client being already connected externally
+        device._mock_client_connected = True
+
+        await device.connect()
+
+        # Should not have called create or connect since client already connected
+        assert device.create_client_called == 0
+        assert device.connect_client_called == 0
+
+    @pytest.mark.asyncio
+    async def test_connect_skips_if_watchdog_running(self):
+        """Test that connect skips if watchdog is already running."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-3"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, watchdog_interval=60)
+
+        await device.connect()
+        initial_client_calls = device.create_client_called
+
+        # Second connect should be ignored
+        await device.connect()
+
+        assert device.create_client_called == initial_client_calls
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_connect_error_emits_error_event(self):
+        """Test that connection errors emit ERROR event."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-4"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+        device.connect_client_should_fail = True
+
+        errors = []
+        device.events.on(DeviceEvents.ERROR, lambda *args: errors.append(args))
+
+        await device.connect()
+
+        assert device._is_connected is False
+        assert len(errors) == 1
+        assert "Mock connection failed" in errors[0][1]
+
+    @pytest.mark.asyncio
+    async def test_disconnect_stops_watchdog_and_disconnects_client(self):
+        """Test that disconnect stops watchdog and disconnects client."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-5"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, watchdog_interval=60)
+
+        await device.connect()
+        assert device._watchdog_task is not None
+
+        events = []
+        device.events.on(DeviceEvents.DISCONNECTED, lambda *args: events.append(args))
+
+        await device.disconnect()
+
+        assert device._watchdog_task is None
+        assert device._client is None
+        assert device._is_connected is False
+        assert device.disconnect_client_called == 1
+        assert len(events) == 1
+
+    @pytest.mark.asyncio
+    async def test_disconnect_handles_client_disconnect_error(self):
+        """Test that disconnect handles errors during client disconnect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-6"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+        await device.connect()
+
+        # Make disconnect_client raise an exception
+        async def failing_disconnect():
+            raise RuntimeError("Disconnect failed")
+
+        device.disconnect_client = failing_disconnect
+
+        # Should not raise
+        await device.disconnect()
+
+        assert device._client is None
+        assert device._is_connected is False
+
+    @pytest.mark.asyncio
+    async def test_is_connected_checks_both_internal_and_client_state(self):
+        """Test that is_connected checks both internal and client state."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-7"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+
+        # Not connected at all
+        assert device.is_connected is False
+
+        await device.connect()
+        assert device.is_connected is True
+
+        # External client disconnects without our knowledge
+        device._mock_client_connected = False
+        assert device.is_connected is False
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_watchdog_detects_disconnect_and_reconnects(self):
+        """Test that watchdog detects connection loss and triggers reconnect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-8"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.1,  # Fast watchdog for testing
+            reconnect_delay=0.05,
+        )
+
+        disconnected_events = []
+        connected_events = []
+        device.events.on(
+            DeviceEvents.DISCONNECTED, lambda *args: disconnected_events.append(args)
+        )
+        device.events.on(
+            DeviceEvents.CONNECTED, lambda *args: connected_events.append(args)
+        )
+
+        await device.connect()
+        initial_connect_calls = device.connect_client_called
+        connected_events.clear()  # Clear initial connect event
+
+        # Simulate external client disconnecting
+        device._mock_client_connected = False
+
+        # Wait for watchdog to detect and reconnect
+        await asyncio.sleep(0.4)
+
+        assert len(disconnected_events) >= 1
+        assert len(connected_events) >= 1
+        assert device.connect_client_called > initial_connect_calls
+        assert device._is_connected is True
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_reconnect_max_attempts_reached(self):
+        """Test that reconnect stops after max attempts."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-9"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.1,
+            reconnect_delay=0.05,
+            max_reconnect_attempts=2,
+        )
+
+        await device.connect()
+
+        # Make reconnection fail
+        device.connect_client_should_fail = True
+        device._mock_client_connected = False
+
+        errors = []
+        device.events.on(DeviceEvents.ERROR, lambda *args: errors.append(args))
+
+        # Wait for watchdog and reconnect attempts
+        await asyncio.sleep(0.6)
+
+        # Should have max attempts error
+        assert any("Max reconnection attempts reached" in str(e) for e in errors)
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_reconnect_infinite_attempts(self):
+        """Test that reconnect continues indefinitely when max_reconnect_attempts=0."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-10"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.1,
+            reconnect_delay=0.05,
+            max_reconnect_attempts=0,  # Infinite
+        )
+
+        await device.connect()
+
+        # Make reconnection fail initially
+        device.connect_client_should_fail = True
+        device._mock_client_connected = False
+
+        # Wait a bit for some attempts
+        await asyncio.sleep(0.3)
+
+        # Now allow reconnection to succeed
+        device.connect_client_should_fail = False
+
+        # Wait for successful reconnect
+        await asyncio.sleep(0.3)
+
+        assert device._is_connected is True
+        assert device._mock_client_connected is True
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_reconnect_cleans_up_old_client(self):
+        """Test that reconnect properly cleans up old client before creating new one."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-11"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.1,
+            reconnect_delay=0.05,
+        )
+
+        await device.connect()
+        initial_create_calls = device.create_client_called
+        initial_disconnect_calls = device.disconnect_client_called
+
+        # Simulate external disconnect
+        device._mock_client_connected = False
+
+        # Wait for reconnect
+        await asyncio.sleep(0.3)
+
+        # Should have disconnected old client and created new one
+        assert device.disconnect_client_called > initial_disconnect_calls
+        assert device.create_client_called > initial_create_calls
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_stop_watchdog_task_when_not_running(self):
+        """Test that stopping watchdog when not running is safe."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-12"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+
+        # Should not raise
+        await device._stop_watchdog_task()
+        assert device._watchdog_task is None
+
+    @pytest.mark.asyncio
+    async def test_client_property_accessible(self):
+        """Test that the internal client is accessible."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-13"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config)
+
+        assert device._client is None
+
+        await device.connect()
+        assert device._client is not None
+
+        await device.disconnect()
+        assert device._client is None
+
+    @pytest.mark.asyncio
+    async def test_watchdog_stops_cleanly_on_disconnect(self):
+        """Test that watchdog stops cleanly when disconnect is called."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-14"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, watchdog_interval=0.1)
+
+        await device.connect()
+        watchdog_task = device._watchdog_task
+        assert watchdog_task is not None
+
+        await device.disconnect()
+
+        # Watchdog should be cancelled and cleaned up
+        assert device._watchdog_task is None
+        assert watchdog_task.cancelled() or watchdog_task.done()
