@@ -1,0 +1,103 @@
+site_name: UCAPI Framework
+site_description: A framework for building Unfolded Circle Remote integrations
+site_author: Jack Powell
+site_url: https://jackjpowell.github.io/ucapi-framework/
+
+repo_name: JackJPowell/ucapi-framework
+repo_url: https://github.com/JackJPowell/ucapi-framework
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+            show_bases: true
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            merge_init_into_class: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - Setup Flow: guide/setup-flow.md
+      - Device Patterns: guide/device-patterns.md
+      - Configuration Management: guide/configuration.md
+      - Discovery: guide/discovery.md
+      - Driver Integration: guide/driver.md
+  - API Reference:
+      - Driver: api/driver.md
+      - Device: api/device.md
+      - Setup Flow: api/setup.md
+      - Configuration: api/config.md
+      - Discovery: api/discovery.md
+  - Migration Guide: migration-guide.md
+  - Contributing: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/JackJPowell
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/zGVYf58
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY

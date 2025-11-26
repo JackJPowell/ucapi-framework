@@ -70,30 +70,38 @@ Full type safety means IDE autocomplete works everywhere. No more dict manipulat
 
 ### Driver Integration
 
-The driver coordinates everything - device lifecycle, entity management, and Remote events. You implement four required methods that define your integration's specifics:
+The driver coordinates everything - device lifecycle, entity management, and Remote events. **Most integrations work with just the defaults** - no overrides needed!
 
-- **`device_from_entity_id()`** - Extract device ID from entity ID
-- **`get_entity_ids_for_device()`** - Map device to its entities
-- **`map_device_state()`** - Convert device state to entity state
-- **`create_entities()`** - Instantiate entity objects
+The framework provides sensible defaults for:
 
-Everything else is automatic. The framework handles Remote connection events (connect, disconnect, standby), entity subscriptions, device lifecycle management, and state synchronization. You can override the event handlers if needed, but the defaults work for most cases.
+- **`create_entities()`** - Creates one entity per entity type automatically
+- **`map_device_state()`** - Maps common state strings (ON, OFF, PLAYING, etc.)
+- **`device_from_entity_id()`** - Parses standard entity ID format
+- **`get_entity_ids_for_device()`** - Queries and filters entities by device
+
+**Override only what you need**: Custom state enums? Override `map_device_state()`. Conditional entity creation? Override `create_entities()`. Custom entity ID format? Override `device_from_entity_id()` too.
+
+Everything else is automatic. The framework handles Remote connection events (connect, disconnect, standby), entity subscriptions, device lifecycle management, and state synchronization.
 
 Device events (like state changes) automatically propagate to entity state updates. The framework maintains the connection between your devices and your remote.
 
-**Reduction**: Driver code goes from ~300 lines to ~90 lines.
+**Reduction**: Driver code goes from ~300 lines to ~50 lines (or less!).
 
 ### Discovery (Optional)
 
 If your devices support network discovery, the framework provides implementations for common protocols:
 
-**SSDPDiscovery** - For UPnP/SSDP devices. Define your service type and implement `create_discovered_device()` to convert SSDP responses into device configs.
+**SSDPDiscovery** - For UPnP/SSDP devices. Define your service type and implement `parse_ssdp_device()` to convert SSDP responses into `DiscoveredDevice` objects.
 
-**ZeroconfDiscovery** - For mDNS/Bonjour devices. Same pattern: service type + conversion method.
+**SDDPDiscovery** - For SDDP devices (Samsung TVs). Same pattern: define search pattern and implement `parse_sddp_device()`.
 
-**NetworkProbeDiscovery** - For devices that need active probing. Scans local network ranges and calls your `probe_host()` method for each IP.
+**MDNSDiscovery** - For mDNS/Bonjour devices. Define service type and implement `parse_mdns_service()` to convert service info into device configs.
 
-All discovery classes handle the protocol details, timeouts, and error handling. Dependencies are lazy-loaded, so you only install what you use (ssdpy, zeroconf, etc.). If your integration doesn't support discovery, just return an empty list from `discover_devices()` and focus on manual entry.
+**NetworkScanDiscovery** - For devices that need active probing. Scans local network ranges and calls your `probe_device()` method for each IP.
+
+For integrations where your device library has its own discovery mechanism, simply inherit from `BaseDiscovery` and implement the `discover()` method to call your library's discovery and convert results to `DiscoveredDevice` format.
+
+All discovery classes handle the protocol details, timeouts, and error handling. Dependencies are lazy-loaded, so you only install what you use (ssdpy, sddp-discovery-protocol, zeroconf, etc.). If your integration doesn't support discovery, just return an empty list from `discover_devices()` and focus on manual entry.
 
 ### Event System
 
@@ -103,9 +111,9 @@ Device events (state changes, errors) automatically propagate to entity state up
 
 ## How It Works
 
-You inherit from base classes and implement a few required methods:
+You inherit from base classes and override only what you need:
 
-**Driver** - Map between device states and entity states. Create entity instances.
+**Driver** - Usually works with defaults! Override only if you need custom state mapping or conditional entity creation.
 
 **Device** - Implement your connection pattern (verify, poll, handle messages, etc.).
 
@@ -113,7 +121,7 @@ You inherit from base classes and implement a few required methods:
 
 **Config** - Just a dataclass.
 
-The framework handles everything else: lifecycle management, event routing, state synchronization, configuration persistence, error handling, and reconnection logic.
+The framework provides sensible defaults for common patterns. You override only what's specific to your integration. Everything else is handled automatically: lifecycle management, event routing, state synchronization, configuration persistence, error handling, and reconnection logic.
 
 ## Architecture
 
@@ -149,8 +157,10 @@ No casting, no generic types, just full type safety throughout.
 Optional discovery implementations for common protocols:
 
 - **SSDPDiscovery** - For UPnP/SSDP devices
-- **ZeroconfDiscovery** - For mDNS/Bonjour devices  
-- **NetworkProbeDiscovery** - For scanning IP ranges
+- **SDDPDiscovery** - For SDDP devices (Samsung TVs)
+- **MDNSDiscovery** - For mDNS/Bonjour devices
+- **NetworkScanDiscovery** - For scanning IP ranges
+- **BaseDiscovery** - For custom discovery (inherit and implement `discover()`)
 
 Lazy imports mean you only need the dependencies if you use them.
 
@@ -180,6 +190,22 @@ Optional (only if you use them):
 - websockets (for WebSocket devices)
 - ssdpy (for SSDP discovery)
 - zeroconf (for mDNS discovery)
+
+## Documentation
+
+Full documentation is available at [https://jackjpowell.github.io/ucapi-framework/](https://jackjpowell.github.io/ucapi-framework/)
+
+To build documentation locally:
+
+```bash
+# Install documentation dependencies
+uv sync --group docs
+
+# Serve documentation locally
+mkdocs serve
+```
+
+Visit <http://127.0.0.1:8000> to view the docs.
 
 ## License
 
