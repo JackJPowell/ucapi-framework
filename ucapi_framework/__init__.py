@@ -30,7 +30,13 @@ from .device import (
     ExternalClientDevice,
     DeviceEvents,
 )
-from .discovery import BaseDiscovery, DiscoveredDevice
+from .discovery import (
+    BaseDiscovery,
+    DiscoveredDevice,
+    MDNSDiscovery,
+    SDDPDiscovery,
+    SSDPDiscovery,
+)
 
 __all__ = [
     "BaseIntegrationDriver",
@@ -47,6 +53,9 @@ __all__ = [
     "create_entity_id",
     "ExternalClientDevice",
     "DeviceEvents",
+    "MDNSDiscovery",
+    "SDDPDiscovery",
+    "SSDPDiscovery",
 ]
 
 __version__ = "0.1.0"

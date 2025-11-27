@@ -1861,3 +1861,47 @@ class TestExternalClientDevice:
         # Watchdog should be cancelled and cleaned up
         assert device._watchdog_task is None
         assert watchdog_task.cancelled() or watchdog_task.done()
+
+    @pytest.mark.asyncio
+    async def test_watchdog_disabled(self):
+        """Test that watchdog can be disabled."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-15"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, enable_watchdog=False)
+
+        await device.connect()
+
+        # Watchdog should not be started
+        assert device._watchdog_task is None
+        assert device._is_connected is True
+        assert device.create_client_called == 1
+        assert device.connect_client_called == 1
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_watchdog_disabled_no_auto_reconnect(self):
+        """Test that with watchdog disabled, there's no auto-reconnect on disconnect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-16"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(device_config, enable_watchdog=False)
+
+        await device.connect()
+        initial_connect_calls = device.connect_client_called
+
+        # Simulate external client disconnecting
+        device._mock_client_connected = False
+
+        # Wait a bit - no reconnection should happen since watchdog is disabled
+        await asyncio.sleep(0.2)
+
+        # Connect calls should not have increased
+        assert device.connect_client_called == initial_connect_calls
+
+        await device.disconnect()

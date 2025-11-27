@@ -144,12 +144,10 @@ class MySetupFlow(BaseSetupFlow[MyDeviceConfig]):
             ],
         )
     
-    async def query_device(
-        self, device_id: str | None, input_values: dict
-    ) -> MyDeviceConfig:
+    async def query_device(self, input_values: dict) -> MyDeviceConfig:
         """Create device config from user input."""
         return MyDeviceConfig(
-            identifier=device_id or input_values["host"].replace(".", "_"),
+            identifier=input_values.get("identifier", input_values["host"].replace(".", "_")),
             name=input_values["name"],
             host=input_values["host"],
             api_key=input_values.get("api_key", ""),

@@ -34,7 +34,7 @@ The framework handles all the routing, state management, duplicate checking, and
 
 ### Device Connection Patterns
 
-Four base classes cover the common connection patterns:
+Five base classes cover the common connection patterns:
 
 **StatelessHTTPDevice** - For REST APIs. You implement `verify_connection()` to test reachability. No connection management needed.
 
@@ -42,7 +42,9 @@ Four base classes cover the common connection patterns:
 
 **WebSocketDevice** - For WebSocket connections. You implement `create_websocket()` and `handle_message()`. Framework manages the connection lifecycle, reconnection, and cleanup.
 
-**PersistentConnectionDevice** - For TCP, serial, or custom protocols. You implement `establish_connection()`, `receive_data()`, and `close_connection()`. Framework handles the receive loop and error recovery.
+**ExternalClientDevice** - For third-party libraries that manage their own connections (Z-Wave JS, MQTT clients, etc.). You implement `create_client()`, `connect_client()`, and `check_client_connected()`. Framework provides watchdog monitoring and auto-reconnection.
+
+**PersistentConnectionDevice** - For TCP, serial, or custom protocols. You implement `establish_connection()`, `maintain_connection()`, and `close_connection()`. Framework handles the receive loop and error recovery.
 
 All connection management, error handling, reconnection logic, and cleanup happens automatically.
 

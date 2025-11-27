@@ -37,6 +37,13 @@ Device interfaces provide base classes for different connection patterns.
       show_root_heading: true
       show_source: false
 
+## ExternalClientDevice
+
+::: ucapi_framework.device.ExternalClientDevice
+    options:
+      show_root_heading: true
+      show_source: false
+
 ## PersistentConnectionDevice
 
 ::: ucapi_framework.device.PersistentConnectionDevice

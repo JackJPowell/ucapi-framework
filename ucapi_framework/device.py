@@ -159,7 +159,7 @@ class BaseDeviceInterface(ABC):
     async def connect(self) -> bool:
         """
         Establish connection to the device.
-        
+
         :return: True if connection successful, False otherwise
         """
 
@@ -195,7 +195,7 @@ class StatelessHTTPDevice(BaseDeviceInterface):
 
         For stateless devices, this typically means verifying the device
         responds to a basic request.
-        
+
         :return: True if connection successful, False otherwise
         """
         _LOG.debug("[%s] Connecting to device at %s", self.log_id, self.address)
@@ -282,7 +282,7 @@ class PollingDevice(BaseDeviceInterface):
     async def connect(self) -> bool:
         """
         Establish connection and start polling.
-        
+
         :return: True if connection successful, False otherwise
         """
         # Prevent multiple concurrent connections
@@ -424,7 +424,7 @@ class WebSocketDevice(BaseDeviceInterface):
 
         If reconnection is enabled, this will continuously attempt to
         maintain a connection until disconnect() is called.
-        
+
         :return: True if connection task started successfully, False otherwise
         """
         # Prevent multiple concurrent connection tasks
@@ -444,7 +444,7 @@ class WebSocketDevice(BaseDeviceInterface):
         else:
             # Single connection attempt
             self._ws_task = asyncio.create_task(self._single_connect())
-        
+
         return True
 
     async def disconnect(self) -> None:
@@ -791,7 +791,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
 
         Both WebSocket and polling tasks run concurrently. If WebSocket connection
         fails, polling continues to provide state updates.
-        
+
         :return: True if at least polling started successfully, False otherwise
         """
         # Prevent multiple concurrent connections
@@ -832,7 +832,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
             self._is_connected = False
             # Polling continues even if WebSocket fails
             _LOG.info("[%s] Polling started (WebSocket unavailable)", self.log_id)
-        
+
         # Return True since at least polling is running
         return True
 
@@ -929,30 +929,32 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
     # - establish_connection() from PollingDevice
     # - poll_device() from PollingDevice
 
+
 class ExternalClientDevice(BaseDeviceInterface):
     """
     Base class for devices using external client libraries.
-    
+
     Use this when wrapping a third-party library that:
     - Manages its own WebSocket/TCP connection internally
     - Provides event callbacks for state changes
     - Exposes a connection state property
     - May disconnect without proper notification
-    
+
     Features:
     - Watchdog polling to verify external client connection state
     - Automatic reconnection when watchdog detects disconnect
     - Configurable watchdog interval and reconnection attempts
     - Early exit in connect() if client is already connected
-    
+
     Good for: Z-Wave JS, Home Assistant WebSocket, MQTT clients,
               or any library that manages its own connection.
     """
-    
+
     def __init__(
         self,
         device_config: Any,
         loop: AbstractEventLoop | None = None,
+        enable_watchdog: bool = True,
         watchdog_interval: int = 30,
         reconnect_delay: int = 5,
         max_reconnect_attempts: int = 3,
@@ -960,9 +962,10 @@ class ExternalClientDevice(BaseDeviceInterface):
     ):
         """
         Initialize external client device.
-        
+
         :param device_config: Device configuration
         :param loop: Event loop
+        :param enable_watchdog: Enable watchdog to monitor connection state (default: True)
         :param watchdog_interval: Interval to check connection state (seconds)
         :param reconnect_delay: Delay between reconnection attempts (seconds)
         :param max_reconnect_attempts: Max reconnection attempts before giving up (0 = infinite)
@@ -970,6 +973,7 @@ class ExternalClientDevice(BaseDeviceInterface):
         """
         super().__init__(device_config, loop, config_manager)
         self._client: Any = None
+        self._enable_watchdog = enable_watchdog
         self._watchdog_task: asyncio.Task | None = None
         self._stop_watchdog = asyncio.Event()
         self._watchdog_interval = watchdog_interval
@@ -980,7 +984,7 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def connect(self) -> bool:
         """
         Connect to device via external client and start watchdog.
-        
+
         :return: True if connection successful, False otherwise
         """
         # Check if external client is already connected
@@ -996,23 +1000,24 @@ class ExternalClientDevice(BaseDeviceInterface):
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
 
         if await self._connect_client_internal():
-            # Start watchdog to monitor connection
-            self._stop_watchdog.clear()
-            self._watchdog_task = asyncio.create_task(self._watchdog_loop())
+            # Start watchdog to monitor connection (if enabled)
+            if self._enable_watchdog:
+                self._stop_watchdog.clear()
+                self._watchdog_task = asyncio.create_task(self._watchdog_loop())
             return True
-        
+
         return False
 
     async def _connect_client_internal(self) -> bool:
         """
         Internal method to create and connect the external client.
-        
+
         :return: True if connection successful, False otherwise
         """
         try:
             self._client = await self.create_client()
             await self.connect_client()
-            
+
             self._is_connected = True
             self.events.emit(DeviceEvents.CONNECTED, self.identifier)
             _LOG.info("[%s] Connected", self.log_id)
@@ -1027,7 +1032,7 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def disconnect(self) -> None:
         """Disconnect from device and stop watchdog."""
         _LOG.debug("[%s] Disconnecting", self.log_id)
-        
+
         # Stop watchdog first
         await self._stop_watchdog_task()
 
@@ -1037,7 +1042,7 @@ class ExternalClientDevice(BaseDeviceInterface):
                 await self.disconnect_client()
             except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOG.debug("[%s] Error during disconnect: %s", self.log_id, err)
-            
+
             self._client = None
 
         self._is_connected = False
@@ -1047,26 +1052,26 @@ class ExternalClientDevice(BaseDeviceInterface):
     def is_connected(self) -> bool:
         """
         Return True if device is connected.
-        
+
         Checks both internal state and external client state for accuracy.
         """
         if not self._is_connected:
             return False
-        
+
         # Also check external client's connection state
         return self.check_client_connected()
 
     async def _stop_watchdog_task(self) -> None:
         """Stop the watchdog task."""
         self._stop_watchdog.set()
-        
+
         if self._watchdog_task and not self._watchdog_task.done():
             self._watchdog_task.cancel()
             try:
                 await self._watchdog_task
             except asyncio.CancelledError:
                 pass
-        
+
         self._watchdog_task = None
 
     async def _watchdog_loop(self) -> None:
@@ -1092,7 +1097,7 @@ class ExternalClientDevice(BaseDeviceInterface):
                 _LOG.warning("[%s] Connection lost, attempting reconnect", self.log_id)
                 self._is_connected = False
                 self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
-                
+
                 await self._reconnect()
 
         _LOG.debug("[%s] Watchdog stopped", self.log_id)
@@ -1109,11 +1114,14 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def _reconnect(self) -> None:
         """Attempt to reconnect to the external client with retries."""
         attempts = 0
-        
+
         while not self._stop_watchdog.is_set():
             attempts += 1
-            
-            if self._max_reconnect_attempts > 0 and attempts > self._max_reconnect_attempts:
+
+            if (
+                self._max_reconnect_attempts > 0
+                and attempts > self._max_reconnect_attempts
+            ):
                 _LOG.error(
                     "[%s] Max reconnection attempts (%d) reached",
                     self.log_id,
@@ -1130,7 +1138,9 @@ class ExternalClientDevice(BaseDeviceInterface):
                 "[%s] Reconnection attempt %d%s",
                 self.log_id,
                 attempts,
-                f"/{self._max_reconnect_attempts}" if self._max_reconnect_attempts > 0 else "",
+                f"/{self._max_reconnect_attempts}"
+                if self._max_reconnect_attempts > 0
+                else "",
             )
 
             # Clean up old client
@@ -1151,11 +1161,11 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def create_client(self) -> Any:
         """
         Create the external client instance.
-        
+
         Example:
             async def create_client(self):
                 return ZWaveClient(self.address)
-        
+
         :return: External client instance
         """
 
@@ -1163,9 +1173,9 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def connect_client(self) -> None:
         """
         Connect the external client.
-        
+
         This is a good place to set up event handlers on the client.
-        
+
         Example:
             async def connect_client(self):
                 await self._client.connect()
@@ -1176,9 +1186,9 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def disconnect_client(self) -> None:
         """
         Disconnect the external client.
-        
+
         This is a good place to remove event handlers from the client.
-        
+
         Example:
             async def disconnect_client(self):
                 self._client.off("value_updated", self._on_value_updated)
@@ -1189,14 +1199,14 @@ class ExternalClientDevice(BaseDeviceInterface):
     def check_client_connected(self) -> bool:
         """
         Check if the external client is connected.
-        
+
         This should query the external client's actual connection state,
         not rely on internal tracking.
-        
+
         Example:
             def check_client_connected(self) -> bool:
                 return self._client is not None and self._client.connected
-        
+
         :return: True if external client is connected
         """
 
@@ -1235,7 +1245,7 @@ class PersistentConnectionDevice(BaseDeviceInterface):
     async def connect(self) -> bool:
         """
         Establish persistent connection with reconnection logic.
-        
+
         :return: True if connection task started successfully, False otherwise
         """
         _LOG.debug("[%s] Starting persistent connection", self.log_id)

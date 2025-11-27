@@ -1247,11 +1247,10 @@ wheels = [
 
 [[package]]
 name = "ucapi-framework"
-version = "0.1.15"
+version = "0.1.22"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "mkdocs-material" },
     { name = "pyee" },
     { name = "ucapi" },
 ]
@@ -1270,7 +1269,6 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9.0" },
-    { name = "mkdocs-material", specifier = ">=9.7.0" },
     { name = "pyee", specifier = ">=13.0.0" },
     { name = "ucapi", specifier = ">=0.3.2" },
 ]

@@ -116,9 +116,36 @@ def device_from_entity_id(self, entity_id: str) -> str | None:
 !!! warning "Important"
     If you override `create_entities()` with a custom entity ID format, you **must** also override `device_from_entity_id()` to match. The framework will raise an error if you forget.
 
-### 4. get_entity_ids_for_device() ✅ Has Default
+### 5. entity_type_from_entity_id() ✅ Has Default
 
-**Default behavior**: Queries the API for all entities and filters by device ID.
+**Default behavior**: Extracts entity type from standard format `"entity_type.device_id"`.
+
+```python
+entity_id = "media_player.receiver_123"
+entity_type = driver.entity_type_from_entity_id(entity_id)  # Returns "media_player"
+```
+
+**Override only if** you use a custom entity ID format (same conditions as `device_from_entity_id()`).
+
+### 6. entity_from_entity_id() ✅ Has Default
+
+**Default behavior**: Extracts sub-entity ID from 3-part format `"entity_type.device_id.entity_id"`.
+
+```python
+# 2-part format returns None
+entity_id = "media_player.receiver_123"
+sub_entity = driver.entity_from_entity_id(entity_id)  # Returns None
+
+# 3-part format returns the sub-entity
+entity_id = "light.hub_1.bedroom"
+sub_entity = driver.entity_from_entity_id(entity_id)  # Returns "bedroom"
+```
+
+Useful for hub-based integrations where one device exposes multiple entities.
+
+### 7. get_entity_ids_for_device() ✅ Has Default
+
+**Default behavior**: Queries the API for all entities (both available and configured) and filters by device ID.
 
 ```python
 # Works automatically - no override needed
@@ -141,6 +168,37 @@ def get_entity_ids_for_device(self, device_id: str) -> list[str]:
             f"remote.{device_id}",
         ]
     return self._entity_cache[device_id]
+```
+
+### 8. on_device_update() ✅ Has Default
+
+**Default behavior**: Automatically extracts entity-type-specific attributes from the update dict and updates configured/available entities. Supports all entity types (Button, Climate, Cover, Light, Media Player, Remote, Sensor, Switch).
+
+```python
+# Works automatically - device sends update, entities get updated
+device.events.emit(DeviceEvents.UPDATE, device_id, {
+    "state": "PLAYING",
+    "volume": 50,
+    "media_title": "Song Name"
+})
+# Framework automatically updates the configured entity attributes
+```
+
+**Special feature for media players**: When state is `OFF`, all media attributes (title, artist, duration, etc.) are automatically cleared. Control this with the `clear_media_when_off` parameter.
+
+**Override only if** you need custom state mapping or attribute transformation:
+
+```python
+async def on_device_update(
+    self, device_id: str, update: dict[str, Any] | None
+) -> None:
+    """Custom update handling with state transformation."""
+    if update:
+        # Transform device-specific values before calling default
+        if "power_state" in update:
+            update["state"] = "ON" if update["power_state"] else "OFF"
+    
+    await super().on_device_update(device_id, update)
 ```
 
 ## Event Handlers
@@ -168,11 +226,12 @@ async def on_device_connection_error(
     # Custom logic...
 
 async def on_device_update(
-    self, device_id: str, update: dict[str, Any]
+    self, device_id: str, update: dict[str, Any] | None,
+    clear_media_when_off: bool = True
 ) -> None:
     """Device state update."""
     # Default implementation handles all entity types
-    await super().on_device_update(device_id, update)
+    await super().on_device_update(device_id, update, clear_media_when_off)
 ```
 
 ### Remote Events
@@ -199,6 +258,70 @@ async def on_r2_exit_standby(self) -> None:
     """Remote exiting standby."""
     await super().on_r2_exit_standby()
     # Wake devices...
+```
+
+## Hub-Based Integrations
+
+For integrations where entities are discovered dynamically from a hub device (like smart home bridges or multi-zone receivers), use the `require_connection_before_registry` flag:
+
+```python
+class MyHubDriver(BaseIntegrationDriver[MyHub, MyHubConfig]):
+    def __init__(self, loop):
+        super().__init__(
+            loop=loop,
+            device_class=MyHub,
+            entity_classes=[EntityTypes.LIGHT, EntityTypes.SWITCH],
+            require_connection_before_registry=True  # Enable hub mode
+        )
+```
+
+### How It Works
+
+When `require_connection_before_registry=True`:
+
+1. **Device Addition**: Uses `async_add_configured_device()` which connects first, then registers entities
+2. **Entity Subscription**: Waits for connection before calling `async_register_available_entities()`
+3. **Entity Discovery**: Entities are populated from the hub after connection
+
+### Required Override
+
+You must override `async_register_available_entities()` to populate entities from the hub:
+
+```python
+async def async_register_available_entities(
+    self, device_config: MyHubConfig, device: MyHub
+) -> None:
+    """Register entities discovered from the hub."""
+    # Get entities from connected hub
+    hub_devices = await device.get_discovered_devices()
+    
+    for hub_device in hub_devices:
+        entity_id = create_entity_id(
+            EntityTypes.LIGHT, 
+            device_config.identifier,
+            hub_device.id  # Sub-entity ID
+        )
+        entity = Light(
+            entity_id,
+            hub_device.name,
+            features=[light.Features.ON_OFF, light.Features.DIM]
+        )
+        self.api.available_entities.add(entity)
+```
+
+### Entity ID Helpers for Hubs
+
+Use the 3-part entity ID format for hub devices:
+
+```python
+# Create entity ID with sub-entity
+entity_id = create_entity_id(EntityTypes.LIGHT, "hub_1", "bedroom_light")
+# Result: "light.hub_1.bedroom_light"
+
+# Parse it back
+device_id = driver.device_from_entity_id(entity_id)  # "hub_1"
+entity_type = driver.entity_type_from_entity_id(entity_id)  # "light"
+sub_entity = driver.entity_from_entity_id(entity_id)  # "bedroom_light"
 ```
 
 ## Minimal Example

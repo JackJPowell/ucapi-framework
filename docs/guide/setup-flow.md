@@ -13,14 +13,24 @@ graph LR
     C --> D[Run Discovery]
     D --> E[Device Selection]
     B -->|No| F[Manual Entry]
-    E --> G[Additional Config]
+    E --> G[query_device]
     F --> G
-    G --> H[Complete]
+    G --> H[Additional Config?]
+    H -->|Yes| I[Additional Screen]
+    H -->|No| J[Complete]
+    I --> J
 ```
+
+## Key Concept: Unified Flow
+
+Both discovery and manual entry paths converge on `query_device()`. This means you only implement device validation logic once:
+
+- **Manual entry** → `query_device(input_values)`
+- **Discovery selection** → `prepare_input_from_discovery()` → `query_device(input_values)`
 
 ## Basic Setup Flow
 
-The simplest setup flow only requires implementing `get_manual_entry_form()` and `query_device()`:
+The simplest setup flow requires implementing `get_manual_entry_form()` and `query_device()`:
 
 ```python
 from ucapi_framework import BaseSetupFlow
@@ -47,12 +57,10 @@ class MySetupFlow(BaseSetupFlow[MyDeviceConfig]):
             ],
         )
     
-    async def query_device(
-        self, device_id: str | None, input_values: dict
-    ) -> MyDeviceConfig:
-        """Create config from user input."""
+    async def query_device(self, input_values: dict) -> MyDeviceConfig:
+        """Create config from user input (works for both manual and discovery)."""
         return MyDeviceConfig(
-            identifier=device_id or input_values["address"].replace(".", "_"),
+            identifier=input_values.get("identifier", input_values["address"].replace(".", "_")),
             name=input_values["name"],
             host=input_values["address"],
         )
@@ -82,12 +90,31 @@ async def handle_pre_discovery_response(
     self, msg: UserDataResponse
 ) -> SetupAction:
     """Process pre-discovery input."""
-    # Store API key for use in discovery
-    self._pending_config["api_key"] = msg.input_values["api_key"]
+    # Data is automatically stored in self._pre_discovery_data
+    # and merged with manual entry input later
     
     # Continue to discovery
     return await self._handle_discovery()
 ```
+
+### Discovery to Input Conversion
+
+When a user selects a discovered device, override `prepare_input_from_discovery()` to convert the discovered device data to the same format as manual entry:
+
+```python
+async def prepare_input_from_discovery(
+    self, discovered: DiscoveredDevice, additional_input: dict
+) -> dict:
+    """Convert discovered device to input_values format."""
+    return {
+        "identifier": discovered.identifier,
+        "address": discovered.address,
+        "name": additional_input.get("name", discovered.name),
+        "port": discovered.extra_data.get("port", 8080),
+    }
+```
+
+The default implementation returns basic fields (`identifier`, `address`, `name`) plus any additional input fields.
 
 ### Additional Configuration
 
@@ -95,9 +122,9 @@ Collect device-specific settings after device selection:
 
 ```python
 async def get_additional_configuration_screen(
-    self, device_config: MyDeviceConfig
+    self, device_config: MyDeviceConfig, input_values: dict
 ) -> RequestUserInput | None:
-    """Screen shown after device selection."""
+    """Screen shown after query_device succeeds."""
     return RequestUserInput(
         title="Device Settings",
         settings=[
@@ -118,14 +145,11 @@ async def get_additional_configuration_screen(
     )
 
 async def handle_additional_configuration_response(
-    self, msg: UserDataResponse, device_config: MyDeviceConfig
+    self, msg: UserDataResponse
 ) -> SetupAction:
     """Process additional configuration."""
-    # Update config with zone selection
-    self._pending_device_config = msg.input_values["zone"]
-    
-    # Continue with finalization, data in _pending_device_config will automatically be saved
-    # There are several more options to complete setup. Refer to method docs for details
+    # Fields are auto-populated to self._pending_device_config
+    # Just return None to save and complete
     return None
 ```
 
@@ -151,13 +175,36 @@ def get_additional_discovery_fields(self) -> list[dict]:
             },
         }
     ]
+```
 
-def extract_additional_setup_data(
-    self, input_values: dict, device_config: MyDeviceConfig
-) -> None:
-    """Extract custom field values."""
-    if "zone" in input_values:
-        device_config.zone = input_values["zone"]
+These additional input values are passed to `prepare_input_from_discovery()`.
+
+## Multi-Screen Flows
+
+For complex setups requiring multiple screens:
+
+```python
+async def query_device(self, input_values: dict) -> MyDeviceConfig | RequestUserInput:
+    """Query device and optionally show more screens."""
+    # Test connection
+    device_info = await self._api.get_device_info(input_values["address"])
+    
+    if not device_info:
+        return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+    
+    # Store config for multi-screen flow
+    self._pending_device_config = MyDeviceConfig(
+        identifier=device_info["id"],
+        name=input_values["name"],
+        address=input_values["address"],
+    )
+    
+    # Show additional screen
+    return RequestUserInput(
+        {"en": "Select Options"},
+        [{"id": "option", "label": {"en": "Option"}, 
+          "field": {"text": {"value": ""}}}]
+    )
 ```
 
 ## Configuration Modes

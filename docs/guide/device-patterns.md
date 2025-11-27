@@ -320,6 +320,88 @@ class MyTCPDevice(PersistentConnectionDevice):
             )
 ```
 
+## ExternalClientDevice
+
+For devices using external client libraries that manage their own connections.
+
+**Good for:** Z-Wave JS, Home Assistant WebSocket, MQTT clients, third-party APIs
+
+**You implement:**
+
+- `create_client()` - Create the external client instance
+- `connect_client()` - Connect and set up event handlers
+- `disconnect_client()` - Disconnect and remove event handlers
+- `check_client_connected()` - Query actual client connection state
+- Property accessors
+
+**Framework handles:**
+
+- Watchdog polling to detect silent disconnections
+- Automatic reconnection with configurable retries
+- Early exit if client is already connected
+- Task management and cleanup
+
+### Example
+
+```python
+from ucapi_framework import ExternalClientDevice, DeviceEvents
+
+class MyExternalDevice(ExternalClientDevice):
+    def __init__(self, device_config, loop=None, config_manager=None):
+        super().__init__(
+            device_config,
+            loop=loop,
+            enable_watchdog=True,      # Monitor connection state
+            watchdog_interval=30,       # Check every 30 seconds
+            reconnect_delay=5,          # Wait 5s between reconnect attempts
+            max_reconnect_attempts=3,   # Give up after 3 failures (0 = infinite)
+            config_manager=config_manager
+        )
+    
+    @property
+    def identifier(self) -> str:
+        return self._device_config.identifier
+    
+    @property
+    def name(self) -> str:
+        return self._device_config.name
+    
+    @property
+    def address(self) -> str:
+        return self._device_config.host
+    
+    @property
+    def log_id(self) -> str:
+        return f"Device[{self.identifier}]"
+    
+    async def create_client(self):
+        """Create the external client instance."""
+        from some_library import Client
+        return Client(self.address)
+    
+    async def connect_client(self) -> None:
+        """Connect the client and set up event handlers."""
+        await self._client.connect()
+        self._client.on("state_changed", self._on_state_changed)
+    
+    async def disconnect_client(self) -> None:
+        """Disconnect and clean up."""
+        self._client.off("state_changed", self._on_state_changed)
+        await self._client.disconnect()
+    
+    def check_client_connected(self) -> bool:
+        """Check actual client connection state."""
+        return self._client is not None and self._client.connected
+    
+    def _on_state_changed(self, state):
+        """Handle state changes from the client."""
+        self.events.emit(
+            DeviceEvents.UPDATE,
+            self.identifier,
+            {"state": state}
+        )
+```
+
 ## Choosing a Pattern
 
 | Pattern | Use Case | Complexity |
@@ -328,6 +410,7 @@ class MyTCPDevice(PersistentConnectionDevice):
 | **PollingDevice** | Need periodic state checks | ⭐⭐ Moderate |
 | **WebSocketDevice** | WebSocket APIs, real-time | ⭐⭐⭐ Complex |
 | **WebSocketPollingDevice** | Hybrid with fallback | ⭐⭐⭐⭐ Advanced |
+| **ExternalClientDevice** | Third-party client libraries | ⭐⭐⭐ Moderate |
 | **PersistentConnectionDevice** | Custom protocols, TCP | ⭐⭐⭐⭐ Advanced |
 
 See the [API Reference](../api/device.md) for complete documentation.
