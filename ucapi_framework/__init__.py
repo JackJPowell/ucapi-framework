@@ -20,7 +20,7 @@ See ucapi_framework.discovery module documentation for details.
 
 from .driver import BaseIntegrationDriver, create_entity_id
 from .setup import BaseSetupFlow, SetupSteps
-from .config import BaseDeviceManager
+from .config import BaseDeviceManager, get_config_path
 from .device import (
     BaseDeviceInterface,
     StatelessHTTPDevice,
@@ -28,12 +28,14 @@ from .device import (
     WebSocketDevice,
     WebSocketPollingDevice,
     ExternalClientDevice,
+    PersistentConnectionDevice,
     DeviceEvents,
 )
 from .discovery import (
     BaseDiscovery,
     DiscoveredDevice,
     MDNSDiscovery,
+    NetworkScanDiscovery,
     SDDPDiscovery,
     SSDPDiscovery,
 )
@@ -43,19 +45,22 @@ __all__ = [
     "BaseSetupFlow",
     "SetupSteps",
     "BaseDeviceManager",
+    "get_config_path",
     "BaseDeviceInterface",
     "StatelessHTTPDevice",
     "PollingDevice",
     "WebSocketDevice",
     "WebSocketPollingDevice",
+    "ExternalClientDevice",
+    "PersistentConnectionDevice",
+    "DeviceEvents",
     "BaseDiscovery",
     "DiscoveredDevice",
-    "create_entity_id",
-    "ExternalClientDevice",
-    "DeviceEvents",
     "MDNSDiscovery",
+    "NetworkScanDiscovery",
     "SDDPDiscovery",
     "SSDPDiscovery",
+    "create_entity_id",
 ]
 
-__version__ = "0.1.0"
+__version__ = "1.0.1"

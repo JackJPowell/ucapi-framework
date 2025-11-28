@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from ucapi_framework.config import BaseDeviceManager
+from ucapi_framework.config import BaseDeviceManager, get_config_path
 
 
 @dataclass
@@ -580,8 +580,8 @@ class TestBaseDeviceManager:
             # Restore permissions
             os.chmod(config_file, stat.S_IRUSR | stat.S_IWUSR)
 
-    def test_store_fails_gracefully_without_directory(self, temp_config_dir):
-        """Test that store fails gracefully when directory doesn't exist."""
+    def test_store_recreates_directory_if_missing(self, temp_config_dir):
+        """Test that store recreates the directory if it was deleted."""
         import shutil
 
         manager = ConcreteDeviceManager(temp_config_dir)
@@ -591,9 +591,10 @@ class TestBaseDeviceManager:
         # Remove the directory
         shutil.rmtree(temp_config_dir)
 
-        # Store should fail gracefully and return False
+        # Store should recreate directory and succeed
         result = manager.store()
-        assert result is False
+        assert result is True
+        assert os.path.exists(temp_config_dir)
 
     def test_backup_with_custom_path(self, temp_config_dir):
         """Test backup to a custom path."""
@@ -1004,3 +1005,111 @@ class TestNestedDataclassDeserialization:
         assert isinstance(loaded.lights[0], LightInfo)
         assert loaded.lights[0].device_id == "light1"
         assert loaded.lights[0].brightness == 80
+
+
+class TestGetConfigPath:
+    """Test suite for get_config_path function."""
+
+    def test_docker_environment_uses_uc_config_home(self, monkeypatch):
+        """Test that Docker environment uses UC_CONFIG_HOME."""
+        monkeypatch.setenv("UC_CONFIG_HOME", "/docker/config")
+
+        result = get_config_path("/default/path")
+
+        assert result == "/docker/config"
+
+    def test_docker_environment_ignores_driver_json(self, monkeypatch, tmp_path):
+        """Test that Docker environment takes precedence over driver.json detection."""
+        monkeypatch.setenv("UC_CONFIG_HOME", "/docker/config")
+        # Create driver.json in tmp_path
+        driver_json = tmp_path / "driver.json"
+        driver_json.write_text("{}")
+        monkeypatch.chdir(tmp_path)
+
+        result = get_config_path("/default/path")
+
+        # Should use Docker path, not local dev path
+        assert result == "/docker/config"
+
+    def test_local_dev_with_driver_json(self, monkeypatch, tmp_path):
+        """Test local development detection when driver.json exists."""
+        # Ensure UC_CONFIG_HOME is not set
+        monkeypatch.delenv("UC_CONFIG_HOME", raising=False)
+
+        # Create driver.json in tmp_path
+        driver_json = tmp_path / "driver.json"
+        driver_json.write_text("{}")
+        monkeypatch.chdir(tmp_path)
+
+        result = get_config_path("/default/path")
+
+        expected = os.path.abspath("config")
+        assert result == expected
+
+    def test_production_uses_default_path(self, monkeypatch, tmp_path):
+        """Test production environment uses the default path."""
+        # Ensure UC_CONFIG_HOME is not set
+        monkeypatch.delenv("UC_CONFIG_HOME", raising=False)
+
+        # Change to a directory without driver.json
+        monkeypatch.chdir(tmp_path)
+        # Ensure no driver.json exists
+        driver_json = tmp_path / "driver.json"
+        if driver_json.exists():
+            driver_json.unlink()
+
+        result = get_config_path("/production/config/path")
+
+        assert result == "/production/config/path"
+
+    def test_local_dev_returns_absolute_path(self, monkeypatch, tmp_path):
+        """Test that local development returns an absolute path."""
+        # Ensure UC_CONFIG_HOME is not set
+        monkeypatch.delenv("UC_CONFIG_HOME", raising=False)
+
+        # Create driver.json in tmp_path
+        driver_json = tmp_path / "driver.json"
+        driver_json.write_text("{}")
+        monkeypatch.chdir(tmp_path)
+
+        result = get_config_path("/default/path")
+
+        assert os.path.isabs(result)
+        assert result.endswith("config")
+
+    def test_empty_uc_config_home_not_used(self, monkeypatch, tmp_path):
+        """Test that empty UC_CONFIG_HOME is not used (falls through to other detection)."""
+        monkeypatch.setenv("UC_CONFIG_HOME", "")
+
+        # Change to a directory without driver.json
+        monkeypatch.chdir(tmp_path)
+
+        result = get_config_path("/default/path")
+
+        # Empty string is falsy, so should use default path
+        assert result == "/default/path"
+
+    def test_priority_order_docker_over_local_dev_over_production(
+        self, monkeypatch, tmp_path
+    ):
+        """Test the priority: Docker > Local Dev > Production."""
+        # Set up all three conditions
+        monkeypatch.setenv("UC_CONFIG_HOME", "/docker/config")
+        driver_json = tmp_path / "driver.json"
+        driver_json.write_text("{}")
+        monkeypatch.chdir(tmp_path)
+
+        # Docker should win
+        result = get_config_path("/production/path")
+        assert result == "/docker/config"
+
+        # Remove Docker env, local dev should win
+        monkeypatch.delenv("UC_CONFIG_HOME")
+        result = get_config_path("/production/path")
+        expected = os.path.abspath("config")
+        assert result == expected
+
+        # Remove driver.json, production should win
+        driver_json.unlink()
+        result = get_config_path("/production/path")
+        assert result == "/production/path"

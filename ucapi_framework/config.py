@@ -22,6 +22,55 @@ _CFG_FILENAME = "config.json"
 DeviceT = TypeVar("DeviceT")
 
 
+def get_config_path(default_path: str) -> str:
+    """
+    Get the appropriate configuration path for the current environment.
+
+    Handles three deployment scenarios:
+    1. **Remote Two (production)**: Uses the default path provided by driver.api.config_dir_path
+    2. **Docker container**: Uses UC_CONFIG_HOME environment variable (typically /config)
+    3. **Local development**: Uses {cwd}/config/ as absolute path
+
+    The detection logic:
+    - If UC_CONFIG_HOME is set → use it (Docker environment)
+    - If driver.json exists in current directory → local development
+    - Otherwise → production (Remote Two)
+
+    :param default_path: Default path from driver.api.config_dir_path
+    :return: Configuration directory path (always absolute)
+
+    Example usage::
+
+        driver = MyIntegrationDriver(loop=loop, ...)
+
+        config_path = get_config_path(driver.api.config_dir_path)
+
+        driver.config = BaseDeviceManager(
+            config_path,
+            driver.on_device_added,
+            driver.on_device_removed,
+            device_class=MyDevice,
+        )
+    """
+    # Check for Docker environment (UC_CONFIG_HOME is set in Dockerfile)
+    if docker_config_home := os.getenv("UC_CONFIG_HOME"):
+        _LOG.debug(
+            "Docker environment detected, using UC_CONFIG_HOME: %s", docker_config_home
+        )
+        return docker_config_home
+
+    # Auto-detect local development: driver.json exists in current directory
+    if os.path.exists("driver.json"):
+        # Use absolute path based on current working directory
+        local_path = os.path.abspath("config")
+        _LOG.debug("Local development detected, using config path: %s", local_path)
+        return local_path
+
+    # Production environment (Remote Two) - use default path from API
+    _LOG.debug("Production environment, using default path: %s", default_path)
+    return default_path
+
+
 class _EnhancedJSONEncoder(json.JSONEncoder):
     """
     Custom JSON encoder with support for dataclass serialization.
@@ -186,6 +235,9 @@ class BaseDeviceManager(ABC, Generic[DeviceT]):
         :return: True if the configuration could be saved
         """
         try:
+            # Ensure directory exists
+            os.makedirs(self._data_path, exist_ok=True)
+
             with open(self._cfg_file_path, "w+", encoding="utf-8") as f:
                 json.dump(self._config, f, ensure_ascii=False, cls=_EnhancedJSONEncoder)
             return True
