@@ -841,7 +841,7 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
 
     async def on_device_update(
         self,
-        device_id: str,
+        entity_id: str,
         update: dict[str, Any] | None,
         clear_media_when_off: bool = True,
     ) -> None:
@@ -857,183 +857,175 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         :param clear_media_when_off: If True, clears all media player attributes when state is OFF
         """
         if update is None:
-            _LOG.warning("[%s] Received None update, skipping", device_id)
+            _LOG.warning("[%s] Received None update, skipping", entity_id)
             return
 
-        _LOG.debug("[%s] Device update: %s", device_id, update)
-
         # Process update for each entity belonging to this device
-        for entity_id in self.get_entity_ids_for_device(device_id):
-            configured_entity = self.api.configured_entities.get(entity_id)
+        configured_entity = self.api.configured_entities.get(entity_id)
+        if configured_entity is None:
+            # Try available entities if not in configured
+            configured_entity = self.api.available_entities.get(entity_id)
             if configured_entity is None:
-                # Try available entities if not in configured
-                configured_entity = self.api.available_entities.get(entity_id)
-                if configured_entity is None:
-                    continue
-
-            # Extract relevant attributes based on entity type
-            attributes: dict[str, Any] = {}
-
-            match configured_entity.entity_type:
-                case EntityTypes.BUTTON:
-                    # Button entities: STATE
-                    if button.Attributes.STATE.value in update:
-                        state = self.map_device_state(
-                            update[button.Attributes.STATE.value]
-                        )
-                        attributes[button.Attributes.STATE] = state
-
-                case EntityTypes.CLIMATE:
-                    # Climate entities: STATE, CURRENT_TEMPERATURE, TARGET_TEMPERATURE,
-                    # TARGET_TEMPERATURE_HIGH, TARGET_TEMPERATURE_LOW, FAN_MODE
-                    for attr in [
-                        climate.Attributes.STATE,
-                        climate.Attributes.CURRENT_TEMPERATURE,
-                        climate.Attributes.TARGET_TEMPERATURE,
-                        climate.Attributes.TARGET_TEMPERATURE_HIGH,
-                        climate.Attributes.TARGET_TEMPERATURE_LOW,
-                        climate.Attributes.FAN_MODE,
-                    ]:
-                        if attr.value in update:
-                            value = update[attr.value]
-                            # Apply state mapping for STATE attribute
-                            if attr == climate.Attributes.STATE:
-                                value = self.map_device_state(value)
-                            attributes[attr] = value
-
-                case EntityTypes.COVER:
-                    # Cover entities: STATE, POSITION, TILT_POSITION
-                    for attr in [
-                        cover.Attributes.STATE,
-                        cover.Attributes.POSITION,
-                        cover.Attributes.TILT_POSITION,
-                    ]:
-                        if attr.value in update:
-                            value = update[attr.value]
-                            # Apply state mapping for STATE attribute
-                            if attr == cover.Attributes.STATE:
-                                value = self.map_device_state(value)
-                            attributes[attr] = value
-
-                case EntityTypes.LIGHT:
-                    # Light entities: STATE, HUE, SATURATION, BRIGHTNESS, COLOR_TEMPERATURE
-                    for attr in [
-                        light.Attributes.STATE,
-                        light.Attributes.HUE,
-                        light.Attributes.SATURATION,
-                        light.Attributes.BRIGHTNESS,
-                        light.Attributes.COLOR_TEMPERATURE,
-                    ]:
-                        if attr.value in update:
-                            value = update[attr.value]
-                            # Apply state mapping for STATE attribute
-                            if attr == light.Attributes.STATE:
-                                value = self.map_device_state(value)
-                            attributes[attr] = value
-
-                case EntityTypes.MEDIA_PLAYER:
-                    # Media player entities: STATE, VOLUME, MUTED, MEDIA_DURATION,
-                    # MEDIA_POSITION, MEDIA_TYPE, MEDIA_IMAGE_URL, MEDIA_TITLE,
-                    # MEDIA_ARTIST, MEDIA_ALBUM, REPEAT, SHUFFLE, SOURCE, SOURCE_LIST,
-                    # SOUND_MODE, SOUND_MODE_LIST
-
-                    # Check if state is being updated and is OFF
-                    state_value = None
-                    if media_player.Attributes.STATE.value in update:
-                        state_value = self.map_device_state(
-                            update[media_player.Attributes.STATE.value]
-                        )
-                        attributes[media_player.Attributes.STATE] = state_value
-
-                    # If clear_media_when_off is True and state is OFF, clear all media attributes
-                    if clear_media_when_off and state_value == media_player.States.OFF:
-                        # Clear all media-related attributes (use empty strings for string fields, 0 for numbers)
-                        attributes[media_player.Attributes.MEDIA_DURATION] = 0
-                        attributes[media_player.Attributes.MEDIA_POSITION] = 0
-                        attributes[media_player.Attributes.MEDIA_TYPE] = ""
-                        attributes[media_player.Attributes.MEDIA_IMAGE_URL] = ""
-                        attributes[media_player.Attributes.MEDIA_TITLE] = ""
-                        attributes[media_player.Attributes.MEDIA_ARTIST] = ""
-                        attributes[media_player.Attributes.MEDIA_ALBUM] = ""
-                        attributes[media_player.Attributes.SOURCE] = ""
-                        attributes[media_player.Attributes.SOUND_MODE] = ""
-                    else:
-                        # Process remaining attributes normally
-                        for attr in [
-                            media_player.Attributes.VOLUME,
-                            media_player.Attributes.MUTED,
-                            media_player.Attributes.MEDIA_DURATION,
-                            media_player.Attributes.MEDIA_POSITION,
-                            media_player.Attributes.MEDIA_POSITION_UPDATED_AT,
-                            media_player.Attributes.MEDIA_TYPE,
-                            media_player.Attributes.MEDIA_IMAGE_URL,
-                            media_player.Attributes.MEDIA_TITLE,
-                            media_player.Attributes.MEDIA_ARTIST,
-                            media_player.Attributes.MEDIA_ALBUM,
-                            media_player.Attributes.REPEAT,
-                            media_player.Attributes.SHUFFLE,
-                            media_player.Attributes.SOURCE,
-                            media_player.Attributes.SOURCE_LIST,
-                            media_player.Attributes.SOUND_MODE,
-                            media_player.Attributes.SOUND_MODE_LIST,
-                        ]:
-                            if attr.value in update:
-                                attributes[attr] = update[attr.value]
-
-                case EntityTypes.REMOTE:
-                    # Remote entities: STATE
-                    if remote.Attributes.STATE.value in update:
-                        state = self.map_device_state(
-                            update[remote.Attributes.STATE.value]
-                        )
-                        attributes[remote.Attributes.STATE] = state
-
-                case EntityTypes.SENSOR:
-                    # Sensor entities: STATE, VALUE, UNIT
-                    for attr in [
-                        sensor.Attributes.STATE,
-                        sensor.Attributes.VALUE,
-                        sensor.Attributes.UNIT,
-                    ]:
-                        if attr.value in update:
-                            value = update[attr.value]
-                            # Apply state mapping for STATE attribute
-                            if attr == sensor.Attributes.STATE:
-                                value = self.map_device_state(value)
-                            attributes[attr] = value
-
-                case EntityTypes.SWITCH:
-                    # Switch entities: STATE
-                    if switch.Attributes.STATE.value in update:
-                        state = self.map_device_state(
-                            update[switch.Attributes.STATE.value]
-                        )
-                        attributes[switch.Attributes.STATE] = state
-
-                case _:
-                    # Unknown entity type - log warning
-                    _LOG.warning(
-                        "[%s] Unknown entity type: %s for entity %s",
-                        device_id,
-                        configured_entity.entity_type,
-                        entity_id,
-                    )
-                    continue
-
-            # Update entity attributes if any were found
-            if attributes:
-                if self.api.configured_entities.contains(entity_id):
-                    self.api.configured_entities.update_attributes(
-                        entity_id, attributes
-                    )
-                elif self.api.available_entities.contains(entity_id):
-                    self.api.available_entities.update_attributes(entity_id, attributes)
                 _LOG.debug(
-                    "[%s] Updated entity %s with attributes: %s",
-                    device_id,
+                    "[%s] Entity not found in configured or available entities, skipping",
                     entity_id,
-                    attributes,
                 )
+                return
+
+        _LOG.debug("[%s] Device update: %s", entity_id, update)
+        attributes: dict[str, Any] = {}
+
+        match configured_entity.entity_type:
+            case EntityTypes.BUTTON:
+                # Button entities: STATE
+                if button.Attributes.STATE.value in update:
+                    state = self.map_device_state(update[button.Attributes.STATE.value])
+                    attributes[button.Attributes.STATE] = state
+
+            case EntityTypes.CLIMATE:
+                # Climate entities: STATE, CURRENT_TEMPERATURE, TARGET_TEMPERATURE,
+                # TARGET_TEMPERATURE_HIGH, TARGET_TEMPERATURE_LOW, FAN_MODE
+                for attr in [
+                    climate.Attributes.STATE,
+                    climate.Attributes.CURRENT_TEMPERATURE,
+                    climate.Attributes.TARGET_TEMPERATURE,
+                    climate.Attributes.TARGET_TEMPERATURE_HIGH,
+                    climate.Attributes.TARGET_TEMPERATURE_LOW,
+                    climate.Attributes.FAN_MODE,
+                ]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        # Apply state mapping for STATE attribute
+                        if attr == climate.Attributes.STATE:
+                            value = self.map_device_state(value)
+                        attributes[attr] = value
+
+            case EntityTypes.COVER:
+                # Cover entities: STATE, POSITION, TILT_POSITION
+                for attr in [
+                    cover.Attributes.STATE,
+                    cover.Attributes.POSITION,
+                    cover.Attributes.TILT_POSITION,
+                ]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        # Apply state mapping for STATE attribute
+                        if attr == cover.Attributes.STATE:
+                            value = self.map_device_state(value)
+                        attributes[attr] = value
+
+            case EntityTypes.LIGHT:
+                # Light entities: STATE, HUE, SATURATION, BRIGHTNESS, COLOR_TEMPERATURE
+                for attr in [
+                    light.Attributes.STATE,
+                    light.Attributes.HUE,
+                    light.Attributes.SATURATION,
+                    light.Attributes.BRIGHTNESS,
+                    light.Attributes.COLOR_TEMPERATURE,
+                ]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        # Apply state mapping for STATE attribute
+                        if attr == light.Attributes.STATE:
+                            value = self.map_device_state(value)
+                        attributes[attr] = value
+
+            case EntityTypes.MEDIA_PLAYER:
+                # Media player entities: STATE, VOLUME, MUTED, MEDIA_DURATION,
+                # MEDIA_POSITION, MEDIA_TYPE, MEDIA_IMAGE_URL, MEDIA_TITLE,
+                # MEDIA_ARTIST, MEDIA_ALBUM, REPEAT, SHUFFLE, SOURCE, SOURCE_LIST,
+                # SOUND_MODE, SOUND_MODE_LIST
+
+                # Check if state is being updated and is OFF
+                state_value = None
+                if media_player.Attributes.STATE.value in update:
+                    state_value = self.map_device_state(
+                        update[media_player.Attributes.STATE.value]
+                    )
+                    attributes[media_player.Attributes.STATE] = state_value
+
+                # If clear_media_when_off is True and state is OFF, clear all media attributes
+                if clear_media_when_off and state_value == media_player.States.OFF:
+                    # Clear all media-related attributes (use empty strings for string fields, 0 for numbers)
+                    attributes[media_player.Attributes.MEDIA_DURATION] = 0
+                    attributes[media_player.Attributes.MEDIA_POSITION] = 0
+                    attributes[media_player.Attributes.MEDIA_TYPE] = ""
+                    attributes[media_player.Attributes.MEDIA_IMAGE_URL] = ""
+                    attributes[media_player.Attributes.MEDIA_TITLE] = ""
+                    attributes[media_player.Attributes.MEDIA_ARTIST] = ""
+                    attributes[media_player.Attributes.MEDIA_ALBUM] = ""
+                    attributes[media_player.Attributes.SOURCE] = ""
+                    attributes[media_player.Attributes.SOUND_MODE] = ""
+                else:
+                    # Process remaining attributes normally
+                    for attr in [
+                        media_player.Attributes.VOLUME,
+                        media_player.Attributes.MUTED,
+                        media_player.Attributes.MEDIA_DURATION,
+                        media_player.Attributes.MEDIA_POSITION,
+                        media_player.Attributes.MEDIA_POSITION_UPDATED_AT,
+                        media_player.Attributes.MEDIA_TYPE,
+                        media_player.Attributes.MEDIA_IMAGE_URL,
+                        media_player.Attributes.MEDIA_TITLE,
+                        media_player.Attributes.MEDIA_ARTIST,
+                        media_player.Attributes.MEDIA_ALBUM,
+                        media_player.Attributes.REPEAT,
+                        media_player.Attributes.SHUFFLE,
+                        media_player.Attributes.SOURCE,
+                        media_player.Attributes.SOURCE_LIST,
+                        media_player.Attributes.SOUND_MODE,
+                        media_player.Attributes.SOUND_MODE_LIST,
+                    ]:
+                        if attr.value in update:
+                            attributes[attr] = update[attr.value]
+
+            case EntityTypes.REMOTE:
+                # Remote entities: STATE
+                if remote.Attributes.STATE.value in update:
+                    state = self.map_device_state(update[remote.Attributes.STATE.value])
+                    attributes[remote.Attributes.STATE] = state
+
+            case EntityTypes.SENSOR:
+                # Sensor entities: STATE, VALUE, UNIT
+                for attr in [
+                    sensor.Attributes.STATE,
+                    sensor.Attributes.VALUE,
+                    sensor.Attributes.UNIT,
+                ]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        # Apply state mapping for STATE attribute
+                        if attr == sensor.Attributes.STATE:
+                            value = self.map_device_state(value)
+                        attributes[attr] = value
+
+            case EntityTypes.SWITCH:
+                # Switch entities: STATE
+                if switch.Attributes.STATE.value in update:
+                    state = self.map_device_state(update[switch.Attributes.STATE.value])
+                    attributes[switch.Attributes.STATE] = state
+
+            case _:
+                # Unknown entity type - log warning
+                _LOG.warning(
+                    "[%s] Unknown entity type: %s for entity %s",
+                    entity_id,
+                    configured_entity.entity_type,
+                    entity_id,
+                )
+
+        # Update entity attributes if any were found
+        if attributes:
+            if self.api.configured_entities.contains(entity_id):
+                self.api.configured_entities.update_attributes(entity_id, attributes)
+            elif self.api.available_entities.contains(entity_id):
+                self.api.available_entities.update_attributes(entity_id, attributes)
+            _LOG.debug(
+                "[%s] Updated entity %s with attributes: %s",
+                entity_id,
+                entity_id,
+                attributes,
+            )
 
     def get_device_config(self, device_id: str) -> ConfigT | None:
         """
