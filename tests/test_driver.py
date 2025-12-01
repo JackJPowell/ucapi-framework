@@ -121,14 +121,14 @@ class ConcreteDriver(BaseIntegrationDriver[DeviceForTests, DeviceConfigForTests]
         """
         return super().device_from_entity_id(entity_id)
 
-    def entity_from_entity_id(self, entity_id: str) -> str | None:
+    def sub_device_from_entity_id(self, entity_id: str) -> str | None:
         """
-        Extract sub-entity ID from entity ID.
+        Extract sub-device ID from entity ID.
 
         Overridden because create_entities is overridden.
-        Since we use the standard format (no sub-entities in this test), we delegate to the parent.
+        Since we use the standard format (no sub-devices in this test), we delegate to the parent.
         """
-        return super().entity_from_entity_id(entity_id)
+        return super().sub_device_from_entity_id(entity_id)
 
 
 @pytest.fixture
@@ -177,9 +177,9 @@ class MockEntityCollection:
 def driver(mock_loop):
     """Create a test driver instance."""
     driver = ConcreteDriver(
+        DeviceForTests,
+        [media_player.MediaPlayer],
         loop=mock_loop,
-        device_class=DeviceForTests,
-        entity_classes=[media_player.MediaPlayer],
     )
     # Mock the API
     driver.api = MagicMock()
@@ -195,9 +195,7 @@ class TestBaseIntegrationDriver:
     def test_init(self, mock_loop):
         """Test driver initialization."""
         driver = ConcreteDriver(
-            loop=mock_loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests, [media_player.MediaPlayer], loop=mock_loop
         )
 
         assert driver._device_class == DeviceForTests
@@ -209,11 +207,7 @@ class TestBaseIntegrationDriver:
         """Test Remote Two connect command."""
         # Use real loop for this test since we need background tasks
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -251,11 +245,7 @@ class TestBaseIntegrationDriver:
         """Test Remote Two disconnect command."""
         # Use real loop for this test since we need background tasks
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -307,11 +297,7 @@ class TestBaseIntegrationDriver:
         """Test exiting standby mode."""
         # Use real loop for this test since we need background tasks
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -365,9 +351,9 @@ class TestBaseIntegrationDriver:
     async def test_on_subscribe_entities_new_device(self, driver):
         """Test subscribing to entities for a new device."""
         # Mock config
-        driver.config = MagicMock()
+        driver.config_manager = MagicMock()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
-        driver.config.get.return_value = config
+        driver.config_manager.get.return_value = config
 
         await driver.on_subscribe_entities(["media_player.dev1"])
 
@@ -492,14 +478,14 @@ class TestBaseIntegrationDriver:
 
     def test_get_device_config_from_config_manager(self, driver):
         """Test getting device configuration from config manager."""
-        driver.config = MagicMock()
+        driver.config_manager = MagicMock()
         config = DeviceConfigForTests("dev2", "Device 2", "192.168.1.2")
-        driver.config.get.return_value = config
+        driver.config_manager.get.return_value = config
 
         retrieved = driver.get_device_config("dev2")
 
         assert retrieved.identifier == "dev2"
-        driver.config.get.assert_called_once_with("dev2")
+        driver.config_manager.get.assert_called_once_with("dev2")
 
     def test_get_device_id(self, driver):
         """Test extracting device ID from config."""
@@ -603,37 +589,37 @@ class TestBaseIntegrationDriver:
 
         assert device_id == "dev1"
 
-    def test_entity_from_entity_id_simple_format(self, driver):
-        """Test entity_from_entity_id with simple 2-part format returns None."""
-        entity = driver.entity_from_entity_id("media_player.dev1")
+    def test_sub_device_from_entity_id_simple_format(self, driver):
+        """Test sub_device_from_entity_id with simple 2-part format returns None."""
+        sub_device = driver.sub_device_from_entity_id("media_player.dev1")
 
-        assert entity is None
+        assert sub_device is None
 
-    def test_entity_from_entity_id_with_sub_entity(self, driver):
-        """Test extracting sub-entity from 3-part entity ID."""
-        entity = driver.entity_from_entity_id("light.hub_1.bedroom")
+    def test_sub_device_from_entity_id_with_sub_device(self, driver):
+        """Test extracting sub-device from 3-part entity ID."""
+        sub_device = driver.sub_device_from_entity_id("light.hub_1.bedroom")
 
-        assert entity == "bedroom"
+        assert sub_device == "bedroom"
 
-    def test_entity_from_entity_id_with_multiple_parts(self, driver):
-        """Test entity_from_entity_id with more than 3 parts returns everything after second period."""
-        entity = driver.entity_from_entity_id("switch.bridge.zone.outlet_1")
+    def test_sub_device_from_entity_id_with_multiple_parts(self, driver):
+        """Test sub_device_from_entity_id with more than 3 parts returns everything after second period."""
+        sub_device = driver.sub_device_from_entity_id("switch.bridge.zone.outlet_1")
 
         # Returns everything after second period: "zone.outlet_1"
-        # This supports sub-entities with dots in their IDs
-        assert entity == "zone.outlet_1"
+        # This supports sub-devices with dots in their IDs
+        assert sub_device == "zone.outlet_1"
 
-    def test_entity_from_entity_id_invalid(self, driver):
-        """Test entity_from_entity_id with invalid entity ID."""
-        entity = driver.entity_from_entity_id("invalid")
+    def test_sub_device_from_entity_id_invalid(self, driver):
+        """Test sub_device_from_entity_id with invalid entity ID."""
+        sub_device = driver.sub_device_from_entity_id("invalid")
 
-        assert entity is None
+        assert sub_device is None
 
-    def test_entity_from_entity_id_none(self, driver):
-        """Test entity_from_entity_id with None."""
-        entity = driver.entity_from_entity_id(None)
+    def test_sub_device_from_entity_id_none(self, driver):
+        """Test sub_device_from_entity_id with None."""
+        sub_device = driver.sub_device_from_entity_id(None)
 
-        assert entity is None
+        assert sub_device is None
 
     def test_device_from_entity_id_default_implementation(self, mock_loop):
         """Test the default device_from_entity_id implementation."""
@@ -644,9 +630,7 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [f"media_player.{device_id}"]
 
-        driver = MinimalDriver(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = MinimalDriver(DeviceForTests, [], loop=mock_loop)
 
         # Test simple format: entity_type.device_id
         assert driver.device_from_entity_id("media_player.dev1") == "dev1"
@@ -685,9 +669,7 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [device_id]  # Custom format
 
-        driver = DriverWithCustomEntities(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = DriverWithCustomEntities(DeviceForTests, [], loop=mock_loop)
 
         # Should raise NotImplementedError with helpful message
         with pytest.raises(
@@ -696,13 +678,13 @@ class TestBaseIntegrationDriver:
         ):
             driver.entity_type_from_entity_id("custom_entity_id")
 
-    def test_entity_from_entity_id_requires_override_when_3_part_format_used(
+    def test_sub_device_from_entity_id_requires_override_when_3_part_format_used(
         self, mock_loop
     ):
-        """Test that overriding create_entities with 3-part format requires overriding entity_from_entity_id."""
+        """Test that overriding create_entities with 3-part format requires overriding sub_device_from_entity_id."""
 
         class DriverWith3PartEntities(BaseIntegrationDriver):
-            """Driver that overrides create_entities with 3-part format but not entity_from_entity_id."""
+            """Driver that overrides create_entities with 3-part format but not sub_device_from_entity_id."""
 
             def create_entities(self, device_config, device):
                 # Custom entity creation with 3-part format
@@ -717,25 +699,23 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [f"light.{device_id}.bedroom"]  # 3-part format
 
-        driver = DriverWith3PartEntities(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = DriverWith3PartEntities(DeviceForTests, [], loop=mock_loop)
 
         # Should raise NotImplementedError when 3-part format is detected
         with pytest.raises(
             NotImplementedError,
-            match="create_entities\\(\\) is overridden and uses 3-part entity IDs.*entity_from_entity_id\\(\\) is not",
+            match="create_entities\\(\\) is overridden and uses 3-part entity IDs.*sub_device_from_entity_id\\(\\) is not",
         ):
-            driver.entity_from_entity_id("light.hub_1.bedroom")
+            driver.sub_device_from_entity_id("light.hub_1.bedroom")
 
-    def test_entity_from_entity_id_no_error_for_2_part_format(self, mock_loop):
-        """Test that overriding create_entities with 2-part format doesn't require overriding entity_from_entity_id."""
+    def test_sub_device_from_entity_id_no_error_for_2_part_format(self, mock_loop):
+        """Test that overriding create_entities with 2-part format doesn't require overriding sub_device_from_entity_id."""
 
         class DriverWith2PartEntities(BaseIntegrationDriver):
             """Driver that overrides create_entities with 2-part format."""
 
             def create_entities(self, device_config, device):
-                # Custom entity creation with 2-part format (no sub-entities)
+                # Custom entity creation with 2-part format (no sub-devices)
                 return []
 
             def entity_type_from_entity_id(self, entity_id):
@@ -747,13 +727,11 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [f"media_player.{device_id}"]  # 2-part format
 
-        driver = DriverWith2PartEntities(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = DriverWith2PartEntities(DeviceForTests, [], loop=mock_loop)
 
         # Should NOT raise error for 2-part format
-        result = driver.entity_from_entity_id("media_player.dev1")
-        assert result is None  # 2-part format has no sub-entity
+        result = driver.sub_device_from_entity_id("media_player.dev1")
+        assert result is None  # 2-part format has no sub-device
 
     def test_device_from_entity_id_requires_override_when_create_entities_overridden(
         self, mock_loop
@@ -770,9 +748,7 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [device_id]  # Custom format
 
-        driver = DriverWithCustomEntities(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = DriverWithCustomEntities(DeviceForTests, [], loop=mock_loop)
 
         # Should raise NotImplementedError with helpful message
         with pytest.raises(
@@ -798,9 +774,7 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [device_id]
 
-        driver = DriverWithCustomFormat(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = DriverWithCustomFormat(DeviceForTests, [], loop=mock_loop)
 
         # Should work fine with both overridden
         assert driver.device_from_entity_id("my_device_id") == "my_device_id"
@@ -837,9 +811,7 @@ class TestBaseIntegrationDriver:
             def get_entity_ids_for_device(self, device_id):
                 return [f"media_player.{device_id}"]
 
-        driver = MinimalDriver(
-            loop=mock_loop, device_class=DeviceForTests, entity_classes=[]
-        )
+        driver = MinimalDriver(DeviceForTests, [], loop=mock_loop)
 
         # Test all media player states with exact matches
         assert driver.map_device_state("UNAVAILABLE") == media_player.States.UNAVAILABLE
@@ -911,11 +883,7 @@ class TestBaseIntegrationDriver:
         """Test on_device_update with media_player entity."""
         # Use real event loop and real entity collections
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         # Use real entity collections
         driver.api = MagicMock()
         driver.api.configured_entities = ucapi.Entities("configured", loop)
@@ -975,11 +943,7 @@ class TestBaseIntegrationDriver:
         """Test on_device_update with multiple entities on same device."""
         # Use real event loop and real entity collections
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = ucapi.Entities("configured", loop)
         driver.api.available_entities = ucapi.Entities("available", loop)
@@ -1016,11 +980,7 @@ class TestBaseIntegrationDriver:
         """Test on_device_update only updates attributes present in update dict."""
         # Use real event loop and real entity collections
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = ucapi.Entities("configured", loop)
         driver.api.available_entities = ucapi.Entities("available", loop)
@@ -1063,11 +1023,7 @@ class TestBaseIntegrationDriver:
         """Test on_device_update works with available entities too."""
         # Use real event loop and real entity collections
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = ucapi.Entities("configured", loop)
         driver.api.available_entities = ucapi.Entities("available", loop)
@@ -1106,11 +1062,7 @@ class TestBaseIntegrationDriver:
         """Test on_device_update with entity_id that matches device_id (no type prefix)."""
         # Use real event loop and real entity collections
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = ucapi.Entities("configured", loop)
         driver.api.available_entities = ucapi.Entities("available", loop)
@@ -1249,10 +1201,10 @@ class TestHubBasedIntegration:
         """Test subscribe entities with hub-based integration for new device."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=True,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
@@ -1260,8 +1212,8 @@ class TestHubBasedIntegration:
         driver.api.set_device_state = AsyncMock()
 
         # Mock config manager to return device config
-        driver.config = MagicMock()
-        driver.config.get = MagicMock(
+        driver.config_manager = MagicMock()
+        driver.config_manager.get = MagicMock(
             return_value=DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         )
 
@@ -1285,10 +1237,10 @@ class TestHubBasedIntegration:
         """Test subscribe entities reconnects disconnected hub device."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=True,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
@@ -1296,8 +1248,8 @@ class TestHubBasedIntegration:
         driver.api.set_device_state = AsyncMock()
 
         # Mock config manager
-        driver.config = MagicMock()
-        driver.config.get = MagicMock(
+        driver.config_manager = MagicMock()
+        driver.config_manager.get = MagicMock(
             return_value=DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         )
 
@@ -1325,10 +1277,10 @@ class TestHubBasedIntegration:
         """Test subscribe entities with hub-based when device config not found."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=True,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
@@ -1336,8 +1288,8 @@ class TestHubBasedIntegration:
         driver.api.set_device_state = AsyncMock()
 
         # Config returns None
-        driver.config = MagicMock()
-        driver.config.get = MagicMock(return_value=None)
+        driver.config_manager = MagicMock()
+        driver.config_manager.get = MagicMock(return_value=None)
 
         entity_ids = ["media_player.dev1"]
 
@@ -1351,10 +1303,10 @@ class TestHubBasedIntegration:
         """Test on_device_added schedules async task for hub-based integration."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=True,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
@@ -1382,11 +1334,7 @@ class TestAsyncDeviceMethods:
     async def test_async_add_configured_device_success(self):
         """Test async_add_configured_device succeeds when device connects."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1406,11 +1354,7 @@ class TestAsyncDeviceMethods:
     async def test_async_add_configured_device_failure(self):
         """Test async_add_configured_device fails when device doesn't connect."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1435,11 +1379,7 @@ class TestAsyncDeviceMethods:
     async def test_ensure_device_connected_already_connected(self):
         """Test _ensure_device_connected returns True when device already connected."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1458,11 +1398,7 @@ class TestAsyncDeviceMethods:
     async def test_ensure_device_connected_not_found(self):
         """Test _ensure_device_connected returns False when device not found."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.set_device_state = AsyncMock()
 
@@ -1474,11 +1410,7 @@ class TestAsyncDeviceMethods:
     async def test_ensure_device_connected_with_retries(self):
         """Test _ensure_device_connected retries on failure."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1510,11 +1442,7 @@ class TestAsyncDeviceMethods:
     async def test_ensure_device_connected_all_retries_fail(self):
         """Test _ensure_device_connected returns False when all retries fail."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1547,10 +1475,10 @@ class TestAsyncRegisterEntities:
 
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=True,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
@@ -1577,10 +1505,10 @@ class TestAsyncRegisterEntities:
 
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
+            DeviceForTests,
+            [media_player.MediaPlayer],
             require_connection_before_registry=False,
+            loop=loop,
         )
         driver.api = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1603,11 +1531,7 @@ class TestRefreshEntityState:
     def _create_driver(self):
         """Create a driver for refresh_entity_state testing."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1803,11 +1727,7 @@ class TestOnSubscribeEntitiesEdgeCases:
     def _create_driver(self):
         """Create a driver for subscribe testing."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1837,8 +1757,8 @@ class TestOnSubscribeEntitiesEdgeCases:
     async def test_on_subscribe_entities_no_device_config(self):
         """Test on_subscribe_entities when device config not found."""
         driver = self._create_driver()
-        driver.config = MagicMock()
-        driver.config.get = MagicMock(return_value=None)
+        driver.config_manager = MagicMock()
+        driver.config_manager.get = MagicMock(return_value=None)
 
         entity_ids = ["media_player.dev1"]
 
@@ -1857,11 +1777,7 @@ class TestDeviceEventHandlersEntityTypes:
     def _create_driver(self):
         """Create a driver for event handler testing."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()
@@ -1955,11 +1871,7 @@ class TestOnDeviceUpdateEntityTypes:
     def _create_driver(self):
         """Create a driver for update testing."""
         loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            loop=loop,
-            device_class=DeviceForTests,
-            entity_classes=[media_player.MediaPlayer],
-        )
+        driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
         driver.api.configured_entities = MagicMock()
         driver.api.available_entities = MockEntityCollection()

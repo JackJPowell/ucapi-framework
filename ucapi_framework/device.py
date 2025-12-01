@@ -24,7 +24,7 @@ import aiohttp
 from pyee.asyncio import AsyncIOEventEmitter
 
 if TYPE_CHECKING:
-    from .config import BaseDeviceManager
+    from .config import BaseConfigManager
 
 _LOG = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class BaseDeviceInterface(ABC):
         self,
         device_config: Any,
         loop: AbstractEventLoop | None = None,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Create device interface instance.
@@ -70,7 +70,7 @@ class BaseDeviceInterface(ABC):
         self._loop: AbstractEventLoop = loop or asyncio.get_running_loop()
         self.events = AsyncIOEventEmitter(self._loop)
         self._device_config = device_config
-        self._config_manager: BaseDeviceManager | None = config_manager
+        self._config_manager: BaseConfigManager | None = config_manager
         self._state: Any = None
 
     @property
@@ -182,7 +182,7 @@ class StatelessHTTPDevice(BaseDeviceInterface):
         self,
         device_config: Any,
         loop: AbstractEventLoop | None = None,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """Initialize stateless HTTP device."""
         super().__init__(device_config, loop, config_manager)
@@ -264,7 +264,7 @@ class PollingDevice(BaseDeviceInterface):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         poll_interval: int = 30,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Initialize polling device.
@@ -391,7 +391,7 @@ class WebSocketDevice(BaseDeviceInterface):
         reconnect_max: int = BACKOFF_MAX,
         ping_interval: int = 30,
         ping_timeout: int = 10,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Initialize WebSocket device.
@@ -757,7 +757,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
         ping_interval: int = 30,
         ping_timeout: int = 10,
         keep_polling_on_disconnect: bool = True,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Initialize WebSocket + Polling device.
@@ -958,7 +958,7 @@ class ExternalClientDevice(BaseDeviceInterface):
         watchdog_interval: int = 30,
         reconnect_delay: int = 5,
         max_reconnect_attempts: int = 3,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Initialize external client device.
@@ -1225,7 +1225,7 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         backoff_max: int = BACKOFF_MAX,
-        config_manager: BaseDeviceManager | None = None,
+        config_manager: BaseConfigManager | None = None,
     ):
         """
         Initialize persistent connection device.

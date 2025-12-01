@@ -29,9 +29,9 @@ The framework automatically handles:
 ## Creating a Config Manager
 
 ```python
-from ucapi_framework import BaseDeviceManager
+from ucapi_framework import BaseConfigManager
 
-config = BaseDeviceManager[MyDeviceConfig](
+config = BaseConfigManager[MyDeviceConfig](
     data_path="./config",
     add_handler=driver.on_device_added,
     remove_handler=driver.on_device_removed,
@@ -132,7 +132,7 @@ def on_device_removed(device_config: MyDeviceConfig | None) -> None:
         print(f"Device removed: {device_config.name}")
         driver.remove_device(driver.get_device_id(device_config))
 
-config = BaseDeviceManager[MyDeviceConfig](
+config = BaseConfigManager[MyDeviceConfig](
     data_path="./config",
     add_handler=on_device_added,
     remove_handler=on_device_removed,
@@ -159,7 +159,7 @@ class MyDevice(StatelessHTTPDevice):
 The config manager is fully typed:
 
 ```python
-config = BaseDeviceManager[MyDeviceConfig](...)
+config = BaseConfigManager[MyDeviceConfig](...)
 
 # IDE knows this returns MyDeviceConfig | None
 device = config.get("device_1")
@@ -175,7 +175,7 @@ if device:
 The framework supports configuration migration:
 
 ```python
-class MyDeviceManager(BaseDeviceManager[MyDeviceConfig]):
+class MyConfigManager(BaseConfigManager[MyDeviceConfig]):
     def migration_required(self) -> bool:
         """Check if migration is needed."""
         # Check for old config format

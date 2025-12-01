@@ -41,15 +41,15 @@ def get_config_path(default_path: str) -> str:
 
     Example usage::
 
-        driver = MyIntegrationDriver(loop=loop, ...)
+        driver = MyIntegrationDriver(device_class=MyDevice, ...)
 
         config_path = get_config_path(driver.api.config_dir_path)
 
-        driver.config = BaseDeviceManager(
+        driver.config_manager = BaseConfigManager(
             config_path,
             driver.on_device_added,
             driver.on_device_removed,
-            device_class=MyDevice,
+            config_class=MyDeviceConfig,
         )
     """
     # Check for Docker environment (UC_CONFIG_HOME is set in Dockerfile)
@@ -98,7 +98,7 @@ class _EnhancedJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-class BaseDeviceManager(ABC, Generic[DeviceT]):
+class BaseConfigManager(ABC, Generic[DeviceT]):
     """
     Base class for device configuration management.
 
@@ -117,7 +117,7 @@ class BaseDeviceManager(ABC, Generic[DeviceT]):
         data_path: str,
         add_handler: Callable[[DeviceT], None] | None = None,
         remove_handler: Callable[[DeviceT | None], None] | None = None,
-        device_class: type[DeviceT] | None = None,
+        config_class: type[DeviceT] | None = None,
     ):
         """
         Create a configuration instance.
@@ -125,14 +125,14 @@ class BaseDeviceManager(ABC, Generic[DeviceT]):
         :param data_path: Configuration path for the configuration file
         :param add_handler: Optional callback when device is added
         :param remove_handler: Optional callback when device is removed
-        :param device_class: The device dataclass type (optional, auto-detected from type hints if not provided)
+        :param config_class: The configuration dataclass type (optional, auto-detected from type hints if not provided)
         """
         self._data_path: str = data_path
         self._cfg_file_path: str = os.path.join(data_path, _CFG_FILENAME)
         self._config: list[DeviceT] = []
         self._add_handler = add_handler
         self._remove_handler = remove_handler
-        self._device_class = device_class
+        self._config_class = config_class
         self.load()
 
     @property
@@ -504,17 +504,17 @@ class BaseDeviceManager(ABC, Generic[DeviceT]):
         """
         Deserialize device configuration from dictionary.
 
-        **DEFAULT IMPLEMENTATION**: Uses deserialize_device_auto() with the device class
+        **DEFAULT IMPLEMENTATION**: Uses deserialize_device_auto() with the config class
         provided during initialization or inferred from the Generic type parameter.
 
         Most integrations can use the default implementation without overriding:
 
-            class MyDeviceManager(BaseDeviceManager[MyDeviceConfig]):
+            class MyConfigManager(BaseConfigManager[MyDeviceConfig]):
                 pass  # No override needed!
 
-        Or explicitly pass the device class:
+        Or explicitly pass the config class:
 
-            manager = MyDeviceManager(data_path, device_class=MyDeviceConfig)
+            manager = MyConfigManager(data_path, config_class=MyDeviceConfig)
 
         **Override only if** you need custom logic:
 
@@ -533,32 +533,32 @@ class BaseDeviceManager(ABC, Generic[DeviceT]):
         :param data: Dictionary with device data
         :return: Device configuration or None if invalid
         """
-        # Get device class if not provided during init
-        if self._device_class is None:
+        # Get config class if not provided during init
+        if self._config_class is None:
             # Try to infer from Generic type parameter
-            device_class = self._infer_device_class()
-            if device_class is None:
+            config_class = self._infer_config_class()
+            if config_class is None:
                 raise TypeError(
                     f"{type(self).__name__} must either:\n"
-                    f"1. Pass device_class to __init__: MyManager(path, device_class=MyConfig)\n"
+                    f"1. Pass config_class to __init__: MyManager(path, config_class=MyConfig)\n"
                     f"2. Override deserialize_device() with custom logic\n"
-                    f"3. Use proper Generic syntax: class MyManager(BaseDeviceManager[MyConfig])"
+                    f"3. Use proper Generic syntax: class MyManager(BaseConfigManager[MyConfig])"
                 )
-            self._device_class = device_class
+            self._config_class = config_class
 
-        # Use auto-deserialize with the device class
-        return self.deserialize_device_auto(data, self._device_class)
+        # Use auto-deserialize with the config class
+        return self.deserialize_device_auto(data, self._config_class)
 
-    def _infer_device_class(self) -> type[DeviceT] | None:
+    def _infer_config_class(self) -> type[DeviceT] | None:
         """
-        Infer device class from Generic type parameter.
+        Infer config class from Generic type parameter.
 
-        :return: Device class or None if cannot be inferred
+        :return: Config class or None if cannot be inferred
         """
         # Get the class's __orig_bases__ which contains Generic[DeviceT] information
         for base in getattr(type(self), "__orig_bases__", []):
             origin = get_origin(base)
-            if origin is BaseDeviceManager:
+            if origin is BaseConfigManager:
                 args = get_args(base)
                 if args:
                     return args[0]

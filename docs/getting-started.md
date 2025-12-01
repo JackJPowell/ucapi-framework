@@ -165,7 +165,7 @@ from ucapi import IntegrationAPI
 from .driver import MyIntegrationDriver
 from .setup_flow import MySetupFlow
 from .config import MyDeviceConfig
-from ucapi_framework import BaseDeviceManager
+from ucapi_framework import BaseConfigManager
 
 _LOG = logging.getLogger(__name__)
 
@@ -174,13 +174,13 @@ async def main():
     loop = asyncio.get_running_loop()
     
     # Create configuration manager
-    config_manager = BaseDeviceManager[MyDeviceConfig](
+    config_manager = BaseConfigManager[MyDeviceConfig](
         data_path="./config",
     )
     
     # Create driver
-    driver = MyIntegrationDriver(loop)
-    driver.config = config_manager
+    driver = MyIntegrationDriver()
+    driver.config_manager = config_manager
     
     # Wire up config callbacks
     config_manager._add_handler = driver.on_device_added

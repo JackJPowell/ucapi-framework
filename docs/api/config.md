@@ -2,9 +2,9 @@
 
 Configuration management handles device configuration storage and persistence.
 
-## BaseDeviceManager
+## BaseConfigManager
 
-::: ucapi_framework.config.BaseDeviceManager
+::: ucapi_framework.config.BaseConfigManager
     options:
       show_root_heading: true
       show_source: false

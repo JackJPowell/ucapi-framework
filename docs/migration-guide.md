@@ -40,7 +40,7 @@ This guide helps you migrate an existing Unfolded Circle integration to use the 
 
 The migration follows these steps:
 
-1. **Configuration** - Replace dict-based config with typed dataclass + BaseDeviceManager
+1. **Configuration** - Replace dict-based config with typed dataclass + BaseConfigManager
 2. **Device** - Inherit from device interface (StatelessHTTPDevice, PollingDevice, etc.)
 3. **Setup Flow** - Inherit from BaseSetupFlow, implement required methods
 4. **Driver** - Inherit from BaseIntegrationDriver, remove global state
@@ -129,12 +129,12 @@ _load()
 - Manual error handling everywhere
 - Dict manipulation prone to errors
 
-#### After: BaseDeviceManager with Dataclass
+#### After: BaseConfigManager with Dataclass
 
 ```python
 # config.py - New approach
 from dataclasses import dataclass
-from ucapi_framework_ import BaseDeviceManager
+from ucapi_framework import BaseConfigManager
 
 @dataclass
 class PSNDevice:
@@ -143,7 +143,7 @@ class PSNDevice:
     name: str
     npsso: str
 
-class PSNDeviceManager(BaseDeviceManager[PSNDevice]):
+class PSNConfigManager(BaseConfigManager[PSNDevice]):
     """PSN device configuration manager with JSON persistence."""
     pass
 ```
@@ -641,9 +641,8 @@ _LOOP = asyncio.get_event_loop()
 class PSNIntegrationDriver(BaseIntegrationDriver[PSNAccount, PSNDevice]):
     """PSN Integration driver."""
     
-    def __init__(self, loop: asyncio.AbstractEventLoop):
+    def __init__(self):
         super().__init__(
-            loop=loop,
             device_class=PSNAccount,
             entity_classes=[PSNMediaPlayer]
         )
@@ -910,7 +909,7 @@ Test with real Remote Two connection:
 
 ### Migration Checklist
 
-- [ ] Configuration converted to dataclass + BaseDeviceManager
+- [ ] Configuration converted to dataclass + BaseConfigManager
 - [ ] Device inherits from appropriate base class (StatelessHTTPDevice, PollingDevice, etc.)
 - [ ] Setup flow inherits from BaseSetupFlow
 - [ ] Driver inherits from BaseIntegrationDriver

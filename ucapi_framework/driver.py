@@ -66,37 +66,37 @@ def _get_first_valid_attr(obj: Any, *attrs: str) -> str | None:
 
 
 def create_entity_id(
-    entity_type: EntityTypes | str, device_id: str, entity_id: str | None = None
+    entity_type: EntityTypes | str, device_id: str, sub_device_id: str | None = None
 ) -> str:
     """
     Create a unique entity identifier for the given device and entity type.
 
     Entity IDs follow the format:
     - Simple: "{entity_type}.{device_id}"
-    - With entity: "{entity_type}.{device_id}.{entity_id}"
+    - With sub-device: "{entity_type}.{device_id}.{sub_device_id}"
 
-    Use the optional entity_id parameter for devices that expose multiple entities
+    Use the optional sub_device_id parameter for devices that expose multiple entities
     of the same type, such as a hub with multiple lights or zones.
 
     Examples:
-        >>> create_entity_id("device_123", EntityTypes.MEDIA_PLAYER)
+        >>> create_entity_id(EntityTypes.MEDIA_PLAYER, "device_123")
         'media_player.device_123'
-        >>> create_entity_id("hub_1", EntityTypes.LIGHT, "light_bedroom")
+        >>> create_entity_id(EntityTypes.LIGHT, "hub_1", "light_bedroom")
         'light.hub_1.light_bedroom'
-        >>> create_entity_id("receiver_abc", "media_player", "zone_2")
+        >>> create_entity_id("media_player", "receiver_abc", "zone_2")
         'media_player.receiver_abc.zone_2'
 
-    :param device_id: The device identifier (hub or parent device)
     :param entity_type: The entity type (EntityTypes enum or string)
-    :param entity_id: Optional sub-entity identifier (e.g., light ID, zone ID)
-    :return: Entity identifier in the format "entity_type.device_id" or "entity_type.device_id.entity_id"
+    :param device_id: The device identifier (hub or parent device)
+    :param sub_device_id: Optional sub-device identifier (e.g., light ID, zone ID)
+    :return: Entity identifier in the format "entity_type.device_id" or "entity_type.device_id.sub_device_id"
     """
     type_str = (
         entity_type.value if isinstance(entity_type, EntityTypes) else entity_type
     )
 
-    if entity_id:
-        return f"{type_str}.{device_id}.{entity_id}"
+    if sub_device_id:
+        return f"{type_str}.{device_id}.{sub_device_id}"
     return f"{type_str}.{device_id}"
 
 
@@ -117,15 +117,14 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
 
     def __init__(
         self,
-        loop: asyncio.AbstractEventLoop,
         device_class: type[DeviceT],
         entity_classes: list[EntityTypes] | EntityTypes,
         require_connection_before_registry: bool = False,
+        loop: asyncio.AbstractEventLoop | None = None,
     ):
         """
         Initialize the integration driver.
 
-        :param loop: The asyncio event loop
         :param device_class: The device interface class to instantiate
         :param entity_classes: EntityTypes or list of EntityTypes (e.g., EntityTypes.MEDIA_PLAYER)
                                Single EntityTypes value will be converted to a list
@@ -133,9 +132,10 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                                                    before subscribing to entities and re-register
                                                    available entities after connection. Useful for hub-based
                                                    integrations that populate entities dynamically on connection.
+        :param loop: The asyncio event loop (optional, defaults to asyncio.get_running_loop())
         """
-        self.api = uc.IntegrationAPI(loop)
-        self._loop = loop
+        self._loop = loop if loop is not None else asyncio.get_running_loop()
+        self.api = uc.IntegrationAPI(self._loop)
         self._device_class = device_class
         self._require_connection_before_registry = require_connection_before_registry
 
@@ -146,8 +146,54 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             self._entity_classes = entity_classes
 
         self._configured_devices: dict[str, DeviceT] = {}
-        self.config = None  # Will be set by integration after initialization
+        self._config_manager = None  # Set via config_manager property
         self._setup_event_handlers()
+
+    @property
+    def config_manager(self):
+        """
+        Get the configuration manager.
+
+        :return: The configuration manager instance
+        """
+        return self._config_manager
+
+    @config_manager.setter
+    def config_manager(self, value) -> None:
+        """
+        Set the configuration manager.
+
+        :param value: The configuration manager instance (BaseConfigManager)
+        """
+        self._config_manager = value
+
+    async def register_all_configured_devices(self, connect: bool = False) -> None:
+        """
+        Register all devices from the configuration manager.
+
+        This method iterates over all devices in the config manager and registers
+        them with the driver. When require_connection_before_registry is True,
+        it uses async_add_configured_device() which waits for connection before
+        registering entities.
+
+        Call this method during driver initialization after setting the config_manager.
+
+        Example:
+            driver = MyDriver(device_class=MyDevice, entity_classes=[EntityTypes.MEDIA_PLAYER])
+            driver.config_manager = my_config_manager
+            await driver.register_all_configured_devices(connect=True)
+
+        :param connect: Whether to connect devices after adding them (default: False)
+        """
+        if self._config_manager is None:
+            _LOG.warning("Cannot register devices: config_manager is not set")
+            return
+
+        for device_config in self._config_manager.all():
+            if self._require_connection_before_registry:
+                await self.async_add_configured_device(device_config)
+            else:
+                self.add_configured_device(device_config, connect=connect)
 
     def _setup_event_handlers(self) -> None:
         """Register all event handlers with the API."""
@@ -400,12 +446,12 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     return
 
                 entity_type = self.entity_type_from_entity_id(entity_id)
-                sub_entity_id = self.entity_from_entity_id(entity_id)
+                sub_device_id = self.sub_device_from_entity_id(entity_id)
 
                 match entity_type:
                     case EntityTypes.LIGHT.value:
                         light = next(
-                            (l for l in device.lights if l.device_id == sub_entity_id),
+                            (l for l in device.lights if l.device_id == sub_device_id),
                             None
                         )
                         if light:
@@ -649,7 +695,7 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             self.get_device_name(device_config),
         )
         device = self._device_class(
-            device_config, loop=self._loop, config_manager=self.config
+            device_config, loop=self._loop, config_manager=self._config_manager
         )
         self.setup_device_event_handlers(device)
         self._configured_devices[device_id] = device
@@ -1032,7 +1078,7 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         Get device configuration for the given device ID.
 
         Default implementation: checks _configured_devices first, then falls
-        back to self.config.get() if config manager is available.
+        back to self._config_manager.get() if config manager is available.
         Override this if your integration uses a different config structure.
 
         :param device_id: Device identifier
@@ -1044,8 +1090,8 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
             return device.device_config
 
         # Fall back to stored configuration if available
-        if self.config and hasattr(self.config, "get"):
-            return self.config.get(device_id)
+        if self._config_manager and hasattr(self._config_manager, "get"):
+            return self._config_manager.get(device_id)
 
         return None
 
@@ -1330,35 +1376,35 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         # Second part is always the device_id in create_entity_id() format
         return parts[1]
 
-    def entity_from_entity_id(self, entity_id: str) -> str | None:
+    def sub_device_from_entity_id(self, entity_id: str) -> str | None:
         """
-        Extract sub-entity identifier from entity identifier (if present).
+        Extract sub-device identifier from entity identifier (if present).
 
         DEFAULT IMPLEMENTATION: Parses entity IDs created by create_entity_id().
-        Returns the sub-entity ID (third part) if present, None otherwise:
-        - Simple: "entity_type.device_id" → returns None (no sub-entity)
-        - With sub-entity: "entity_type.device_id.entity_id" → returns "entity_id"
+        Returns the sub-device ID (third part) if present, None otherwise:
+        - Simple: "entity_type.device_id" → returns None (no sub-device)
+        - With sub-device: "entity_type.device_id.sub_device_id" → returns "sub_device_id"
 
         **IMPORTANT**: If you override create_entities() to use a custom entity ID format
-        WITH sub-entities (3-part format), you MUST also override this method. The simple
+        WITH sub-devices (3-part format), you MUST also override this method. The simple
         2-part format doesn't require override since it always returns None.
 
         Example custom override:
             def create_entities(self, device_config, device):
-                # Custom format with sub-entities
+                # Custom format with sub-devices
                 return [
                     Light(f"{device_config.id}_zone1", ...),
                     Light(f"{device_config.id}_zone2", ...)
                 ]
 
-            def entity_from_entity_id(self, entity_id: str) -> str | None:
+            def sub_device_from_entity_id(self, entity_id: str) -> str | None:
                 # For custom format: "deviceid_zonename"
                 if "_" in entity_id:
                     return entity_id.split("_", 1)[1]  # Returns "zone1", "zone2"
                 return None
 
         :param entity_id: Entity identifier (e.g., "light.hub_1.bedroom")
-        :return: Sub-entity identifier or None
+        :return: Sub-device identifier or None
         :raises NotImplementedError: If create_entities was overridden and uses 3-part format but this method wasn't
         """
         # Check if create_entities was overridden (indicating custom entity ID format)
@@ -1368,38 +1414,38 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
 
         if create_entities_overridden:
             # User has custom entity creation, they must override this method too IF they use 3-part format
-            entity_from_entity_overridden = (
-                type(self).entity_from_entity_id
-                is not BaseIntegrationDriver.entity_from_entity_id
+            sub_device_from_entity_overridden = (
+                type(self).sub_device_from_entity_id
+                is not BaseIntegrationDriver.sub_device_from_entity_id
             )
 
             # Default implementation: parse standard format from create_entity_id()
             if not entity_id or "." not in entity_id:
                 return None
 
-            # Split on period: "entity_type.device_id" or "entity_type.device_id.entity_id"
+            # Split on period: "entity_type.device_id" or "entity_type.device_id.sub_device_id"
             parts = entity_id.split(".")
 
             # If we have 3 parts and method wasn't overridden, that's an error
-            if len(parts) >= 3 and not entity_from_entity_overridden:
+            if len(parts) >= 3 and not sub_device_from_entity_overridden:
                 raise NotImplementedError(
                     f"{type(self).__name__}.create_entities() is overridden and uses "
-                    f"3-part entity IDs (entity_type.device_id.entity_id), but "
-                    f"entity_from_entity_id() is not overridden. When you override "
+                    f"3-part entity IDs (entity_type.device_id.sub_device_id), but "
+                    f"sub_device_from_entity_id() is not overridden. When you override "
                     f"create_entities() with a custom 3-part entity ID format, you must "
-                    f"also override entity_from_entity_id() to parse your custom format. "
+                    f"also override sub_device_from_entity_id() to parse your custom format. "
                 )
 
         # Default implementation: parse standard format from create_entity_id()
         if not entity_id or "." not in entity_id:
             return None
 
-        # Split on period: "entity_type.device_id" or "entity_type.device_id.entity_id"
+        # Split on period: "entity_type.device_id" or "entity_type.device_id.sub_device_id"
         parts = entity_id.split(".", 2)  # Split into at most 3 parts
 
         # Return everything after the second period if present, None otherwise
         if len(parts) >= 3:
-            return parts[2]  # This will be "entity_id" or "entity.with.dots"
+            return parts[2]  # This will be "sub_device_id" or "sub.device.with.dots"
 
         return None
 

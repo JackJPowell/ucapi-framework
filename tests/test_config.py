@@ -1,4 +1,4 @@
-"""Tests for BaseDeviceManager configuration management."""
+"""Tests for BaseConfigManager configuration management."""
 
 import json
 import os
@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from ucapi_framework.config import BaseDeviceManager, get_config_path
+from ucapi_framework.config import BaseConfigManager, get_config_path
 
 
 @dataclass
@@ -19,8 +19,8 @@ class DeviceConfig:
     port: int = 8080
 
 
-class ConcreteDeviceManager(BaseDeviceManager[DeviceConfig]):
-    """Concrete implementation of BaseDeviceManager for testing."""
+class ConcreteDeviceManager(BaseConfigManager[DeviceConfig]):
+    """Concrete implementation of BaseConfigManager for testing."""
 
     def deserialize_device(self, data: dict) -> DeviceConfig | None:
         """Deserialize device configuration from dictionary."""
@@ -44,8 +44,8 @@ class ConcreteDeviceManager(BaseDeviceManager[DeviceConfig]):
             return None
 
 
-class TestBaseDeviceManager:
-    """Test suite for BaseDeviceManager."""
+class TestBaseConfigManager:
+    """Test suite for BaseConfigManager."""
 
     def test_init_creates_empty_config(self, temp_config_dir):
         """Test that initialization creates an empty configuration."""
@@ -55,20 +55,20 @@ class TestBaseDeviceManager:
     def test_default_deserialize_with_device_class_param(self, temp_config_dir):
         """Test using default deserialize_device with device_class parameter."""
 
-        class AutoDeviceManager(BaseDeviceManager[DeviceConfig]):
+        class AutoDeviceManager(BaseConfigManager[DeviceConfig]):
             """Manager using default deserialization."""
 
             pass  # No override needed!
 
         # Pass device_class explicitly
-        manager = AutoDeviceManager(temp_config_dir, device_class=DeviceConfig)
+        manager = AutoDeviceManager(temp_config_dir, config_class=DeviceConfig)
 
         # Add a device
         device = DeviceConfig("dev1", "Device 1", "192.168.1.1", 8080)
         manager.add_or_update(device)
 
         # Create new manager to test loading
-        manager2 = AutoDeviceManager(temp_config_dir, device_class=DeviceConfig)
+        manager2 = AutoDeviceManager(temp_config_dir, config_class=DeviceConfig)
 
         loaded = manager2.get("dev1")
         assert loaded is not None
@@ -80,7 +80,7 @@ class TestBaseDeviceManager:
     def test_default_deserialize_with_generic_type_inference(self, temp_config_dir):
         """Test using default deserialize_device with Generic type inference."""
 
-        class AutoDeviceManager(BaseDeviceManager[DeviceConfig]):
+        class AutoDeviceManager(BaseConfigManager[DeviceConfig]):
             """Manager using default deserialization with type inference."""
 
             pass  # No device_class param or override needed!
@@ -321,7 +321,7 @@ class TestBaseDeviceManager:
             device_id: str
             name: str
 
-        class TestManager(BaseDeviceManager):
+        class TestManager(BaseConfigManager):
             def deserialize_device(self, data):
                 return None
 
@@ -341,7 +341,7 @@ class TestBaseDeviceManager:
             name: str
             address: str
 
-        class TestManager(BaseDeviceManager):
+        class TestManager(BaseConfigManager):
             def deserialize_device(self, data):
                 return None
 
@@ -788,7 +788,7 @@ class TestNestedDataclassDeserialization:
             name: str
             light: LightInfo
 
-        class HubManager(BaseDeviceManager[HubConfig]):
+        class HubManager(BaseConfigManager[HubConfig]):
             def deserialize_device(self, data: dict) -> HubConfig | None:
                 return self.deserialize_device_auto(data, HubConfig)
 
@@ -828,7 +828,7 @@ class TestNestedDataclassDeserialization:
             name: str
             lights: list[LightInfo]
 
-        class HubManager(BaseDeviceManager[HubConfig]):
+        class HubManager(BaseConfigManager[HubConfig]):
             def deserialize_device(self, data: dict) -> HubConfig | None:
                 return self.deserialize_device_auto(data, HubConfig)
 
@@ -893,7 +893,7 @@ class TestNestedDataclassDeserialization:
             name: str
             lights: list[LightInfo]
 
-        class HubManager(BaseDeviceManager[HubConfig]):
+        class HubManager(BaseConfigManager[HubConfig]):
             def deserialize_device(self, data: dict) -> HubConfig | None:
                 return self.deserialize_device_auto(data, HubConfig)
 
@@ -919,7 +919,7 @@ class TestNestedDataclassDeserialization:
             enabled: bool
             tags: list[str]
 
-        class SimpleManager(BaseDeviceManager[SimpleConfig]):
+        class SimpleManager(BaseConfigManager[SimpleConfig]):
             def deserialize_device(self, data: dict) -> SimpleConfig | None:
                 return self.deserialize_device_auto(data, SimpleConfig)
 
@@ -951,7 +951,7 @@ class TestNestedDataclassDeserialization:
             name: str
             required_field: str
 
-        class RequiredManager(BaseDeviceManager[RequiredFieldsConfig]):
+        class RequiredManager(BaseConfigManager[RequiredFieldsConfig]):
             def deserialize_device(self, data: dict) -> RequiredFieldsConfig | None:
                 return self.deserialize_device_auto(data, RequiredFieldsConfig)
 
@@ -980,7 +980,7 @@ class TestNestedDataclassDeserialization:
             name: str
             lights: list[LightInfo]
 
-        class HubManager(BaseDeviceManager[HubConfig]):
+        class HubManager(BaseConfigManager[HubConfig]):
             def deserialize_device(self, data: dict) -> HubConfig | None:
                 return self.deserialize_device_auto(data, HubConfig)
 

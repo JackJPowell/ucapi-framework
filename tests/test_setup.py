@@ -15,7 +15,7 @@ from ucapi import (
     UserDataResponse,
 )
 
-from ucapi_framework.config import BaseDeviceManager
+from ucapi_framework.config import BaseConfigManager
 from ucapi_framework.discovery import BaseDiscovery, DiscoveredDevice
 from ucapi_framework.setup import BaseSetupFlow, SetupSteps
 
@@ -30,7 +30,7 @@ class DeviceConfigForTests:
     port: int = 8080
 
 
-class DeviceManagerForTests(BaseDeviceManager[DeviceConfigForTests]):
+class DeviceManagerForTests(BaseConfigManager[DeviceConfigForTests]):
     """Test device manager implementation."""
 
     def deserialize_device(self, data: dict) -> DeviceConfigForTests | None:
@@ -174,7 +174,12 @@ class TestBaseSetupFlow:
 
     def test_create_handler_factory(self, config_manager):
         """Test create_handler factory method."""
-        handler = ConcreteSetupFlow.create_handler(config_manager)
+        # Create a mock driver with config_manager property
+        from unittest.mock import MagicMock
+        mock_driver = MagicMock()
+        mock_driver.config_manager = config_manager
+        
+        handler = ConcreteSetupFlow.create_handler(mock_driver)
 
         assert callable(handler)
 
@@ -651,7 +656,12 @@ class TestSetupFlowAdvanced:
     @pytest.mark.asyncio
     async def test_handler_factory_creates_instance_on_first_call(self, config_manager):
         """Test that create_handler factory creates instance lazily."""
-        handler = ConcreteSetupFlow.create_handler(config_manager, None)
+        # Create a mock driver with config_manager property
+        from unittest.mock import MagicMock
+        mock_driver = MagicMock()
+        mock_driver.config_manager = config_manager
+        
+        handler = ConcreteSetupFlow.create_handler(mock_driver)
 
         # First call should create the instance
         request = DriverSetupRequest(reconfigure=False, setup_data={})

@@ -23,7 +23,6 @@ The driver provides sensible defaults for common patterns. **You typically don't
 ```python
 # Works automatically for standard entity creation
 driver = MyIntegrationDriver(
-    loop=loop,
     device_class=MyDevice,
     entity_classes=[EntityTypes.MEDIA_PLAYER, EntityTypes.REMOTE]
 )
@@ -127,18 +126,18 @@ entity_type = driver.entity_type_from_entity_id(entity_id)  # Returns "media_pla
 
 **Override only if** you use a custom entity ID format (same conditions as `device_from_entity_id()`).
 
-### 6. entity_from_entity_id() ✅ Has Default
+### 6. sub_device_from_entity_id() ✅ Has Default
 
-**Default behavior**: Extracts sub-entity ID from 3-part format `"entity_type.device_id.entity_id"`.
+**Default behavior**: Extracts sub-device ID from 3-part format `"entity_type.device_id.sub_device_id"`.
 
 ```python
 # 2-part format returns None
 entity_id = "media_player.receiver_123"
-sub_entity = driver.entity_from_entity_id(entity_id)  # Returns None
+sub_device = driver.sub_device_from_entity_id(entity_id)  # Returns None
 
-# 3-part format returns the sub-entity
+# 3-part format returns the sub-device
 entity_id = "light.hub_1.bedroom"
-sub_entity = driver.entity_from_entity_id(entity_id)  # Returns "bedroom"
+sub_device = driver.sub_device_from_entity_id(entity_id)  # Returns "bedroom"
 ```
 
 Useful for hub-based integrations where one device exposes multiple entities.
@@ -266,9 +265,8 @@ For integrations where entities are discovered dynamically from a hub device (li
 
 ```python
 class MyHubDriver(BaseIntegrationDriver[MyHub, MyHubConfig]):
-    def __init__(self, loop):
+    def __init__(self):
         super().__init__(
-            loop=loop,
             device_class=MyHub,
             entity_classes=[EntityTypes.LIGHT, EntityTypes.SWITCH],
             require_connection_before_registry=True  # Enable hub mode
@@ -314,14 +312,14 @@ async def async_register_available_entities(
 Use the 3-part entity ID format for hub devices:
 
 ```python
-# Create entity ID with sub-entity
+# Create entity ID with sub-device
 entity_id = create_entity_id(EntityTypes.LIGHT, "hub_1", "bedroom_light")
 # Result: "light.hub_1.bedroom_light"
 
 # Parse it back
 device_id = driver.device_from_entity_id(entity_id)  # "hub_1"
 entity_type = driver.entity_type_from_entity_id(entity_id)  # "light"
-sub_entity = driver.entity_from_entity_id(entity_id)  # "bedroom_light"
+sub_device = driver.sub_device_from_entity_id(entity_id)  # "bedroom_light"
 ```
 
 ## Minimal Example
@@ -335,9 +333,8 @@ from ucapi import EntityTypes
 class MyDriver(BaseIntegrationDriver[MyDevice, MyDeviceConfig]):
     """Simple integration driver - uses all defaults."""
     
-    def __init__(self, loop):
+    def __init__(self):
         super().__init__(
-            loop=loop,
             device_class=MyDevice,
             entity_classes=EntityTypes.MEDIA_PLAYER,  # Or list of types
         )
@@ -361,9 +358,8 @@ from ucapi import EntityTypes, media_player
 class MyDriver(BaseIntegrationDriver[MyDevice, MyDeviceConfig]):
     """Custom driver with specific requirements."""
     
-    def __init__(self, loop):
+    def __init__(self):
         super().__init__(
-            loop=loop,
             device_class=MyDevice,
             entity_classes=[
                 EntityTypes.MEDIA_PLAYER,

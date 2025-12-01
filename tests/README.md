@@ -5,7 +5,7 @@ This directory contains comprehensive test coverage for the ucapi-framework pack
 ## Structure
 
 - `conftest.py` - Shared fixtures and pytest configuration
-- `test_config.py` - Tests for `BaseDeviceManager` configuration management
+- `test_config.py` - Tests for `BaseConfigManager` configuration management
 - `test_device.py` - Tests for device interface classes (StatelessHTTPDevice, PollingDevice, WebSocketDevice, PersistentConnectionDevice)
 - `test_discovery.py` - Tests for discovery classes (SSDP, mDNS, Network Scan)
 - `test_driver.py` - Tests for `BaseIntegrationDriver`
@@ -30,7 +30,7 @@ pytest tests/test_config.py
 
 ### Run specific test
 ```bash
-pytest tests/test_config.py::TestBaseDeviceManager::test_add_device
+pytest tests/test_config.py::TestBaseConfigManager::test_add_device
 ```
 
 ### Run with verbose output
@@ -47,7 +47,7 @@ pytest -s
 
 The test suite aims for comprehensive coverage of:
 
-- **Configuration Management** (`BaseDeviceManager`)
+- **Configuration Management** (`BaseConfigManager`)
   - CRUD operations
   - JSON serialization/deserialization
   - Backup and restore functionality

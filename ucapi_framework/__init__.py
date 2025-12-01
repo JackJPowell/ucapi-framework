@@ -20,7 +20,7 @@ See ucapi_framework.discovery module documentation for details.
 
 from .driver import BaseIntegrationDriver, create_entity_id
 from .setup import BaseSetupFlow, SetupSteps
-from .config import BaseDeviceManager, get_config_path
+from .config import BaseConfigManager, get_config_path
 from .device import (
     BaseDeviceInterface,
     StatelessHTTPDevice,
@@ -44,7 +44,7 @@ __all__ = [
     "BaseIntegrationDriver",
     "BaseSetupFlow",
     "SetupSteps",
-    "BaseDeviceManager",
+    "BaseConfigManager",
     "get_config_path",
     "BaseDeviceInterface",
     "StatelessHTTPDevice",

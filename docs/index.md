@@ -63,7 +63,7 @@ Configuration is just a dataclass. The framework handles JSON serialization, CRU
 
 ```python
 from dataclasses import dataclass
-from ucapi_framework import BaseDeviceManager
+from ucapi_framework import BaseConfigManager
 
 @dataclass
 class MyDeviceConfig:
@@ -71,7 +71,7 @@ class MyDeviceConfig:
     name: str
     host: str
 
-config = BaseDeviceManager("config.json", MyDeviceConfig)
+config = BaseConfigManager("config.json", MyDeviceConfig)
 ```
 
 You get full CRUD operations: `add_or_update()`, `get()`, `remove()`, `all()`, `clear()`. Plus automatic backup/restore functionality for free. The framework handles all the file I/O, error handling, and atomic writes.

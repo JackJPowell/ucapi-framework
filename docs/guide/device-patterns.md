@@ -82,10 +82,9 @@ from ucapi_framework import PollingDevice, DeviceEvents
 import aiohttp
 
 class MyPollingDevice(PollingDevice):
-    def __init__(self, device_config, loop=None, config_manager=None):
+    def __init__(self, device_config, config_manager=None):
         super().__init__(
             device_config,
-            loop=loop,
             poll_interval=30,  # Poll every 30 seconds
             config_manager=config_manager
         )
@@ -154,10 +153,9 @@ from ucapi_framework import WebSocketDevice, DeviceEvents
 import websockets
 
 class MyWebSocketDevice(WebSocketDevice):
-    def __init__(self, device_config, loop=None, config_manager=None):
+    def __init__(self, device_config, config_manager=None):
         super().__init__(
             device_config,
-            loop=loop,
             reconnect=True,
             ping_interval=30,  # Ping every 30 seconds
             config_manager=config_manager
@@ -227,10 +225,9 @@ Hybrid device combining WebSocket for real-time updates with polling as a fallba
 from ucapi_framework import WebSocketPollingDevice
 
 class MyHybridDevice(WebSocketPollingDevice):
-    def __init__(self, device_config, loop=None, config_manager=None):
+    def __init__(self, device_config, config_manager=None):
         super().__init__(
             device_config,
-            loop=loop,
             poll_interval=30,
             ping_interval=30,
             keep_polling_on_disconnect=True,
@@ -347,10 +344,9 @@ For devices using external client libraries that manage their own connections.
 from ucapi_framework import ExternalClientDevice, DeviceEvents
 
 class MyExternalDevice(ExternalClientDevice):
-    def __init__(self, device_config, loop=None, config_manager=None):
+    def __init__(self, device_config, config_manager=None):
         super().__init__(
             device_config,
-            loop=loop,
             enable_watchdog=True,      # Monitor connection state
             watchdog_interval=30,       # Check every 30 seconds
             reconnect_delay=5,          # Wait 5s between reconnect attempts

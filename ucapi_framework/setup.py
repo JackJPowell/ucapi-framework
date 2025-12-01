@@ -25,8 +25,10 @@ from ucapi import (
     UserDataResponse,
 )
 
+from ucapi_framework.driver import BaseIntegrationDriver
+
 from .discovery import DiscoveredDevice, BaseDiscovery
-from .config import BaseDeviceManager
+from .config import BaseConfigManager
 
 _LOG = logging.getLogger(__name__)
 
@@ -63,7 +65,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
     def __init__(
         self,
-        config_manager: BaseDeviceManager,
+        config_manager: BaseConfigManager,
         *,
         discovery: BaseDiscovery | None = None,
     ):
@@ -89,7 +91,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         ] = {}  # Store data from pre-discovery screens
 
     @classmethod
-    def create_handler(cls, config_manager, discovery: BaseDiscovery | None = None):
+    def create_handler(
+        cls, driver: BaseIntegrationDriver, *, discovery: BaseDiscovery | None = None
+    ):
         """
         Create a setup handler function with the given configuration.
 
@@ -98,10 +102,11 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         Example usage in driver's main():
             discovery = MyDiscovery(api_key="...", timeout=30)
-            setup_handler = MySetupFlow.create_handler(config_manager, discovery)
+            setup_handler = MySetupFlow.create_handler(driver, discovery=discovery)
             api.init("driver-name", setup_handler=setup_handler)
 
-        :param config_manager: Device configuration manager instance
+        :param driver: The driver instance. The config_manager will be
+                      retrieved from driver.config_manager.
         :param discovery: Optional initialized discovery instance for auto-discovery.
                          Pass None if the device does not support discovery.
         :return: Async function that handles SetupDriver messages
@@ -114,7 +119,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
             if setup_flow is None:
                 _LOG.info("Creating new %s instance", cls.__name__)
-                setup_flow = cls(config_manager, discovery=discovery)
+                setup_flow = cls(driver.config_manager, discovery=discovery)
 
             return await setup_flow.handle_driver_setup(msg)
 
@@ -482,13 +487,17 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         # Look up the discovered device
         discovered = self.get_discovered_devices(device_id)
         if not discovered:
-            _LOG.info("Discovered device not found: %s, showing manual entry", device_id)
+            _LOG.info(
+                "Discovered device not found: %s, showing manual entry", device_id
+            )
             return await self._handle_manual_entry()
 
         # Convert discovered device to input_values format
         try:
-            input_values = await self.prepare_input_from_discovery(discovered, msg.input_values)
-            
+            input_values = await self.prepare_input_from_discovery(
+                discovered, msg.input_values
+            )
+
             # Call query_device just like manual entry does
             result = await self.query_device(input_values)
 
@@ -994,12 +1003,12 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             "address": discovered.address,
             "name": discovered.name,
         }
-        
+
         # Merge additional input, filtering out internal fields
         for key, value in additional_input.items():
             if not key.startswith("_") and key not in ("choice",):
                 input_values[key] = value
-        
+
         return input_values
 
     # ========================================================================
