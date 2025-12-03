@@ -176,9 +176,10 @@ class TestBaseSetupFlow:
         """Test create_handler factory method."""
         # Create a mock driver with config_manager property
         from unittest.mock import MagicMock
+
         mock_driver = MagicMock()
         mock_driver.config_manager = config_manager
-        
+
         handler = ConcreteSetupFlow.create_handler(mock_driver)
 
         assert callable(handler)
@@ -225,6 +226,14 @@ class TestBaseSetupFlow:
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await setup_flow.handle_driver_setup(request)
 
+        # Should show restore prompt
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE_PROMPT
+
+        # Skip restore
+        user_response = UserDataResponse(input_values={"restore_from_backup": False})
+        result = await setup_flow.handle_driver_setup(user_response)
+
         # Should show discovered devices
         assert isinstance(result, RequestUserInput)
         assert setup_flow._setup_step == SetupSteps.DISCOVER
@@ -244,6 +253,10 @@ class TestBaseSetupFlow:
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         await setup_flow.handle_driver_setup(request)
+
+        # Skip restore
+        user_response = UserDataResponse(input_values={"restore_from_backup": False})
+        await setup_flow.handle_driver_setup(user_response)
 
         # Select manual entry
         user_response = UserDataResponse(input_values={"choice": "manual"})
@@ -283,7 +296,7 @@ class TestBaseSetupFlow:
         )
         result = await setup_flow.handle_driver_setup(user_response)
 
-        # Should go to discovery
+        # Should go to discovery or show pre-discovery/restore screens
         assert isinstance(result, RequestUserInput)
 
     @pytest.mark.asyncio
@@ -326,8 +339,9 @@ class TestBaseSetupFlow:
         )
         result = await setup_flow.handle_driver_setup(user_response)
 
-        # Should go to discovery
+        # Should show restore prompt
         assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE_PROMPT
 
         # All devices should be cleared
         assert len(list(config_manager.all())) == 0
@@ -402,6 +416,75 @@ class TestBaseSetupFlow:
         # Devices should be restored
         assert config_manager.contains("dev1")
         assert config_manager.contains("dev2")
+
+    @pytest.mark.asyncio
+    async def test_restore_prompt_accept(self, config_manager):
+        """Test restore prompt when user chooses to restore."""
+        flow = ConcreteSetupFlow(config_manager)
+
+        # Start initial setup
+        request = DriverSetupRequest(reconfigure=False, setup_data={})
+        result = await flow.handle_driver_setup(request)
+
+        # Should show restore prompt
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.RESTORE_PROMPT
+        assert result.title.get("en") == "Restore Configuration?"
+
+        # User chooses to restore
+        restore_prompt_response = UserDataResponse(
+            input_values={"restore_from_backup": True}
+        )
+        result = await flow.handle_driver_setup(restore_prompt_response)
+
+        # Should show restore screen
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.RESTORE
+
+    @pytest.mark.asyncio
+    async def test_restore_prompt_skip(self, config_manager):
+        """Test restore prompt when user skips restore."""
+        flow = ConcreteSetupFlow(config_manager)
+
+        # Start initial setup
+        request = DriverSetupRequest(reconfigure=False, setup_data={})
+        result = await flow.handle_driver_setup(request)
+
+        # Should show restore prompt
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.RESTORE_PROMPT
+
+        # User skips restore
+        restore_prompt_response = UserDataResponse(
+            input_values={"restore_from_backup": False}
+        )
+        result = await flow.handle_driver_setup(restore_prompt_response)
+
+        # Should proceed to manual entry (no discovery)
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.MANUAL_ENTRY
+
+    @pytest.mark.asyncio
+    async def test_restore_prompt_custom_text(self, config_manager):
+        """Test custom restore prompt text."""
+
+        class CustomRestorePromptFlow(ConcreteSetupFlow):
+            async def get_restore_prompt_text(self):
+                return "Custom restore message for testing"
+
+        flow = CustomRestorePromptFlow(config_manager)
+
+        # Start initial setup
+        request = DriverSetupRequest(reconfigure=False, setup_data={})
+        result = await flow.handle_driver_setup(request)
+
+        # Check custom text is used
+        assert isinstance(result, RequestUserInput)
+        info_field = next(f for f in result.settings if f["id"] == "info")
+        assert (
+            info_field["field"]["label"]["value"]["en"]
+            == "Custom restore message for testing"
+        )
 
     @pytest.mark.asyncio
     async def test_duplicate_device_rejected(self, setup_flow, config_manager):
@@ -502,16 +585,24 @@ class TestBaseSetupFlow:
         # Device should be removed
         assert not config_manager.contains("dev1")
 
-        # Should go to discovery
+        # Should show restore prompt or discovery
         assert isinstance(result, RequestUserInput)
 
     @pytest.mark.asyncio
     async def test_no_discovery_goes_to_manual(self, config_manager):
-        """Test that without discovery, setup goes straight to manual entry."""
+        """Test that without discovery, setup goes to restore prompt then manual entry."""
         flow = ConcreteSetupFlow(config_manager)
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await flow.handle_driver_setup(request)
+
+        # Should show restore prompt first
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.RESTORE_PROMPT
+
+        # Skip restore
+        user_response = UserDataResponse(input_values={"restore_from_backup": False})
+        result = await flow.handle_driver_setup(user_response)
 
         # Should go to manual entry
         assert isinstance(result, RequestUserInput)
@@ -525,12 +616,13 @@ class TestSetupSteps:
         """Test SetupSteps enum values."""
         assert SetupSteps.INIT == 0
         assert SetupSteps.CONFIGURATION_MODE == 1
-        assert SetupSteps.PRE_DISCOVERY == 2
-        assert SetupSteps.DISCOVER == 3
-        assert SetupSteps.DEVICE_CHOICE == 4
-        assert SetupSteps.MANUAL_ENTRY == 5
-        assert SetupSteps.BACKUP == 6
-        assert SetupSteps.RESTORE == 7
+        assert SetupSteps.RESTORE_PROMPT == 2
+        assert SetupSteps.PRE_DISCOVERY == 3
+        assert SetupSteps.DISCOVER == 4
+        assert SetupSteps.DEVICE_CHOICE == 5
+        assert SetupSteps.MANUAL_ENTRY == 6
+        assert SetupSteps.BACKUP == 7
+        assert SetupSteps.RESTORE == 8
 
 
 class TestSetupFlowAdvanced:
@@ -562,6 +654,14 @@ class TestSetupFlowAdvanced:
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await flow.handle_driver_setup(request)
+
+        # Should show restore prompt first
+        assert isinstance(result, RequestUserInput)
+        assert flow._setup_step == SetupSteps.RESTORE_PROMPT
+
+        # Skip restore
+        restore_response = UserDataResponse(input_values={"restore_from_backup": False})
+        result = await flow.handle_driver_setup(restore_response)
 
         # Should show pre-discovery screen
         assert isinstance(result, RequestUserInput)
@@ -605,6 +705,10 @@ class TestSetupFlowAdvanced:
 
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         await flow.handle_driver_setup(request)
+
+        # Skip restore
+        restore_response = UserDataResponse(input_values={"restore_from_backup": False})
+        await flow.handle_driver_setup(restore_response)
 
         # Select device
         user_response = UserDataResponse(input_values={"choice": "dev1"})
@@ -658,9 +762,10 @@ class TestSetupFlowAdvanced:
         """Test that create_handler factory creates instance lazily."""
         # Create a mock driver with config_manager property
         from unittest.mock import MagicMock
+
         mock_driver = MagicMock()
         mock_driver.config_manager = config_manager
-        
+
         handler = ConcreteSetupFlow.create_handler(mock_driver)
 
         # First call should create the instance
@@ -761,6 +866,14 @@ class TestSetupFlowAdvanced:
         # Start setup
         request = DriverSetupRequest(reconfigure=False, setup_data={})
         result = await setup_flow.handle_driver_setup(request)
+
+        # Should show restore prompt first
+        assert isinstance(result, RequestUserInput)
+        assert result.title.get("en") == "Restore Configuration?"
+
+        # Skip restore
+        user_response = UserDataResponse(input_values={"restore_from_backup": False})
+        result = await setup_flow.handle_driver_setup(user_response)
 
         # Should show pre-discovery screen
         assert isinstance(result, RequestUserInput)

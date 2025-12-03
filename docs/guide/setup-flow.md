@@ -8,17 +8,22 @@ The setup flow follows this pattern:
 
 ```mermaid
 graph LR
-    A[Configuration Mode] --> B{Discovery?}
-    B -->|Yes| C[Pre-Discovery Screen]
-    C --> D[Run Discovery]
-    D --> E[Device Selection]
-    B -->|No| F[Manual Entry]
-    E --> G[query_device]
-    F --> G
-    G --> H[Additional Config?]
-    H -->|Yes| I[Additional Screen]
-    H -->|No| J[Complete]
-    I --> J
+    A[Start Setup] --> B{Reconfigure?}
+    B -->|Yes| C[Configuration Mode]
+    B -->|No| D[Restore Prompt]
+    D -->|Restore| E[Restore Screen]
+    D -->|Skip| F{Discovery?}
+    F -->|Yes| G[Pre-Discovery Screen]
+    G --> H[Run Discovery]
+    H --> I[Device Selection]
+    F -->|No| J[Manual Entry]
+    I --> K[query_device]
+    J --> K
+    K --> L[Additional Config?]
+    L -->|Yes| M[Additional Screen]
+    L -->|No| N[Complete]
+    M --> N
+    E --> N
 ```
 
 ## Key Concept: Unified Flow
@@ -67,6 +72,33 @@ class MySetupFlow(BaseSetupFlow[MyDeviceConfig]):
 ```
 
 ## Extension Points
+
+### Restore Prompt
+
+When a user starts initial setup (not reconfiguration), they are first asked if they want to restore from a backup. This is useful when upgrading integrations to allow users to import their previous configuration without having to set up a new device first.
+
+The default prompt asks: "Are you upgrading this integration? If you have a configuration backup, you can restore it now. Otherwise, continue with the setup process to add a new device."
+
+You can customize this message:
+
+```python
+async def get_restore_prompt_text(self) -> str:
+    """Customize the restore prompt message."""
+    return (
+        "Welcome to MyDevice Integration v2.0! "
+        "If you're upgrading from v1.x, you can restore your "
+        "previous configuration. Otherwise, continue with setup."
+    )
+```
+
+The restore prompt:
+
+- Appears before any other setup screens during initial setup
+- Shows a checkbox for "Restore from backup"
+- If checked, goes directly to the restore screen
+- If unchecked, continues with normal setup flow (pre-discovery → discovery → manual entry)
+
+This also appears when users select "Reset" in configuration mode, allowing them to restore after clearing their configuration.
 
 ### Pre-Discovery Screens
 

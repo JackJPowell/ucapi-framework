@@ -41,12 +41,13 @@ class SetupSteps(IntEnum):
 
     INIT = 0
     CONFIGURATION_MODE = 1
-    PRE_DISCOVERY = 2
-    DISCOVER = 3
-    DEVICE_CHOICE = 4
-    MANUAL_ENTRY = 5
-    BACKUP = 6
-    RESTORE = 7
+    RESTORE_PROMPT = 2
+    PRE_DISCOVERY = 3
+    DISCOVER = 4
+    DEVICE_CHOICE = 5
+    MANUAL_ENTRY = 6
+    BACKUP = 7
+    RESTORE = 8
 
 
 class BaseSetupFlow(ABC, Generic[ConfigT]):
@@ -92,7 +93,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
     @classmethod
     def create_handler(
-        cls, driver: BaseIntegrationDriver, *, discovery: BaseDiscovery | None = None
+        cls, driver: BaseIntegrationDriver, discovery: BaseDiscovery | None = None
     ):
         """
         Create a setup handler function with the given configuration.
@@ -167,19 +168,13 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             self._setup_step = SetupSteps.CONFIGURATION_MODE
             return await self._build_configuration_mode_screen()
 
-        # Initial setup - clear configuration and start discovery
+        # Initial setup - clear configuration and ask about restore
         self.config.clear()
         self._pre_discovery_data = {}
 
-        # Check if pre-discovery screen is needed
-        pre_discovery_screen = await self.get_pre_discovery_screen()
-        if pre_discovery_screen is not None:
-            self._setup_step = SetupSteps.PRE_DISCOVERY
-            return pre_discovery_screen
-
-        # No pre-discovery needed, go straight to discovery
-        self._setup_step = SetupSteps.DISCOVER
-        return await self._handle_discovery()
+        # Ask if user wants to restore from backup
+        self._setup_step = SetupSteps.RESTORE_PROMPT
+        return await self._build_restore_prompt_screen()
 
     async def _handle_user_data_response(self, msg: UserDataResponse) -> SetupAction:
         """
@@ -197,6 +192,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             and "action" in msg.input_values
         ):
             return await self._handle_configuration_mode(msg)
+
+        if self._setup_step == SetupSteps.RESTORE_PROMPT:
+            return await self._handle_restore_prompt_response(msg)
 
         if self._setup_step == SetupSteps.PRE_DISCOVERY:
             return await self._handle_pre_discovery_response(msg)
@@ -358,14 +356,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 self.config.clear()
                 self._pre_discovery_data = {}
 
-                # Check if pre-discovery screen is needed
-                pre_discovery_screen = await self.get_pre_discovery_screen()
-                if pre_discovery_screen is not None:
-                    self._setup_step = SetupSteps.PRE_DISCOVERY
-                    return pre_discovery_screen
-
-                self._setup_step = SetupSteps.DISCOVER
-                return await self._handle_discovery()
+                # Ask if user wants to restore from backup
+                self._setup_step = SetupSteps.RESTORE_PROMPT
+                return await self._build_restore_prompt_screen()
 
             case "backup":
                 return await self._handle_backup()
@@ -633,6 +626,64 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 )
             self._pending_device_config = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
+
+    async def _build_restore_prompt_screen(self) -> RequestUserInput:
+        """
+        Build the restore prompt screen for initial setup.
+
+        This screen asks users if they want to restore from a backup
+        before proceeding with normal setup flow.
+        """
+        prompt_text = await self.get_restore_prompt_text()
+
+        return RequestUserInput(
+            {"en": "Restore Configuration?"},
+            [
+                {
+                    "id": "info",
+                    "label": {"en": "Integration Upgrade"},
+                    "field": {"label": {"value": {"en": prompt_text}}},
+                },
+                {
+                    "id": "restore_from_backup",
+                    "label": {"en": "Restore from backup"},
+                    "field": {"checkbox": {"value": False}},
+                },
+            ],
+        )
+
+    async def _handle_restore_prompt_response(
+        self, msg: UserDataResponse
+    ) -> SetupAction:
+        """
+        Handle response from restore prompt screen.
+
+        If user wants to restore, show restore screen.
+        Otherwise, continue with normal setup flow.
+
+        :param msg: User data response
+        :return: Setup action
+        """
+        restore_requested = (
+            str(msg.input_values.get("restore_from_backup", False)).strip().lower()
+            == "true"
+        )
+
+        if restore_requested:
+            _LOG.info("User requested restore from backup")
+            return await self._handle_restore()
+
+        _LOG.debug("User skipped restore, continuing with normal setup")
+
+        # Continue with normal flow - check if pre-discovery screen is needed
+        pre_discovery_screen = await self.get_pre_discovery_screen()
+        if pre_discovery_screen is not None:
+            self._setup_step = SetupSteps.PRE_DISCOVERY
+            return pre_discovery_screen
+
+        # No pre-discovery needed, go straight to discovery
+        self._setup_step = SetupSteps.DISCOVER
+        return await self._handle_discovery()
 
     async def _handle_backup(self) -> RequestUserInput:
         """
@@ -1392,3 +1443,41 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         _ = msg  # Mark as intentionally unused
         # Default: No additional handling, auto-populated fields are saved
         return None
+
+    async def get_restore_prompt_text(self) -> str:
+        """
+        Get the text to display on the restore prompt screen.
+
+        Override this method to customize the message shown to users when they
+        first start setup. This screen appears before any device configuration
+        and offers them the option to restore from a backup.
+
+        The default message explains that the user can restore from a backup
+        if they're upgrading from a previous version.
+
+        :return: Text to display in the restore prompt screen
+
+        Example - Custom message:
+            async def get_restore_prompt_text(self):
+                return (
+                    "Welcome to MyDevice Integration v2.0! "
+                    "If you're upgrading from v1.x, you can restore your "
+                    "previous configuration using a backup. Otherwise, "
+                    "continue with the setup process."
+                )
+
+        Example - Integration-specific instructions:
+            async def get_restore_prompt_text(self):
+                return (
+                    "Are you upgrading this integration? "
+                    "If you have a configuration backup from a previous version, "
+                    "enable the option below to restore it. This will import "
+                    "all your device settings and preferences."
+                )
+        """
+        return (
+            "Are you upgrading this integration? "
+            "If you have a configuration backup, you can restore it now. "
+            "Otherwise, continue with the setup process to add a new device. "
+            "Once configured, you can create a backup from the integration settings screen by running the Setup again."
+        )
