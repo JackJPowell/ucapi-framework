@@ -537,6 +537,10 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 self.api.configured_entities.update_attributes(
                     entity_id, {switch.Attributes.STATE: state}
                 )
+            case EntityTypes.IR_EMITTER:  # Remote shares the same states as IR Emitter
+                self.api.configured_entities.update_attributes(
+                    entity_id, {remote.Attributes.STATE: state}
+                )
 
     # ========================================================================
     # Device Lifecycle Management
@@ -771,6 +775,12 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id, {switch.Attributes.STATE: state}
                     )
+                case (
+                    EntityTypes.IR_EMITTER
+                ):  # Remote shares the same states as IR Emitter
+                    self.api.configured_entities.update_attributes(
+                        entity_id, {remote.Attributes.STATE: state}
+                    )
 
     async def on_device_disconnected(self, device_id: str) -> None:
         """
@@ -828,6 +838,13 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {switch.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
+                case (
+                    EntityTypes.IR_EMITTER
+                ):  # Remote shares the same states as IR Emitter
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
 
     async def on_device_connection_error(self, device_id: str, message: str) -> None:
@@ -887,6 +904,13 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {switch.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
+                case (
+                    EntityTypes.IR_EMITTER
+                ):  # Remote shares the same states as IR Emitter
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
 
     async def on_device_update(
@@ -1054,6 +1078,12 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 if switch.Attributes.STATE.value in update:
                     state = self.map_device_state(update[switch.Attributes.STATE.value])
                     attributes[switch.Attributes.STATE] = state
+
+            case EntityTypes.IR_EMITTER:
+                # IR Emitter entities: STATE (Shares same state mapping as Remote)
+                if remote.Attributes.STATE.value in update:
+                    state = self.map_device_state(update[remote.Attributes.STATE.value])
+                    attributes[remote.Attributes.STATE] = state
 
             case _:
                 # Unknown entity type - log warning
