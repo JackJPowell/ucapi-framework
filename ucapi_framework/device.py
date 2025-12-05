@@ -957,7 +957,7 @@ class ExternalClientDevice(BaseDeviceInterface):
         enable_watchdog: bool = True,
         watchdog_interval: int = 30,
         reconnect_delay: int = 5,
-        max_reconnect_attempts: int = 3,
+        max_reconnect_attempts: int | None = 3,
         config_manager: BaseConfigManager | None = None,
     ):
         """
@@ -968,7 +968,8 @@ class ExternalClientDevice(BaseDeviceInterface):
         :param enable_watchdog: Enable watchdog to monitor connection state (default: True)
         :param watchdog_interval: Interval to check connection state (seconds)
         :param reconnect_delay: Delay between reconnection attempts (seconds)
-        :param max_reconnect_attempts: Max reconnection attempts before giving up (0 = infinite)
+        :param max_reconnect_attempts: Max reconnection attempts before giving up.
+            None = disable reconnection, 0 = infinite, positive int = limit
         :param config_manager: Optional config manager
         """
         super().__init__(device_config, loop, config_manager)
@@ -1113,6 +1114,11 @@ class ExternalClientDevice(BaseDeviceInterface):
 
     async def _reconnect(self) -> None:
         """Attempt to reconnect to the external client with retries."""
+        # If reconnection is disabled, don't attempt
+        if self._max_reconnect_attempts is None:
+            _LOG.debug("[%s] Reconnection disabled", self.log_id)
+            return
+
         attempts = 0
 
         while not self._stop_watchdog.is_set():
