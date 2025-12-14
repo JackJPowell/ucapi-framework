@@ -8,6 +8,7 @@ Provides reusable setup flow logic for device configuration.
 """
 
 import asyncio
+import json
 import logging
 from abc import ABC, abstractmethod
 from enum import IntEnum
@@ -733,50 +734,94 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         _LOG.info("Starting configuration restore")
         self._setup_step = SetupSteps.RESTORE
 
-        return RequestUserInput(
-            {"en": "Restore Configuration"},
-            [
+        return await self._build_restore_screen_with_error(None, "")
+
+    async def _build_restore_screen_with_error(
+        self, error_message: str | None, restore_data: str
+    ) -> RequestUserInput:
+        """
+        Build the restore configuration screen, optionally with an error message.
+
+        :param error_message: Optional error message to display, or None for no error
+        :param restore_data: Previous restore data to pre-fill (for retry)
+        :return: RequestUserInput for restore screen
+        """
+        fields = []
+
+        # Add error message if provided
+        if error_message:
+            fields.append(
                 {
-                    "id": "info",
-                    "label": {"en": "Restore Configuration"},
-                    "field": {
-                        "label": {
-                            "value": {
-                                "en": "Paste the configuration backup data below to restore your devices."
-                            }
+                    "id": "error",
+                    "label": {"en": "Error"},
+                    "field": {"label": {"value": {"en": f"⚠️ {error_message}"}}},
+                }
+            )
+
+        # Add instructions
+        fields.append(
+            {
+                "id": "info",
+                "label": {"en": "Restore Configuration"},
+                "field": {
+                    "label": {
+                        "value": {
+                            "en": "Paste the configuration backup data below to restore your devices."
                         }
-                    },
+                    }
                 },
-                {
-                    "id": "restore_data",
-                    "label": {"en": "Configuration Backup Data"},
-                    "field": {"textarea": {"value": ""}},
-                },
-            ],
+            }
         )
+
+        # Add textarea for backup data
+        fields.append(
+            {
+                "id": "restore_data",
+                "label": {"en": "Configuration Backup Data"},
+                "field": {"textarea": {"value": restore_data}},
+            }
+        )
+
+        return RequestUserInput({"en": "Restore Configuration"}, fields)
 
     async def _handle_restore_response(
         self, msg: UserDataResponse
-    ) -> SetupComplete | SetupError:
+    ) -> SetupComplete | SetupError | RequestUserInput:
         """
         Handle restore configuration form submission.
 
         :param msg: User data response containing backup JSON
         :return: Setup action
         """
+        restore_data = msg.input_values.get("restore_data", "").strip()
+
+        # Validate that data was provided
+        if not restore_data:
+            _LOG.warning("No restore data provided, showing restore screen again")
+            return await self._build_restore_screen_with_error(
+                "Please paste the configuration backup data.", restore_data
+            )
+
+        # Validate that it's valid JSON
         try:
-            restore_data = msg.input_values.get("restore_data", "").strip()
+            json.loads(restore_data)
+        except json.JSONDecodeError as err:
+            _LOG.warning("Invalid JSON provided: %s", err)
+            return await self._build_restore_screen_with_error(
+                f"Invalid JSON format: {err.msg} at line {err.lineno}, column {err.colno}",
+                restore_data,
+            )
 
-            if not restore_data:
-                _LOG.error("No restore data provided")
-                return SetupError(error_type=IntegrationSetupError.OTHER)
-
-            # Restore the configuration from JSON
+        # Attempt to restore the configuration
+        try:
             success = self.config.restore_from_backup_json(restore_data)
 
             if not success:
-                _LOG.error("Failed to restore configuration")
-                return SetupError(error_type=IntegrationSetupError.OTHER)
+                _LOG.warning("Failed to restore configuration from backup")
+                return await self._build_restore_screen_with_error(
+                    "Invalid configuration format. Please ensure you're pasting the complete backup data.",
+                    restore_data,
+                )
 
             await asyncio.sleep(1)
             _LOG.info("Configuration restored successfully")
@@ -784,7 +829,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         except Exception as err:  # pylint: disable=broad-except
             _LOG.error("Restore error: %s", err)
-            return SetupError(error_type=IntegrationSetupError.OTHER)
+            return await self._build_restore_screen_with_error(
+                f"Failed to restore configuration: {str(err)}", restore_data
+            )
 
     def _auto_populate_config(self, input_values: dict[str, Any]) -> None:
         """

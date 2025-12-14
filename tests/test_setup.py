@@ -726,7 +726,7 @@ class TestSetupFlowAdvanced:
 
     @pytest.mark.asyncio
     async def test_error_handling_invalid_json_restore(self, setup_flow):
-        """Test error handling for invalid JSON during restore."""
+        """Test error handling for invalid JSON during restore - should re-show form."""
         request = DriverSetupRequest(reconfigure=True, setup_data={})
         await setup_flow.handle_driver_setup(request)
 
@@ -742,7 +742,9 @@ class TestSetupFlowAdvanced:
         )
         result = await setup_flow.handle_driver_setup(restore_response)
 
-        assert isinstance(result, SetupError)
+        # Should re-show the restore screen with error, not crash
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE
 
     @pytest.mark.asyncio
     async def test_discovery_device_not_found_shows_manual_entry(self, setup_flow):
@@ -1041,7 +1043,7 @@ class TestSetupFlowAdvanced:
 
     @pytest.mark.asyncio
     async def test_restore_with_empty_data(self, setup_flow):
-        """Test restore with empty restore data."""
+        """Test restore with empty restore data - should re-show the form."""
         # Start reconfigure
         request = DriverSetupRequest(reconfigure=True, setup_data={})
         await setup_flow.handle_driver_setup(request)
@@ -1056,7 +1058,73 @@ class TestSetupFlowAdvanced:
         restore_response = UserDataResponse(input_values={"restore_data": ""})
         result = await setup_flow.handle_driver_setup(restore_response)
 
-        assert isinstance(result, SetupError)
+        # Should re-show the restore screen with error, not crash
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE
+        # Check that error message is shown
+        fields = result.settings
+        error_field = next((f for f in fields if f.get("id") == "error"), None)
+        assert error_field is not None
+
+    @pytest.mark.asyncio
+    async def test_restore_with_invalid_json(self, setup_flow):
+        """Test restore with invalid JSON - should re-show the form."""
+        # Start reconfigure
+        request = DriverSetupRequest(reconfigure=True, setup_data={})
+        await setup_flow.handle_driver_setup(request)
+
+        # Select restore
+        user_response = UserDataResponse(
+            input_values={"choice": "", "action": "restore"}
+        )
+        await setup_flow.handle_driver_setup(user_response)
+
+        # Submit invalid JSON
+        restore_response = UserDataResponse(
+            input_values={"restore_data": "not valid json {"}
+        )
+        result = await setup_flow.handle_driver_setup(restore_response)
+
+        # Should re-show the restore screen with error
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE
+        # Check that error message is shown
+        fields = result.settings
+        error_field = next((f for f in fields if f.get("id") == "error"), None)
+        assert error_field is not None
+        # Check that the invalid data is preserved for correction
+        restore_field = next(
+            (f for f in fields if f.get("id") == "restore_data"), None
+        )
+        assert restore_field is not None
+        assert restore_field["field"]["textarea"]["value"] == "not valid json {"
+
+    @pytest.mark.asyncio
+    async def test_restore_with_invalid_config_format(self, setup_flow):
+        """Test restore with valid JSON but invalid config format."""
+        # Start reconfigure
+        request = DriverSetupRequest(reconfigure=True, setup_data={})
+        await setup_flow.handle_driver_setup(request)
+
+        # Select restore
+        user_response = UserDataResponse(
+            input_values={"choice": "", "action": "restore"}
+        )
+        await setup_flow.handle_driver_setup(user_response)
+
+        # Submit valid JSON but wrong format (not a list)
+        restore_response = UserDataResponse(
+            input_values={"restore_data": '{"identifier": "test"}'}
+        )
+        result = await setup_flow.handle_driver_setup(restore_response)
+
+        # Should re-show the restore screen with error
+        assert isinstance(result, RequestUserInput)
+        assert setup_flow._setup_step == SetupSteps.RESTORE
+        # Check that error message is shown
+        fields = result.settings
+        error_field = next((f for f in fields if f.get("id") == "error"), None)
+        assert error_field is not None
 
     @pytest.mark.asyncio
     async def test_additional_config_returns_screen(self, config_manager, discovery):
