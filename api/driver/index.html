@@ -1,0 +1,2655 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A framework for building Unfolded Circle Remote integrations">
+      
+      
+        <meta name="author" content="Jack Powell">
+      
+      
+        <link rel="canonical" href="https://jackjpowell.github.io/ucapi-framework/api/driver/">
+      
+      
+        <link rel="prev" href="../../guide/driver/">
+      
+      
+        <link rel="next" href="../device/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Driver - UCAPI Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#driver-api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="UCAPI Framework" class="md-header__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCAPI Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Driver
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/setup-flow/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../migration-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Migration Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="UCAPI Framework" class="md-nav__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCAPI Framework
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/setup-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/device-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#baseintegrationdriver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseIntegrationDriver
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseIntegrationDriver
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseIntegrationDriver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_connect_cmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_connect_cmd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_disconnect_cmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_disconnect_cmd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_enter_standby" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_enter_standby
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_exit_standby" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_exit_standby
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_subscribe_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_subscribe_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_unsubscribe_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_unsubscribe_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.add_configured_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_configured_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.setup_device_event_handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_device_event_handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.register_available_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        register_available_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_disconnected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_disconnected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connection_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_connection_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_address
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.create_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.map_device_state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        map_device_state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.device_from_entity_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        device_from_entity_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_entity_ids_for_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_entity_ids_for_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.remove_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.clear_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        clear_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#helper-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper Functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.create_entity_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_entity_id
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#baseintegrationdriver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseIntegrationDriver
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseIntegrationDriver
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseIntegrationDriver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_connect_cmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_connect_cmd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_disconnect_cmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_disconnect_cmd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_enter_standby" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_enter_standby
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_exit_standby" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_r2_exit_standby
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_subscribe_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_subscribe_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_unsubscribe_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_unsubscribe_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.add_configured_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_configured_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.setup_device_event_handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_device_event_handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.register_available_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        register_available_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_disconnected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_disconnected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connection_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_connection_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_address
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.create_entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.map_device_state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        map_device_state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.device_from_entity_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        device_from_entity_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.get_entity_ids_for_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_entity_ids_for_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.remove_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.clear_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        clear_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_device_removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#helper-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper Functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.driver.create_entity_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_entity_id
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="driver-api-reference">Driver API Reference<a class="headerlink" href="#driver-api-reference" title="Permanent link">&para;</a></h1>
+<p>The driver is the central coordinator for your integration, managing device lifecycle, entity registration, and Remote events.</p>
+<h2 id="baseintegrationdriver">BaseIntegrationDriver<a class="headerlink" href="#baseintegrationdriver" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.driver.BaseIntegrationDriver" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.driver.BaseIntegrationDriver</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseIntegrationDriver</span><span class="p">(</span><span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DeviceT</span><span class="p">],</span> <span class="n">entity_classes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">EntityTypes</span><span class="p">]</span> <span class="o">|</span> <span class="n">EntityTypes</span><span class="p">,</span> <span class="n">require_connection_before_registry</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code>, <code><span title="typing.Generic">Generic</span>[<span title="ucapi_framework.driver.DeviceT">DeviceT</span>, <span title="ucapi_framework.driver.ConfigT">ConfigT</span>]</code></p>
+
+
+
+        <p>Base class for Remote Two integration drivers.</p>
+<p>Handles common patterns like:
+- Event listeners (connect, disconnect, standby, subscribe/unsubscribe)
+- Device lifecycle management
+- Entity registration and updates
+- State propagation from devices to entities</p>
+
+
+<p>
+      <span class="doc-section-title">
+        Class Type Parameters:
+      </span>
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Bound or Constraints</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>DeviceT</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The device interface class (e.g., YamahaAVR)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ConfigT</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The device configuration class (e.g., YamahaDevice)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+        <p>Initialize the integration driver.</p>
+<p>:param device_class: The device interface class to instantiate
+:param entity_classes: EntityTypes or list of EntityTypes (e.g., EntityTypes.MEDIA_PLAYER)
+                       Single EntityTypes value will be converted to a list
+:param require_connection_before_registry: If True, ensure device connection
+                                           before subscribing to entities and re-register
+                                           available entities after connection. Useful for hub-based
+                                           integrations that populate entities dynamically on connection.
+:param loop: The asyncio event loop (optional, defaults to asyncio.get_running_loop())</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<h3 id="ucapi_framework.driver.BaseIntegrationDriver-functions">Functions<a href="#ucapi_framework.driver.BaseIntegrationDriver-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_r2_connect_cmd" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_r2_connect_cmd</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_connect_cmd" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_r2_connect_cmd</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle Remote Two connect command.</p>
+<p>Default implementation: connects all configured devices and sets integration state.
+Override to add custom logic before/after device connections.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def on_r2_connect_cmd(self) -&gt; None:
+    await super().on_r2_connect_cmd()
+    # Custom logic after connect</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_r2_disconnect_cmd" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_r2_disconnect_cmd</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_disconnect_cmd" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_r2_disconnect_cmd</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle Remote Two disconnect command.</p>
+<p>Default implementation: disconnects all configured devices.
+Override to add custom disconnect logic.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_r2_enter_standby" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_r2_enter_standby</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_enter_standby" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_r2_enter_standby</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle Remote Two entering standby mode.</p>
+<p>Default implementation: disconnects all devices to save resources.
+Override to customize standby behavior.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_r2_exit_standby" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_r2_exit_standby</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_r2_exit_standby" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_r2_exit_standby</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle Remote Two exiting standby mode.</p>
+<p>Default implementation: reconnects all configured devices.
+Override to customize wake behavior.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_subscribe_entities" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_subscribe_entities</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_subscribe_entities" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_subscribe_entities</span><span class="p">(</span><span class="n">entity_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle entity subscription events.</p>
+<p>Default implementation handles two scenarios:</p>
+<p><strong>Standard integrations</strong> (require_connection_before_registry=False):
+- Adds devices for subscribed entities (with background connect)
+- Calls refresh_entity_state() for each entity</p>
+<p><strong>Hub-based integrations</strong> (require_connection_before_registry=True):
+- If device not configured: adds device, connects, then calls async_register_available_entities()
+- If device configured but not connected: connects with retries, then calls async_register_available_entities()
+- Calls refresh_entity_state() for each entity</p>
+<p>Override refresh_entity_state() for custom state refresh logic.
+Override async_register_available_entities() for hub-based entity population.</p>
+<p>:param entity_ids: List of entity identifiers being subscribed</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_unsubscribe_entities" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_unsubscribe_entities</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_unsubscribe_entities" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_unsubscribe_entities</span><span class="p">(</span><span class="n">entity_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle entity unsubscription events.</p>
+<p>Default implementation: disconnects and cleans up devices when all their
+entities are unsubscribed. Override to customize cleanup behavior.</p>
+<p>:param entity_ids: List of entity identifiers being unsubscribed</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.add_configured_device" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_configured_device</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.add_configured_device" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_configured_device</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">connect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Add and configure a device (non-blocking).</p>
+<p>This method adds a device to the configured devices list and registers
+its available entities. If connect=True, it will start a background
+connection task (non-blocking).</p>
+<p>Use this for normal device addition where you don't need to wait for
+connection to complete. For hub-based integrations that need to wait
+for connection before registering entities, use async_add_configured_device().</p>
+<p>:param device_config: Device configuration
+:param connect: Whether to initiate connection immediately (as background task)</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.setup_device_event_handlers" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">setup_device_event_handlers</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.setup_device_event_handlers" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">setup_device_event_handlers</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Attach event handlers to device.</p>
+<p>Override this method to add custom event handlers. Call super() first
+to register the default handlers, then add your custom ones.</p>
+<p>:param device: Device instance</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.register_available_entities" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">register_available_entities</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.register_available_entities" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_available_entities</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Register available entities for a device.</p>
+<p>Override this method to customize entity registration logic. Call super()
+to use the default implementation that calls create_entities().</p>
+<p>:param device_config: Device configuration
+:param device: Device instance</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_connected</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle device connection.</p>
+<p>:param device_id: Device identifier</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_disconnected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_disconnected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_disconnected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_disconnected</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle device disconnection.</p>
+<p>:param device_id: Device identifier</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_connection_error" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_connection_error</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connection_error" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_connection_error</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle device connection error.</p>
+<p>:param device_id: Device identifier
+:param message: Error message</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_update" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_update</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_update" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_update</span><span class="p">(</span><span class="n">entity_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clear_media_when_off</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle device state updates.</p>
+<p>Default implementation extracts entity-type-specific attributes from the
+update dict and updates configured/available entities accordingly.
+Override this method to customize update handling or add state mapping.</p>
+<p>:param device_id: Device identifier
+:param update: Dictionary containing updated properties
+:param clear_media_when_off: If True, clears all media player attributes when state is OFF</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.get_device_config" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_config</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_config" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_config</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get device configuration for the given device ID.</p>
+<p>Default implementation: checks _configured_devices first, then falls
+back to self._config_manager.get() if config manager is available.
+Override this if your integration uses a different config structure.</p>
+<p>:param device_id: Device identifier
+:return: Device configuration or None</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.get_device_id" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_id</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_id" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_id</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device ID from device configuration.</p>
+<p>Default implementation: tries common attribute names (identifier, id, device_id).
+Override this if your config uses a different attribute name.</p>
+<p>:param device_config: Device configuration
+:return: Device identifier
+:raises AttributeError: If no valid ID attribute is found</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.get_device_name" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_name</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_name" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_name</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device name from device configuration.</p>
+<p>Default implementation: tries common attribute names (name, friendly_name, device_name).
+Override this if your config uses a different attribute name.</p>
+<p>:param device_config: Device configuration
+:return: Device name
+:raises AttributeError: If no valid name attribute is found</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.get_device_address" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_address</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.get_device_address" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_address</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device address from device configuration.</p>
+<p>Default implementation: tries common attribute names (address, host_address, ip_address, device_address, host).
+Override this if your config uses a different attribute name.</p>
+<p>:param device_config: Device configuration
+:return: Device address
+:raises AttributeError: If no valid address attribute is found</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.create_entities" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">create_entities</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.create_entities" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entities</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Entity</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create entity instances for a device.</p>
+<p>DEFAULT IMPLEMENTATION: Creates entities from the entity_classes passed to <strong>init</strong>.
+Each entity class is instantiated with (device_config, device) as parameters.</p>
+
+
+<details class="the-default-implementation-returns" open>
+  <summary>The default implementation returns</summary>
+  <p>[EntityClass1(device_config, device), EntityClass2(device_config, device), ...]</p>
+</details>        <p>Override this method if you need:
+- Conditional entity creation based on device capabilities
+- Custom parameters beyond device_config and device
+- Dynamic entity creation logic</p>
+
+
+<details class="example-override" open>
+  <summary>Example override</summary>
+  <p>def create_entities(self, device_config, device):
+    entities = []
+    if device.supports_playback:
+        entities.append(YamahaMediaPlayer(device_config, device))
+    if device.supports_remote:
+        entities.append(YamahaRemote(device_config, device))
+    return entities</p>
+</details>        <p>:param device_config: Device configuration
+:param device: Device instance
+:return: List of entity instances (MediaPlayer, Remote, etc.)</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.map_device_state" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">map_device_state</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.map_device_state" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">map_device_state</span><span class="p">(</span><span class="n">device_state</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">media_player</span><span class="o">.</span><span class="n">States</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Map device-specific state to ucapi media player state.</p>
+<p>DEFAULT IMPLEMENTATION: Converts device_state to uppercase string and maps
+common state values to media_player.States:</p>
+<ul>
+<li>UNAVAILABLE → UNAVAILABLE</li>
+<li>UNKNOWN → UNKNOWN</li>
+<li>ON, MENU, IDLE, ACTIVE, READY → ON</li>
+<li>OFF, POWER_OFF, POWERED_OFF → OFF</li>
+<li>PLAYING, PLAY → PLAYING</li>
+<li>PAUSED, PAUSE → PAUSED</li>
+<li>STANDBY, SLEEP → STANDBY</li>
+<li>BUFFERING, LOADING → BUFFERING</li>
+<li>Everything else → UNKNOWN</li>
+</ul>
+<p>Override this method if you need:
+- Different state mappings
+- Device-specific state enum handling
+- Complex state logic</p>
+
+
+<details class="example-override" open>
+  <summary>Example override</summary>
+  <p>def map_device_state(self, device_state):
+    if isinstance(device_state, MyDeviceState):
+        match device_state:
+            case MyDeviceState.POWERED_ON:
+                return media_player.States.ON
+            case MyDeviceState.POWERED_OFF:
+                return media_player.States.OFF
+            case _:
+                return media_player.States.UNKNOWN
+    return super().map_device_state(device_state)</p>
+</details>        <p>:param device_state: Device-specific state (string, enum, or any object with <strong>str</strong>)
+:return: Media player state</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.device_from_entity_id" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">device_from_entity_id</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.device_from_entity_id" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">device_from_entity_id</span><span class="p">(</span><span class="n">entity_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device identifier from entity identifier.</p>
+<p>DEFAULT IMPLEMENTATION: Parses entity IDs using the configured separator
+(defaults to "."). Handles both formats:
+- Simple: "entity_type.device_id" → returns "device_id"
+- With sub-entity: "entity_type.device_id.entity_id" → returns "device_id"</p>
+<p>If you use a custom entity ID format that doesn't use the standard separator,
+either:
+1. Set <code>driver.entity_id_separator</code> to your custom separator, OR
+2. Override this method to parse your custom format</p>
+
+
+<details class="example-with-custom-separator" open>
+  <summary>Example with custom separator</summary>
+  <p>def <strong>init</strong>(self, ...):
+    super().<strong>init</strong>(...)
+    self.entity_id_separator = "_"  # Use underscore instead of period</p>
+</details>
+
+<details class="example-custom-override" open>
+  <summary>Example custom override</summary>
+  <p>def device_from_entity_id(self, entity_id: str) -&gt; str | None:
+    # For PSN, entity_id IS the device_id
+    return entity_id</p>
+</details>        <p>:param entity_id: Entity identifier (e.g., "media_player.device_123")
+:return: Device identifier or None
+:raises ValueError: If entity_id doesn't contain the expected separator</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.get_entity_ids_for_device" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_entity_ids_for_device</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.get_entity_ids_for_device" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_entity_ids_for_device</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get all entity identifiers for a device.</p>
+<p>DEFAULT IMPLEMENTATION: Queries all registered entities from the API and
+filters them by device_id using device_from_entity_id().</p>
+<p>This works automatically with the standard entity ID format from create_entity_id().
+For integrations using custom entity ID formats, this will work as long as
+device_from_entity_id() is properly overridden to parse your custom format.</p>
+<p>Override this method only if you need:
+- Performance optimization for integrations with many entities
+- Special filtering logic beyond device_id matching
+- Caching or pre-computed entity lists</p>
+
+
+<details class="example-override-for-performance" open>
+  <summary>Example override for performance</summary>
+  <p>def get_entity_ids_for_device(self, device_id: str) -&gt; list[str]:
+    # Cache entity IDs per device for faster lookups
+    if device_id not in self._entity_cache:
+        self._entity_cache[device_id] = [
+            f"media_player.{device_id}",
+            f"remote.{device_id}",
+        ]
+    return self._entity_cache[device_id]</p>
+</details>        <p>:param device_id: Device identifier
+:return: List of entity identifiers for this device</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.remove_device" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">remove_device</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.remove_device" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">remove_device</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Remove a configured device.</p>
+<p>:param device_id: Device identifier</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.clear_devices" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">clear_devices</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.clear_devices" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">clear_devices</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Remove all configured devices.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_added" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_added</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_added" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_added</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle a newly added device in the configuration.</p>
+<p>Default implementation:
+- If require_connection_before_registry=True: schedules async_add_configured_device
+  as a background task (connects and registers entities after connection)
+- Otherwise: adds the device without connecting</p>
+<p>Override if you need custom behavior.</p>
+<p>:param device_config: Device configuration that was added</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.driver.BaseIntegrationDriver.on_device_removed" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">on_device_removed</span>
+
+
+<a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_removed" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_removed</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle a removed device in the configuration.</p>
+<p>Default implementation: Removes the device or clears all if None.
+Override if you need custom behavior.</p>
+<p>:param device_config: Device configuration that was removed, or None to clear all</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="helper-functions">Helper Functions<a class="headerlink" href="#helper-functions" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="ucapi_framework.driver.create_entity_id" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">ucapi_framework.driver.create_entity_id</span>
+
+
+<a href="#ucapi_framework.driver.create_entity_id" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entity_id</span><span class="p">(</span><span class="n">entity_type</span><span class="p">:</span> <span class="n">EntityTypes</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sub_device_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Create a unique entity identifier for the given device and entity type.</p>
+<p>Entity IDs follow the format:
+- Simple: "{entity_type}.{device_id}"
+- With sub-device: "{entity_type}.{device_id}.{sub_device_id}"</p>
+<p>Use the optional sub_device_id parameter for devices that expose multiple entities
+of the same type, such as a hub with multiple lights or zones.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">create_entity_id</span><span class="p">(</span><span class="n">EntityTypes</span><span class="o">.</span><span class="n">MEDIA_PLAYER</span><span class="p">,</span> <span class="s2">&quot;device_123&quot;</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">&#39;media_player.device_123&#39;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">create_entity_id</span><span class="p">(</span><span class="n">EntityTypes</span><span class="o">.</span><span class="n">LIGHT</span><span class="p">,</span> <span class="s2">&quot;hub_1&quot;</span><span class="p">,</span> <span class="s2">&quot;light_bedroom&quot;</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">&#39;light.hub_1.light_bedroom&#39;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">create_entity_id</span><span class="p">(</span><span class="s2">&quot;media_player&quot;</span><span class="p">,</span> <span class="s2">&quot;receiver_abc&quot;</span><span class="p">,</span> <span class="s2">&quot;zone_2&quot;</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">&#39;media_player.receiver_abc.zone_2&#39;</span>
+</span></code></pre></div>
+        <p>:param entity_type: The entity type (EntityTypes enum or string)
+:param device_id: The device identifier (hub or parent device)
+:param sub_device_id: Optional sub-device identifier (e.g., light ID, zone ID)
+:return: Entity identifier in the format "entity_type.device_id" or "entity_type.device_id.sub_device_id"</p>
+
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JackJPowell" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://discord.gg/zGVYf58" target="_blank" rel="noopener" title="discord.gg" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

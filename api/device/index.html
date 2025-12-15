@@ -1,0 +1,4724 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A framework for building Unfolded Circle Remote integrations">
+      
+      
+        <meta name="author" content="Jack Powell">
+      
+      
+        <link rel="canonical" href="https://jackjpowell.github.io/ucapi-framework/api/device/">
+      
+      
+        <link rel="prev" href="../driver/">
+      
+      
+        <link rel="next" href="../setup/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Device - UCAPI Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#device-api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="UCAPI Framework" class="md-header__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCAPI Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Device
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/setup-flow/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../driver/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../migration-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Migration Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="UCAPI Framework" class="md-nav__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCAPI Framework
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/setup-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/device-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basedeviceinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseDeviceInterface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseDeviceInterface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseDeviceInterface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.device_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        device_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.identifier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        identifier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        address
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.log_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        log_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update_config
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="update_config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-token-after-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update token after authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-multiple-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update multiple fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statelesshttpdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatelessHTTPDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatelessHTTPDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="StatelessHTTPDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.verify_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        verify_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pollingdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PollingDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PollingDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PollingDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.establish_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        establish_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.poll_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        poll_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocketdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WebSocketDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.send_ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        send_ping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.create_websocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_websocket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.close_websocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        close_websocket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.receive_message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        receive_message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.handle_message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_message
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocketpollingdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketPollingDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketPollingDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WebSocketPollingDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.is_websocket_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_websocket_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externalclientdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExternalClientDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExternalClientDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ExternalClientDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.create_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.connect_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.disconnect_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.check_client_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        check_client_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistentconnectiondevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PersistentConnectionDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PersistentConnectionDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PersistentConnectionDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.establish_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        establish_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.close_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        close_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.maintain_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        maintain_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deviceevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeviceEvents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.DeviceEvents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeviceEvents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basedeviceinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseDeviceInterface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseDeviceInterface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseDeviceInterface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.device_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        device_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.identifier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        identifier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        address
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.log_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        log_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update_config
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="update_config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-token-after-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update token after authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-multiple-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update multiple fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.BaseDeviceInterface.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statelesshttpdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatelessHTTPDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatelessHTTPDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="StatelessHTTPDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.StatelessHTTPDevice.verify_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        verify_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pollingdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PollingDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PollingDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PollingDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.establish_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        establish_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PollingDevice.poll_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        poll_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocketdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WebSocketDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.send_ping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        send_ping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.create_websocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_websocket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.close_websocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        close_websocket
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.receive_message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        receive_message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketDevice.handle_message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_message
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocketpollingdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketPollingDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocketPollingDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WebSocketPollingDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.is_websocket_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_websocket_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externalclientdevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExternalClientDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExternalClientDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ExternalClientDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.create_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.connect_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.disconnect_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect_client
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.ExternalClientDevice.check_client_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        check_client_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistentconnectiondevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PersistentConnectionDevice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PersistentConnectionDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PersistentConnectionDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Attributes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attributes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.is_connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_connected
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.disconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        disconnect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.establish_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        establish_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.close_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        close_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.device.PersistentConnectionDevice.maintain_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        maintain_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deviceevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeviceEvents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.device.DeviceEvents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeviceEvents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="device-api-reference">Device API Reference<a class="headerlink" href="#device-api-reference" title="Permanent link">&para;</a></h1>
+<p>Device interfaces provide base classes for different connection patterns.</p>
+<h2 id="basedeviceinterface">BaseDeviceInterface<a class="headerlink" href="#basedeviceinterface" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.BaseDeviceInterface" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.BaseDeviceInterface</span>
+
+
+<a href="#ucapi_framework.device.BaseDeviceInterface" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseDeviceInterface</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code></p>
+
+
+
+        <p>Base class for all device interfaces.</p>
+<p>Provides common functionality:
+- Event emitter for device state changes
+- Connection lifecycle management
+- Property accessors for device information
+- Logging helpers</p>
+
+        <p>Create device interface instance.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param config_manager: Optional config manager for persisting configuration updates</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.BaseDeviceInterface-attributes">Attributes<a href="#ucapi_framework.device.BaseDeviceInterface-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.device_config" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">device_config</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.device_config" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the device configuration.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.identifier" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">identifier</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.identifier" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the device identifier.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.name" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">name</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.name" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the device name.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.address" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">address</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.address" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">address</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the device address.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.log_id" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">log_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.log_id" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">log_id</span><span class="p">:</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a log identifier for the device.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if device is currently connected, False otherwise.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.state" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">state</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.state" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">state</span><span class="p">:</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the current device state.</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.BaseDeviceInterface-functions">Functions<a href="#ucapi_framework.device.BaseDeviceInterface-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.update_config" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">update_config</span>
+
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.update_config" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_config</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Update device configuration attributes and persist changes.</p>
+<p>This method allows devices to update their configuration when runtime
+changes occur, such as:
+- New authentication tokens received
+- IP address changes detected
+- Device firmware updates changing capabilities
+- Dynamic configuration from device responses</p>
+<p>The configuration is updated both in memory and persisted to storage
+if a config_manager is available.</p>
+
+
+<details class="example-usage" open>
+  <summary>Example usage</summary>
+  <h5 id="ucapi_framework.device.BaseDeviceInterface.update_config--update-token-after-authentication">Update token after authentication<a class="headerlink" href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-token-after-authentication" title="Permanent link">&para;</a></h5>
+<p>self.update_config(token="new_token_value")</p>
+<h5 id="ucapi_framework.device.BaseDeviceInterface.update_config--update-multiple-fields">Update multiple fields<a class="headerlink" href="#ucapi_framework.device.BaseDeviceInterface.update_config--update-multiple-fields" title="Permanent link">&para;</a></h5>
+<p>self.update_config(
+    address="192.168.1.100",
+    token="new_token",
+    firmware_version="2.0.1"
+)</p>
+</details>        <p>:param kwargs: Configuration attributes to update
+:return: True if config was persisted successfully, False if no config_manager or update failed
+:raises AttributeError: If trying to update non-existent configuration attribute</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish connection to the device.</p>
+<p>:return: True if connection successful, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.BaseDeviceInterface.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.BaseDeviceInterface.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Disconnect from the device.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="statelesshttpdevice">StatelessHTTPDevice<a class="headerlink" href="#statelesshttpdevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.StatelessHTTPDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.StatelessHTTPDevice</span>
+
+
+<a href="#ucapi_framework.device.StatelessHTTPDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">StatelessHTTPDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.BaseDeviceInterface" href="#ucapi_framework.device.BaseDeviceInterface">BaseDeviceInterface</a></code></p>
+
+
+
+        <p>Base class for devices with stateless HTTP API.</p>
+<p>No persistent connection is maintained. Each command creates a new
+HTTP session for the request.</p>
+<p>Good for: REST APIs, simple HTTP devices without a persistent connection (e.g., websockets)</p>
+
+        <p>Initialize stateless HTTP device.</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.StatelessHTTPDevice-attributes">Attributes<a href="#ucapi_framework.device.StatelessHTTPDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.StatelessHTTPDevice.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.StatelessHTTPDevice.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if device is currently connected.</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.StatelessHTTPDevice-functions">Functions<a href="#ucapi_framework.device.StatelessHTTPDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.StatelessHTTPDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.StatelessHTTPDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish connection (verify device is reachable).</p>
+<p>For stateless devices, this typically means verifying the device
+responds to a basic request.</p>
+<p>:return: True if connection successful, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.StatelessHTTPDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.StatelessHTTPDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Disconnect from device (mark as disconnected).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.StatelessHTTPDevice.verify_connection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">verify_connection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.StatelessHTTPDevice.verify_connection" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">verify_connection</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Verify the device connection.</p>
+<p>Should make a simple request to verify device is reachable.
+Raises exception if connection fails.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="pollingdevice">PollingDevice<a class="headerlink" href="#pollingdevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.PollingDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.PollingDevice</span>
+
+
+<a href="#ucapi_framework.device.PollingDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PollingDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.BaseDeviceInterface" href="#ucapi_framework.device.BaseDeviceInterface">BaseDeviceInterface</a></code></p>
+
+
+
+        <p>Base class for devices requiring periodic status polling.</p>
+<p>Maintains a polling task that periodically queries the device for status updates.</p>
+<p>Good for: Devices without push notifications, devices with changing state</p>
+
+        <p>Initialize polling device.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param poll_interval: Polling interval in seconds
+:param config_manager: Optional config manager for persisting configuration updates</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.PollingDevice-attributes">Attributes<a href="#ucapi_framework.device.PollingDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.PollingDevice.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PollingDevice.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if device is currently connected and polling.</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.PollingDevice-functions">Functions<a href="#ucapi_framework.device.PollingDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PollingDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PollingDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish connection and start polling.</p>
+<p>:return: True if connection successful, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PollingDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PollingDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop polling and disconnect.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PollingDevice.establish_connection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">establish_connection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PollingDevice.establish_connection" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">establish_connection</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish initial connection to device.</p>
+<p>Called once when connect() is invoked.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PollingDevice.poll_device" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">poll_device</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PollingDevice.poll_device" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">poll_device</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Poll the device for status updates.</p>
+<p>Called periodically based on poll_interval.
+Should emit UPDATE events with changed state.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="websocketdevice">WebSocketDevice<a class="headerlink" href="#websocketdevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.WebSocketDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.WebSocketDevice</span>
+
+
+<a href="#ucapi_framework.device.WebSocketDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">WebSocketDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">reconnect_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BACKOFF_SEC</span><span class="p">,</span> <span class="n">reconnect_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BACKOFF_MAX</span><span class="p">,</span> <span class="n">ping_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">ping_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.BaseDeviceInterface" href="#ucapi_framework.device.BaseDeviceInterface">BaseDeviceInterface</a></code></p>
+
+
+
+        <p>Base class for devices with WebSocket connections.</p>
+<p>Maintains a persistent WebSocket connection with automatic reconnection,
+exponential backoff, and optional ping/keepalive support.</p>
+<p>Features:
+- Automatic reconnection on connection loss
+- Configurable exponential backoff (default: 2s initial, 30s max)
+- Optional ping/pong keepalive (default: 30s interval)
+- Graceful error handling and recovery</p>
+<p>Good for: Devices with WebSocket APIs, real-time updates</p>
+
+        <p>Initialize WebSocket device.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param reconnect: Enable automatic reconnection (default: True)
+:param reconnect_interval: Initial reconnection interval in seconds (default: 2)
+:param reconnect_max: Maximum reconnection interval in seconds (default: 30)
+:param ping_interval: Ping/keepalive interval in seconds, 0 to disable (default: 30)
+:param ping_timeout: Ping timeout in seconds (default: 10)
+:param config_manager: Optional config manager for persisting configuration updates</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.WebSocketDevice-attributes">Attributes<a href="#ucapi_framework.device.WebSocketDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if WebSocket is currently connected.</p>
+<p>:return: True if WebSocket is connected, False otherwise</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.WebSocketDevice-functions">Functions<a href="#ucapi_framework.device.WebSocketDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish WebSocket connection with automatic reconnection.</p>
+<p>If reconnection is enabled, this will continuously attempt to
+maintain a connection until disconnect() is called.</p>
+<p>:return: True if connection task started successfully, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Close WebSocket connection and stop reconnection attempts.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.send_ping" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">send_ping</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.send_ping" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">send_ping</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Send ping to WebSocket connection.</p>
+<p>Default implementation does nothing. Override this if your WebSocket
+implementation requires explicit ping messages.</p>
+<p>For websockets library, pings are handled automatically.
+For custom implementations, send your protocol-specific keepalive.</p>
+
+
+<details class="example-for-custom-protocol" open>
+  <summary>Example for custom protocol</summary>
+  <p>async def send_ping(self):
+    await self._ws.send(json.dumps({"type": "ping"}))</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.create_websocket" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">create_websocket</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.create_websocket" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_websocket</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create and return WebSocket connection.</p>
+<p>Called automatically by the connection loop. Raise an exception
+if connection cannot be established.</p>
+
+
+<details class="example-using-websockets-library" open>
+  <summary>Example using websockets library</summary>
+  <p>async def create_websocket(self):
+    import websockets
+    return await websockets.connect(
+        f"ws://{self.address}/socket",
+        ping_interval=None,  # We handle pings ourselves
+    )</p>
+</details>        <p>:return: WebSocket connection object</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.close_websocket" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">close_websocket</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.close_websocket" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">close_websocket</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Close the WebSocket connection.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def close_websocket(self):
+    if self._ws:
+        await self._ws.close()</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.receive_message" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">receive_message</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.receive_message" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">receive_message</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Receive a message from WebSocket.</p>
+<p>Should block until a message is available or connection is closed.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def receive_message(self):
+    try:
+        message = await self._ws.recv()
+        return json.loads(message)
+    except websockets.ConnectionClosed:
+        return None</p>
+</details>        <p>:return: Message data or None if connection closed</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketDevice.handle_message" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">handle_message</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketDevice.handle_message" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_message</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle incoming WebSocket message.</p>
+<p>Called for each message received from the WebSocket connection.</p>
+<p>:param message: Message data</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="websocketpollingdevice">WebSocketPollingDevice<a class="headerlink" href="#websocketpollingdevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.WebSocketPollingDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.WebSocketPollingDevice</span>
+
+
+<a href="#ucapi_framework.device.WebSocketPollingDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">WebSocketPollingDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">ping_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">ping_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">keep_polling_on_disconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.WebSocketDevice" href="#ucapi_framework.device.WebSocketDevice">WebSocketDevice</a></code>, <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.PollingDevice" href="#ucapi_framework.device.PollingDevice">PollingDevice</a></code></p>
+
+
+
+        <p>Base class for devices with WebSocket + Polling hybrid pattern.</p>
+<p>Combines WebSocket for real-time updates with periodic polling for health checks
+and state verification. This is a common pattern for smart TVs and IoT devices where:
+- WebSocket provides instant notifications when device is active
+- Polling provides fallback health checks and state verification
+- REST API provides additional control endpoints</p>
+<p>The polling and WebSocket run concurrently and independently. By default, polling
+continues even when WebSocket is disconnected (via disconnect()), providing resilience
+and allowing fallback to polling-only mode. Use disconnect_all() or set
+keep_polling_on_disconnect=False to stop both.</p>
+<p>Implementation uses multiple inheritance to compose WebSocketDevice and PollingDevice
+functionality without code duplication.</p>
+<p>WebSocket reconnection is automatically disabled for this class since polling
+provides the resilience. WebSocket will reconnect naturally through the hybrid
+connect() implementation.</p>
+<p>Good for: Smart TVs, media players, IoT devices with multiple communication methods</p>
+
+        <p>Initialize WebSocket + Polling device.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param poll_interval: Polling interval in seconds (default: 30)
+:param ping_interval: WebSocket ping interval in seconds, 0 to disable (default: 30)
+:param ping_timeout: WebSocket ping timeout in seconds (default: 10)
+:param keep_polling_on_disconnect: Continue polling when WebSocket disconnects (default: True)
+:param config_manager: Optional config manager for persisting configuration updates</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.WebSocketPollingDevice-attributes">Attributes<a href="#ucapi_framework.device.WebSocketPollingDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.WebSocketPollingDevice.is_websocket_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_websocket_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketPollingDevice.is_websocket_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_websocket_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if WebSocket is currently connected.</p>
+<p>:return: True if WebSocket is connected, False otherwise</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.WebSocketPollingDevice-functions">Functions<a href="#ucapi_framework.device.WebSocketPollingDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketPollingDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketPollingDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish WebSocket connection and start polling.</p>
+<p>Both WebSocket and polling tasks run concurrently. If WebSocket connection
+fails, polling continues to provide state updates.</p>
+<p>:return: True if at least polling started successfully, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketPollingDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">(</span><span class="n">stop_polling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop WebSocket and optionally polling.</p>
+<p>If keep_polling_on_disconnect is True (default) and stop_polling is not
+explicitly set, only the WebSocket connection is stopped and polling continues.
+This allows the device to fall back to polling-only mode.</p>
+<p>If keep_polling_on_disconnect is False or stop_polling=True, both WebSocket
+and polling are stopped, fully disconnecting the device.</p>
+<p>:param stop_polling: Override to force stop polling (True) or keep it running (False).
+                   If None, uses keep_polling_on_disconnect setting.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.WebSocketPollingDevice.disconnect_all" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect_all</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.WebSocketPollingDevice.disconnect_all" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect_all</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop both WebSocket and polling, fully disconnecting the device.</p>
+<p>This method always stops both WebSocket and polling regardless of
+the keep_polling_on_disconnect setting.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="externalclientdevice">ExternalClientDevice<a class="headerlink" href="#externalclientdevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.ExternalClientDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.ExternalClientDevice</span>
+
+
+<a href="#ucapi_framework.device.ExternalClientDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ExternalClientDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">enable_watchdog</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">watchdog_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">reconnect_delay</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">max_reconnect_attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.BaseDeviceInterface" href="#ucapi_framework.device.BaseDeviceInterface">BaseDeviceInterface</a></code></p>
+
+
+
+        <p>Base class for devices using external client libraries.</p>
+<p>Use this when wrapping a third-party library that:
+- Manages its own WebSocket/TCP connection internally
+- Provides event callbacks for state changes
+- Exposes a connection state property
+- May disconnect without proper notification</p>
+<p>Features:
+- Watchdog polling to verify external client connection state
+- Automatic reconnection when watchdog detects disconnect
+- Configurable watchdog interval and reconnection attempts
+- Early exit in connect() if client is already connected</p>
+
+
+<details class="good-for" open>
+  <summary>Z-Wave JS, Home Assistant WebSocket, MQTT clients,</summary>
+  <p>or any library that manages its own connection.</p>
+</details>
+        <p>Initialize external client device.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param enable_watchdog: Enable watchdog to monitor connection state (default: True)
+:param watchdog_interval: Interval to check connection state (seconds)
+:param reconnect_delay: Delay between reconnection attempts (seconds)
+:param max_reconnect_attempts: Max reconnection attempts before giving up.
+    None = disable reconnection, 0 = infinite, positive int = limit
+:param config_manager: Optional config manager</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.ExternalClientDevice-attributes">Attributes<a href="#ucapi_framework.device.ExternalClientDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if device is connected.</p>
+<p>Checks both internal state and external client state for accuracy.</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.ExternalClientDevice-functions">Functions<a href="#ucapi_framework.device.ExternalClientDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Connect to device via external client and start watchdog.</p>
+<p>:return: True if connection successful, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Disconnect from device and stop watchdog.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.create_client" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">create_client</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.create_client" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create the external client instance.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def create_client(self):
+    return ZWaveClient(self.address)</p>
+</details>        <p>:return: External client instance</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.connect_client" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect_client</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.connect_client" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Connect the external client.</p>
+<p>This is a good place to set up event handlers on the client.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def connect_client(self):
+    await self._client.connect()
+    self._client.on("value_updated", self._on_value_updated)</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.disconnect_client" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect_client</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.disconnect_client" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Disconnect the external client.</p>
+<p>This is a good place to remove event handlers from the client.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>async def disconnect_client(self):
+    self._client.off("value_updated", self._on_value_updated)
+    await self._client.disconnect()</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.ExternalClientDevice.check_client_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">check_client_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.ExternalClientDevice.check_client_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">check_client_connected</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if the external client is connected.</p>
+<p>This should query the external client's actual connection state,
+not rely on internal tracking.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <p>def check_client_connected(self) -&gt; bool:
+    return self._client is not None and self._client.connected</p>
+</details>        <p>:return: True if external client is connected</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="persistentconnectiondevice">PersistentConnectionDevice<a class="headerlink" href="#persistentconnectiondevice" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.PersistentConnectionDevice" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.PersistentConnectionDevice</span>
+
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PersistentConnectionDevice</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">backoff_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">BACKOFF_MAX</span><span class="p">,</span> <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ucapi_framework.device.BaseDeviceInterface" href="#ucapi_framework.device.BaseDeviceInterface">BaseDeviceInterface</a></code></p>
+
+
+
+        <p>Base class for devices with persistent TCP/protocol connections.</p>
+<p>Maintains a persistent connection with reconnection logic and backoff.</p>
+<p>Good for: Proprietary protocols, TCP connections, devices requiring persistent sessions</p>
+
+        <p>Initialize persistent connection device.</p>
+<p>:param device_config: Device configuration
+:param loop: Event loop
+:param backoff_max: Maximum backoff time in seconds
+:param config_manager: Optional config manager for persisting configuration updates</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+<h3 id="ucapi_framework.device.PersistentConnectionDevice-attributes">Attributes<a href="#ucapi_framework.device.PersistentConnectionDevice-attributes" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.is_connected" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">is_connected</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.is_connected" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">is_connected</span><span class="p">:</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return True if device has an active connection.</p>
+
+    </div>
+
+</div>
+
+
+<h3 id="ucapi_framework.device.PersistentConnectionDevice-functions">Functions<a href="#ucapi_framework.device.PersistentConnectionDevice-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.connect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">connect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.connect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">connect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish persistent connection with reconnection logic.</p>
+<p>:return: True if connection task started successfully, False otherwise</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.disconnect" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">disconnect</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.disconnect" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">disconnect</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Close persistent connection.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.establish_connection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">establish_connection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.establish_connection" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">establish_connection</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Establish connection to device.</p>
+<p>:return: Connection object</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.close_connection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">close_connection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.close_connection" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">close_connection</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Close the connection.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.device.PersistentConnectionDevice.maintain_connection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">maintain_connection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.device.PersistentConnectionDevice.maintain_connection" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">maintain_connection</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Maintain the connection.</p>
+<p>This method should block while the connection is active.
+Return when connection is lost or should be closed.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="deviceevents">DeviceEvents<a class="headerlink" href="#deviceevents" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.device.DeviceEvents" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.device.DeviceEvents</span>
+
+
+<a href="#ucapi_framework.device.DeviceEvents" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.IntEnum">IntEnum</span></code></p>
+
+
+
+        <p>Common device events.</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JackJPowell" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://discord.gg/zGVYf58" target="_blank" rel="noopener" title="discord.gg" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

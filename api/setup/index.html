@@ -1,0 +1,2545 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A framework for building Unfolded Circle Remote integrations">
+      
+      
+        <meta name="author" content="Jack Powell">
+      
+      
+        <link rel="canonical" href="https://jackjpowell.github.io/ucapi-framework/api/setup/">
+      
+      
+        <link rel="prev" href="../device/">
+      
+      
+        <link rel="next" href="../config/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Setup Flow - UCAPI Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#setup-flow-api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="UCAPI Framework" class="md-header__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCAPI Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Setup Flow
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/setup-flow/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../driver/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../migration-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Migration Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="UCAPI Framework" class="md-nav__button md-logo" aria-label="UCAPI Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCAPI Framework
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JackJPowell/ucapi-framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JackJPowell/ucapi-framework
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/setup-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/device-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../driver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Driver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basesetupflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseSetupFlow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseSetupFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseSetupFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.create_handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_driver_setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_driver_setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.query_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        query_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_manual_entry_form" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_manual_entry_form
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.discover_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        discover_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.prepare_input_from_discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prepare_input_from_discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_discovered_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_device_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_device_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.format_discovered_device_label" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        format_discovered_device_label
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_discovered_devices_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_discovery_fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_additional_discovery_fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.extract_additional_setup_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_additional_setup_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_pre_discovery_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_pre_discovery_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_pre_discovery_response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_pre_discovery_response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_configuration_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_additional_configuration_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_additional_configuration_response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_additional_configuration_response
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setupsteps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SetupSteps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.SetupSteps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SetupSteps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basesetupflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseSetupFlow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaseSetupFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaseSetupFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.create_handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_driver_setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_driver_setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.query_device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        query_device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_manual_entry_form" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_manual_entry_form
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.discover_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        discover_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.prepare_input_from_discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prepare_input_from_discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_discovered_devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_device_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_device_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_device_name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.format_discovered_device_label" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        format_discovered_device_label
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_discovered_devices_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_discovery_fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_additional_discovery_fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.extract_additional_setup_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_additional_setup_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_pre_discovery_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_pre_discovery_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_pre_discovery_response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_pre_discovery_response
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_configuration_screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_additional_configuration_screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.BaseSetupFlow.handle_additional_configuration_response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handle_additional_configuration_response
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setupsteps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SetupSteps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ucapi_framework.setup.SetupSteps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SetupSteps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="setup-flow-api-reference">Setup Flow API Reference<a class="headerlink" href="#setup-flow-api-reference" title="Permanent link">&para;</a></h1>
+<p>The setup flow handles user interaction for device configuration and discovery.</p>
+<h2 id="basesetupflow">BaseSetupFlow<a class="headerlink" href="#basesetupflow" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.setup.BaseSetupFlow" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.setup.BaseSetupFlow</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseSetupFlow</span><span class="p">(</span><span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code>, <code><span title="typing.Generic">Generic</span>[<span title="ucapi_framework.setup.ConfigT">ConfigT</span>]</code></p>
+
+
+
+        <p>Base class for integration setup flows.</p>
+<p>Handles common patterns:
+- Configuration mode (add/update/remove/reset)
+- Device discovery with manual fallback
+- Device creation and validation
+- State machine management</p>
+
+
+<p>
+      <span class="doc-section-title">
+        Class Type Parameters:
+      </span>
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Bound or Constraints</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ConfigT</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The device configuration class</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+        <p>Initialize the setup flow.</p>
+<p>Child classes typically don't need to override <strong>init</strong> - the driver,
+device_class, and discovery are set automatically by create_handler().</p>
+<p>:param config_manager: Device configuration manager instance
+:param driver: Reference to the driver instance (provides access to driver state)
+:param device_class: The device class (enables calling class methods for validation)
+:param discovery: Discovery instance for auto-discovery.
+                 Pass None if the device does not support discovery.
+                 This is typically instantiated in your driver's main() and
+                 passed via create_handler().</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<h3 id="ucapi_framework.setup.BaseSetupFlow-functions">Functions<a href="#ucapi_framework.setup.BaseSetupFlow-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.create_handler" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">create_handler</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.create_handler" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_handler</span><span class="p">(</span><span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span><span class="p">,</span> <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a setup handler function with the given configuration.</p>
+<p>This is a convenience factory method that creates a closure containing
+the setup flow instance, suitable for passing to IntegrationAPI.init().</p>
+<p>Example usage in driver's main():
+    discovery = MyDiscovery(api_key="...", timeout=30)
+    setup_handler = MySetupFlow.create_handler(driver, discovery=discovery)
+    api.init("driver-name", setup_handler=setup_handler)</p>
+<p>:param driver: The driver instance. The config_manager will be
+              retrieved from driver.config_manager.
+:param discovery: Optional initialized discovery instance for auto-discovery.
+                 Pass None if the device does not support discovery.
+:return: Async function that handles SetupDriver messages</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.handle_driver_setup" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">handle_driver_setup</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.handle_driver_setup" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_driver_setup</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">SetupDriver</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SetupAction</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Main dispatcher for setup requests.</p>
+<p>:param msg: Setup driver request object
+:return: Setup action on how to continue</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.query_device" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">query_device</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.query_device" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">query_device</span><span class="p">(</span><span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupError</span> <span class="o">|</span> <span class="n">RequestUserInput</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Query and validate device using collected information.</p>
+<p>This method is called after the user provides device information (via manual entry
+or discovery). This is where you typically have enough info to query the device,
+validate connectivity, fetch additional data, or perform authentication.</p>
+<p><strong>Using Device Class for Validation:</strong></p>
+<p>The framework provides <code>self.device_class</code> which you can use to call class methods
+for validation. This keeps validation logic with your device class:</p>
+<div class="language-text highlight"><pre><span></span><code>class MyDevice(StatelessHTTPDevice):
+    @classmethod
+    async def validate_connection(cls, host: str, token: str) -&gt; dict:
+        &#39;&#39;&#39;Validate credentials and return device info.&#39;&#39;&#39;
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f&quot;http://{host}/api/info&quot;,
+                                   headers={&quot;Token&quot;: token}) as resp:
+                if resp.status != 200:
+                    raise ConnectionError(&quot;Invalid credentials&quot;)
+                return await resp.json()
+
+# In your setup flow:
+async def query_device(self, input_values):
+    try:
+        info = await self.device_class.validate_connection(
+            host=input_values[&quot;host&quot;],
+            token=input_values[&quot;token&quot;]
+        )
+        return MyDeviceConfig(
+            identifier=info[&quot;device_id&quot;],
+            name=info[&quot;name&quot;],
+            host=input_values[&quot;host&quot;],
+            token=input_values[&quot;token&quot;]
+        )
+    except ConnectionError:
+        return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+</code></pre></div>
+<p>Based on the query results, you can:
+- Return a complete device config to finish setup
+- Show additional screens to collect more information
+- Return an error if validation fails</p>
+<p>This method can return:
+- <strong>ConfigT</strong>: A valid device configuration - if no additional screens needed, setup completes.
+              If you need additional screens, DON'T return the config - store it in
+              self._pending_device_config and return RequestUserInput instead.
+- <strong>SetupError</strong>: An error to abort the setup with an error message
+- <strong>RequestUserInput</strong>: A screen to display for additional configuration or validation.
+                       <strong>IMPORTANT:</strong> To show additional screens after this one, you MUST
+                       set self._pending_device_config BEFORE returning RequestUserInput.
+                       The response will then route to handle_additional_configuration_response().</p>
+<p>Example - Simple case (no additional screens):
+    async def query_device(self, input_values):
+        # Query the device to validate connectivity
+        device_info = await self.api.get_device_info(input_values["host"])</p>
+<div class="language-text highlight"><pre><span></span><code>    if not device_info:
+        return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+
+    # Just return the config - setup completes automatically
+    return MyDeviceConfig(
+        identifier=device_info[&quot;id&quot;],
+        name=input_values[&quot;name&quot;],
+        address=input_values[&quot;host&quot;],
+        port=int(input_values.get(&quot;port&quot;, 8080)),
+        version=device_info[&quot;version&quot;]
+    )
+</code></pre></div>
+
+
+<details class="example---with-validation" open>
+  <summary>Example - With validation</summary>
+  <p>async def query_device(self, input_values):
+    host = input_values.get("host", "").strip()
+    if not host:
+        return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)</p>
+<div class="language-text highlight"><pre><span></span><code># Test connection
+if not await self.api.test_connection(host):
+    return SetupError(error_type=IntegrationSetupError.CONNECTION_REFUSED)
+
+return MyDeviceConfig(
+    identifier=host,
+    name=input_values.get(&quot;name&quot;, host),
+    address=host
+)
+</code></pre></div>
+</details>        <p>Example - Multi-screen flow (query device, then show additional options):
+    async def query_device(self, input_values):
+        # Query the device API to validate and fetch available options
+        auth_response = await self.api.authenticate(
+            input_values["host"],
+            input_values["token"]
+        )</p>
+<div class="language-text highlight"><pre><span></span><code>    if not auth_response[&quot;valid&quot;]:
+        return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)
+
+    # IMPORTANT: Store config in _pending_device_config for multi-screen flows
+    self._pending_device_config = MyDeviceConfig(
+        identifier=input_values[&quot;host&quot;],
+        name=input_values[&quot;name&quot;],
+        token=auth_response[&quot;token&quot;],
+        available_servers=auth_response[&quot;servers&quot;]  # Data needed for next screen
+    )
+
+    # Return screen - response will route to handle_additional_configuration_response
+    return RequestUserInput(
+        {&quot;en&quot;: &quot;Select Server&quot;},
+        [{&quot;id&quot;: &quot;server&quot;, &quot;label&quot;: {&quot;en&quot;: &quot;Server&quot;},
+          &quot;field&quot;: {&quot;dropdown&quot;: {&quot;items&quot;: self._build_server_dropdown()}}}]
+    )
+
+async def handle_additional_configuration_response(self, msg):
+    # Access stored config and new input
+    self._pending_device_config.server = msg.input_values[&quot;server&quot;]
+    return None  # Save and complete (or return modified config)
+</code></pre></div>
+
+
+<details class="example---re-display-form-with-validation-error" open>
+  <summary>Example - Re-display form with validation error</summary>
+  <p>async def query_device(self, input_values):
+    host = input_values.get("host", "").strip()
+    if not host:
+        # Show the form again with error (no _pending_device_config set)
+        return RequestUserInput(
+            {"en": "Invalid Input"},
+            [
+                {"id": "error", "label": {"en": "Error"},
+                 "field": {"label": {"value": {"en": "Host is required"}}}},
+                # ... rest of the form fields
+            ]
+        )</p>
+<div class="language-text highlight"><pre><span></span><code>return MyDeviceConfig(identifier=host, name=host, address=host)
+</code></pre></div>
+</details>        <p>:param input_values: User input values from the manual entry form.
+                    Also includes self._pre_discovery_data if pre-discovery screens were shown.
+:return: Device configuration, SetupError, or RequestUserInput to re-display form</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_manual_entry_form" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_manual_entry_form</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_manual_entry_form" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_manual_entry_form</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the manual entry form.</p>
+<p>:return: RequestUserInput with manual entry fields</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.discover_devices" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">discover_devices</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.discover_devices" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover_devices</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Perform device discovery.</p>
+<p>DEFAULT IMPLEMENTATION: Calls self.discovery.discover() if available.</p>
+<p>If a discovery_class was passed to <strong>init</strong>, this method will call its
+discover() method and return the results. If no discovery_class was provided
+(None), this returns an empty list and the setup flow will skip discovery.</p>
+<p>:return: List of discovered devices, or empty list if discovery not supported</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.prepare_input_from_discovery" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">prepare_input_from_discovery</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.prepare_input_from_discovery" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">prepare_input_from_discovery</span><span class="p">(</span><span class="n">discovered</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">,</span> <span class="n">additional_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Convert discovered device data to input_values format for query_device.</p>
+<p><strong>You must override this method if you provide a discovery_class.</strong></p>
+<p>This method transforms a discovered device into the same input_values format
+that manual entry produces. This allows query_device() to work uniformly for
+both discovery and manual entry paths.</p>
+<p>The returned dictionary should match the field names from your manual entry form,
+so query_device() can process both sources identically.</p>
+<p>DEFAULT IMPLEMENTATION: Returns a basic dictionary with common fields.
+Override this to customize the mapping for your integration.</p>
+<p>:param discovered: The discovered device selected by the user
+:param additional_input: Additional user input from the discovery screen
+                        (e.g., from get_additional_discovery_fields)
+:return: Dictionary of input values in the same format as manual entry</p>
+
+
+<details class="example---basic-mapping" open>
+  <summary>Example - Basic mapping</summary>
+  <p>async def prepare_input_from_discovery(self, discovered, additional_input):
+    return {
+        "identifier": discovered.identifier,
+        "address": discovered.address,
+        "name": discovered.name,
+        "port": discovered.extra_data.get("port", 8080),
+        # Include any additional fields from discovery screen
+        **additional_input
+    }</p>
+</details>
+
+<details class="example---with-data-transformation" open>
+  <summary>Example - With data transformation</summary>
+  <p>async def prepare_input_from_discovery(self, discovered, additional_input):
+    # Extract specific data from extra_data
+    return {
+        "identifier": discovered.identifier,
+        "address": discovered.address,
+        "name": additional_input.get("name", discovered.name),  # Allow override
+        "model": discovered.extra_data.get("model"),
+        "firmware": discovered.extra_data.get("version"),
+    }</p>
+</details>
+
+<details class="example---with-filtering" open>
+  <summary>Example - With filtering</summary>
+  <p>async def prepare_input_from_discovery(self, discovered, additional_input):
+    # Only include relevant additional input fields
+    return {
+        "identifier": discovered.identifier,
+        "address": discovered.address,
+        "name": discovered.name,
+        # Only include specific additional fields, not "choice"
+        "zone": additional_input.get("zone", 1),
+        "volume_step": additional_input.get("volume_step", 5),
+    }</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_discovered_devices" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_discovered_devices</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices</span><span class="p">(</span><span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">]</span> <span class="o">|</span> <span class="n">DiscoveredDevice</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get discovered devices from the last discovery run.</p>
+<p>This is a convenience method that returns devices found by the framework's
+automatic discovery. Use this in your create_device_from_discovery()
+implementation to access device details.</p>
+<p>This is equivalent to accessing self.discovery.devices directly.</p>
+<p>:param identifier: Optional device identifier to look up a specific device.
+                  If provided, returns the matching DiscoveredDevice or None.
+                  If omitted, returns the full list of devices.
+:return: If identifier provided: DiscoveredDevice or None
+        If no identifier: List of all discovered devices (empty if none found)</p>
+
+
+<details class="example---get-specific-device" open>
+  <summary>Example - Get specific device</summary>
+  <p>async def create_device_from_discovery(self, device_id, additional_data):
+    discovered = self.get_discovered_devices(device_id)
+    if not discovered:
+        return SetupError(error_type=IntegrationSetupError.NOT_FOUND)</p>
+<div class="language-text highlight"><pre><span></span><code>return MyDeviceConfig(
+    identifier=discovered.identifier,
+    name=discovered.name,
+    address=discovered.address,
+    port=discovered.extra_data.get(&quot;port&quot;, 80)
+)
+</code></pre></div>
+</details>
+
+<details class="example---get-all-devices" open>
+  <summary>Example - Get all devices</summary>
+  <p>async def create_device_from_discovery(self, device_id, additional_data):
+    for device in self.get_discovered_devices():
+        if device.identifier == device_id:
+            return MyDeviceConfig.from_discovered(device)
+    return SetupError(error_type=IntegrationSetupError.NOT_FOUND)</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_device_id" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_id</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_device_id" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_id</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device ID from configuration.</p>
+<p>Default implementation: tries common attribute names (identifier, id, device_id).
+Override this if your config uses a different attribute name.</p>
+<p>:param device_config: Device configuration
+:return: Device identifier
+:raises AttributeError: If no valid ID attribute is found</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_device_name" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_device_name</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_device_name" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_device_name</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract device name from configuration.</p>
+<p>Default implementation: tries common attribute names (name, friendly_name, device_name).
+Override this if your config uses a different attribute name.</p>
+<p>:param device_config: Device configuration
+:return: Device name
+:raises AttributeError: If no valid name attribute is found</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.format_discovered_device_label" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">format_discovered_device_label</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.format_discovered_device_label" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_discovered_device_label</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format how a discovered device appears in the dropdown list.</p>
+<p>Override this method to customize how devices are displayed to users
+during discovery. The default format shows the device name and address.</p>
+<p>:param device: The discovered device to format
+:return: Formatted label string</p>
+
+
+<details class="example---include-model-information" open>
+  <summary>Example - Include model information</summary>
+  <p>def format_discovered_device_label(self, device):
+    model = device.extra_data.get("model", "Unknown")
+    return f"{device.name} - {model} ({device.address})"</p>
+</details>
+
+<details class="example---show-additional-details" open>
+  <summary>Example - Show additional details</summary>
+  <p>def format_discovered_device_label(self, device):
+    version = device.extra_data.get("version", "")
+    return f"{device.name} [{version}] at {device.address}"</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_discovered_devices_screen" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_discovered_devices_screen</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices_screen" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices_screen</span><span class="p">(</span><span class="n">devices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Build the discovered devices selection screen.</p>
+<p>Override this method to completely customize the discovery screen layout,
+such as adding additional fields, changing the title, or using a different
+input type.</p>
+<p>The default implementation creates a dropdown with all discovered devices
+(using format_discovered_device_label for labels), plus a "Setup Manually"
+option, and includes any additional fields from get_additional_discovery_fields().</p>
+<p>The selected device's identifier will be passed to create_device_from_discovery().</p>
+<p>:param devices: List of discovered devices
+:return: RequestUserInput screen to show to the user</p>
+
+
+<details class="example---custom-screen-with-additional-fields" open>
+  <summary>Example - Custom screen with additional fields</summary>
+  <p>async def get_discovered_devices_screen(self, devices):
+    dropdown_items = [
+        {
+            "id": d.identifier,
+            "label": {"en": self.format_discovered_device_label(d)}
+        }
+        for d in devices
+    ]
+    dropdown_items.append({"id": "manual", "label": {"en": "Manual Setup"}})</p>
+<div class="language-text highlight"><pre><span></span><code>return RequestUserInput(
+    {&quot;en&quot;: &quot;Select Your Device&quot;},
+    [
+        {
+            &quot;id&quot;: &quot;choice&quot;,
+            &quot;label&quot;: {&quot;en&quot;: &quot;Available Devices&quot;},
+            &quot;field&quot;: {&quot;dropdown&quot;: {&quot;value&quot;: dropdown_items[0][&quot;id&quot;], &quot;items&quot;: dropdown_items}}
+        },
+        {
+            &quot;id&quot;: &quot;zone&quot;,
+            &quot;label&quot;: {&quot;en&quot;: &quot;Default Zone&quot;},
+            &quot;field&quot;: {&quot;number&quot;: {&quot;value&quot;: 1, &quot;min&quot;: 1, &quot;max&quot;: 10}}
+        }
+    ]
+)
+</code></pre></div>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_additional_discovery_fields" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_additional_discovery_fields</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_discovery_fields" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_additional_discovery_fields</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get additional fields to show during discovery.</p>
+<p>Override to add custom fields (e.g., volume step, zone selection).</p>
+<p>:return: List of field definitions</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.extract_additional_setup_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">extract_additional_setup_data</span>
+
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.extract_additional_setup_data" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">extract_additional_setup_data</span><span class="p">(</span><span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract additional setup data from input values.</p>
+<p>Override to extract additional custom fields.</p>
+<p>:param input_values: User input values
+:return: Dictionary of additional data</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_pre_discovery_screen" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_pre_discovery_screen</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_pre_discovery_screen" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_pre_discovery_screen</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Request pre-discovery configuration screen(s).</p>
+<p>Override this method to show configuration screens BEFORE device discovery.
+This is useful for collecting credentials, API keys, server addresses, or
+other information needed to perform discovery.</p>
+<p>The collected data is stored in self._pre_discovery_data and can be accessed
+during discovery (in discover_devices()) or device creation.</p>
+<p>To show a pre-discovery screen:
+1. Return a RequestUserInput with the fields you need
+2. Handle the response in handle_pre_discovery_response()
+3. Return another RequestUserInput to show more screens, or None to proceed</p>
+<p>:return: RequestUserInput to show a screen, or None to skip pre-discovery</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.handle_pre_discovery_response" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">handle_pre_discovery_response</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.handle_pre_discovery_response" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_pre_discovery_response</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SetupAction</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle response from pre-discovery screens.</p>
+<p>Override this method to process responses from screens created by
+get_pre_discovery_screen(). The input values are automatically stored
+in self._pre_discovery_data before this method is called.</p>
+<p>You should:
+1. Validate the input (optionally)
+2. Either:
+   - Return another RequestUserInput for more pre-discovery screens, or
+   - Return None to proceed to device discovery</p>
+<p>If you return None, the base class will call discover_devices() where
+you can access self._pre_discovery_data to use the collected information.</p>
+<p>:param msg: User data response from pre-discovery screen
+:return: RequestUserInput for another screen, or None to proceed to discovery</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.get_additional_configuration_screen" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_additional_configuration_screen</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_configuration_screen" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_additional_configuration_screen</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">previous_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Request additional configuration screens after device creation.</p>
+<p>Override this method to show additional setup screens that collect more
+information about the device. This is called after query_device
+(for both manual entry and discovery paths) but BEFORE the device is saved.</p>
+<p><strong>AUTO-POPULATION:</strong> Any fields returned by this screen will automatically
+populate matching attributes on self._pending_device_config. You typically
+don't need to manually handle the response!</p>
+
+
+<details class="example---simple-additional-screen" open>
+  <summary>Example - Simple additional screen</summary>
+  <p>async def get_additional_configuration_screen(self, device_config, previous_input):
+    return RequestUserInput(
+        {"en": "Additional Settings"},
+        [
+            {"id": "token", "label": {"en": "API Token"},
+             "field": {"text": {"value": ""}}},
+            {"id": "zone", "label": {"en": "Zone"},
+             "field": {"number": {"value": 1}}}
+        ]
+    )
+    # token and zone will auto-populate if device_config has those attributes!</p>
+</details>
+
+<details class="example---conditional-screen" open>
+  <summary>Example - Conditional screen</summary>
+  <p>async def get_additional_configuration_screen(self, device_config, previous_input):
+    if device_config.requires_auth:
+        return RequestUserInput(
+            {"en": "Authentication"},
+            [{"id": "password", "label": {"en": "Password"},
+              "field": {"text": {"value": ""}}}]
+        )
+    return None  # No additional screen needed</p>
+</details>        <p>:param device_config: The device configuration (also in self._pending_device_config)
+:param previous_input: Input values from the previous screen
+:return: RequestUserInput to show another screen, or None to complete setup</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ucapi_framework.setup.BaseSetupFlow.handle_additional_configuration_response" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">handle_additional_configuration_response</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#ucapi_framework.setup.BaseSetupFlow.handle_additional_configuration_response" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_additional_configuration_response</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupAction</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Handle response from additional configuration screens.</p>
+<p>Override this method to process responses from custom setup screens
+created by get_additional_configuration_screen().</p>
+<p><strong>AUTO-POPULATION:</strong> The framework automatically populates self._pending_device_config
+from msg.input_values where field names match config attributes. In most cases,
+you don't need to override this method at all!</p>
+<p>Return one of:
+- <strong>None</strong> (recommended): Auto-populated fields are saved automatically
+- <strong>ConfigT</strong> (device config): Replace pending config and save this one
+- <strong>RequestUserInput</strong>: Show another configuration screen
+- <strong>SetupError</strong>: Abort setup with an error</p>
+<p>Example - No override needed (auto-population):
+    # If your screen has fields like "token" and "zone" that match
+    # attributes on your device config, they're automatically set!
+    # No need to override handle_additional_configuration_response at all.</p>
+
+
+<details class="example---with-validation" open>
+  <summary>Example - With validation</summary>
+  <p>async def handle_additional_configuration_response(self, msg):
+    # Fields already auto-populated, just validate
+    if not self._pending_device_config.token:
+        return SetupError(error_type=IntegrationSetupError.AUTHORIZATION_ERROR)</p>
+<div class="language-text highlight"><pre><span></span><code># Or add computed fields
+self._pending_device_config.full_url = (
+    f&quot;https://{self._pending_device_config.address}:8080&quot;
+)
+return None  # Save and complete
+</code></pre></div>
+</details>
+
+<details class="example---show-another-screen" open>
+  <summary>Example - Show another screen</summary>
+  <p>async def handle_additional_configuration_response(self, msg):
+    # Check if we need authentication
+    if self._pending_device_config.requires_auth:
+        return RequestUserInput(
+            {"en": "Enter Password"},
+            [{"id": "password", "label": {"en": "Password"},
+              "field": {"text": {"value": ""}}}]
+        )
+    return None</p>
+</details>        <p>Example - Replace entire config (advanced):
+    async def handle_additional_configuration_response(self, msg):
+        # Create completely new config (rarely needed)
+        return MyDeviceConfig(
+            identifier=self._pending_device_config.identifier,
+            name=self._pending_device_config.name,
+            address=self._pending_device_config.address,
+            token=msg.input_values["token"],  # Manual access if needed
+        )</p>
+<p>:param msg: User data response from additional screen
+:return: Device config to save, SetupAction, or None to complete</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="setupsteps">SetupSteps<a class="headerlink" href="#setupsteps" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ucapi_framework.setup.SetupSteps" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ucapi_framework.setup.SetupSteps</span>
+
+
+<a href="#ucapi_framework.setup.SetupSteps" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.IntEnum">IntEnum</span></code></p>
+
+
+
+        <p>Enumeration of setup steps to keep track of user data responses.</p>
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JackJPowell" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://discord.gg/zGVYf58" target="_blank" rel="noopener" title="discord.gg" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

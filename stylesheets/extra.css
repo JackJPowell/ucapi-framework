@@ -1,0 +1,63 @@
+/* Fix code block rendering issues - Safari compatible */
+.highlight code,
+.highlight pre,
+pre code,
+.md-typeset pre > code {
+    word-break: normal !important;
+    word-wrap: normal !important;
+    white-space: pre !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+}
+
+/* Ensure ALL elements inside code blocks display inline */
+.highlight code *,
+.highlight pre *,
+pre code *,
+.md-typeset pre > code *,
+.md-typeset .highlight span,
+.md-typeset pre span {
+    display: inline !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    float: none !important;
+    clear: none !important;
+}
+
+/* Ensure code blocks don't wrap weirdly */
+.md-typeset pre {
+    word-break: normal !important;
+    overflow-x: auto !important;
+}
+
+.md-typeset code {
+    word-break: normal !important;
+    word-wrap: normal !important;
+}
+
+/* Safari-specific fixes for inline code */
+.md-typeset code:not(pre code) {
+    white-space: nowrap !important;
+}
+
+/* Prevent Safari from breaking code blocks in flex containers */
+.md-typeset .highlight {
+    display: block !important;
+    overflow-x: auto !important;
+}
+
+/* Force proper monospace rendering */
+.md-typeset code,
+.md-typeset pre {
+    font-family: "Roboto Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+}
+
+/* Safari-specific fixes to preserve syntax highlighting */
+@supports (-webkit-hyphens:none) {
+    .highlight code span,
+    .md-typeset pre > code span {
+        -webkit-text-fill-color: unset !important;
+        -webkit-background-clip: unset !important;
+    }
+}
