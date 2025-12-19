@@ -25,6 +25,7 @@ from ucapi import (
     remote,
     sensor,
     switch,
+    voice_assistant,
 )
 
 from ucapi_framework.config import BaseConfigManager
@@ -542,6 +543,10 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 self.api.configured_entities.update_attributes(
                     entity_id, {remote.Attributes.STATE: state}
                 )
+            case EntityTypes.VOICE_ASSISTANT:
+                self.api.configured_entities.update_attributes(
+                    entity_id, {voice_assistant.Attributes.STATE: state}
+                )
 
     # ========================================================================
     # Device Lifecycle Management
@@ -782,6 +787,10 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id, {remote.Attributes.STATE: state}
                     )
+                case EntityTypes.VOICE_ASSISTANT:
+                    self.api.configured_entities.update_attributes(
+                        entity_id, {voice_assistant.Attributes.STATE: state}
+                    )
 
     async def on_device_disconnected(self, device_id: str) -> None:
         """
@@ -846,6 +855,13 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
+                case EntityTypes.VOICE_ASSISTANT:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {
+                            voice_assistant.Attributes.STATE: media_player.States.UNAVAILABLE
+                        },
                     )
 
     async def on_device_connection_error(self, device_id: str, message: str) -> None:
@@ -912,6 +928,13 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
+                case EntityTypes.VOICE_ASSISTANT:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {
+                            voice_assistant.Attributes.STATE: media_player.States.UNAVAILABLE
+                        },
                     )
 
     async def on_device_update(
@@ -1085,6 +1108,14 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 if remote.Attributes.STATE.value in update:
                     state = self.map_device_state(update[remote.Attributes.STATE.value])
                     attributes[remote.Attributes.STATE] = state
+
+            case EntityTypes.VOICE_ASSISTANT:
+                # Voice Assistant entities: STATE
+                if voice_assistant.Attributes.STATE.value in update:
+                    state = self.map_device_state(
+                        update[voice_assistant.Attributes.STATE.value]
+                    )
+                    attributes[voice_assistant.Attributes.STATE] = state
 
             case _:
                 # Unknown entity type - log warning

@@ -1958,6 +1958,7 @@ class TestDeviceEventHandlersEntityTypes:
             EntityTypes.SENSOR,
             EntityTypes.SWITCH,
             EntityTypes.IR_EMITTER,
+            EntityTypes.VOICE_ASSISTANT,
         ]:
             mock_entity = MagicMock()
             mock_entity.entity_type = entity_type
@@ -1985,6 +1986,7 @@ class TestDeviceEventHandlersEntityTypes:
             EntityTypes.SENSOR,
             EntityTypes.SWITCH,
             EntityTypes.IR_EMITTER,
+            EntityTypes.VOICE_ASSISTANT,
         ]:
             mock_entity = MagicMock()
             mock_entity.entity_type = entity_type
@@ -2012,6 +2014,7 @@ class TestDeviceEventHandlersEntityTypes:
             EntityTypes.SENSOR,
             EntityTypes.SWITCH,
             EntityTypes.IR_EMITTER,
+            EntityTypes.VOICE_ASSISTANT,
         ]:
             mock_entity = MagicMock()
             mock_entity.entity_type = entity_type
@@ -2192,6 +2195,23 @@ class TestOnDeviceUpdateEntityTypes:
 
         mock_entity = MagicMock()
         mock_entity.entity_type = EntityTypes.IR_EMITTER
+        driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
+        driver.api.configured_entities.contains = MagicMock(return_value=True)
+        driver.api.configured_entities.update_attributes = MagicMock()
+
+        await driver.on_device_update("dev1", {"state": "on"})
+
+        driver.api.configured_entities.update_attributes.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_voice_assistant(self):
+        """Test on_device_update for voice assistant entity."""
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        mock_entity = MagicMock()
+        mock_entity.entity_type = EntityTypes.VOICE_ASSISTANT
         driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
         driver.api.configured_entities.contains = MagicMock(return_value=True)
         driver.api.configured_entities.update_attributes = MagicMock()
