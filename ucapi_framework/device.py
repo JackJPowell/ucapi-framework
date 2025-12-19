@@ -17,7 +17,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import AbstractEventLoop
-from enum import IntEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -32,15 +32,15 @@ BACKOFF_MAX = 30
 BACKOFF_SEC = 2
 
 
-class DeviceEvents(IntEnum):
+class DeviceEvents(StrEnum):
     """Common device events."""
 
-    CONNECTING = 0
-    CONNECTED = 1
-    DISCONNECTED = 2
-    PAIRED = 3
-    ERROR = 4
-    UPDATE = 5
+    CONNECTING = "DEVICE_CONNECTING"
+    CONNECTED = "DEVICE_CONNECTED"
+    DISCONNECTED = "DEVICE_DISCONNECTED"
+    PAIRED = "DEVICE_PAIRED"
+    ERROR = "DEVICE_ERROR"
+    UPDATE = "DEVICE_UPDATE"
 
 
 class BaseDeviceInterface(ABC):

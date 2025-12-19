@@ -1455,12 +1455,12 @@ class TestDeviceEvents:
 
     def test_device_events_values(self):
         """Test that DeviceEvents enum has expected values."""
-        assert DeviceEvents.CONNECTING == 0
-        assert DeviceEvents.CONNECTED == 1
-        assert DeviceEvents.DISCONNECTED == 2
-        assert DeviceEvents.PAIRED == 3
-        assert DeviceEvents.ERROR == 4
-        assert DeviceEvents.UPDATE == 5
+        assert DeviceEvents.CONNECTING == "DEVICE_CONNECTING"
+        assert DeviceEvents.CONNECTED == "DEVICE_CONNECTED"
+        assert DeviceEvents.DISCONNECTED == "DEVICE_DISCONNECTED"
+        assert DeviceEvents.PAIRED == "DEVICE_PAIRED"
+        assert DeviceEvents.ERROR == "DEVICE_ERROR"
+        assert DeviceEvents.UPDATE == "DEVICE_UPDATE"
 
 
 class ConcreteExternalClientDevice(ExternalClientDevice):

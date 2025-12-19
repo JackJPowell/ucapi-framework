@@ -12,7 +12,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from ucapi import (
     AbortDriverSetup,
@@ -501,6 +501,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             )
             return await self._handle_manual_entry()
 
+        # Type assertion: when identifier is provided, get_discovered_devices returns a single device
+        assert isinstance(discovered, DiscoveredDevice)
+
         # Convert discovered device to input_values format
         try:
             input_values = await self.prepare_input_from_discovery(
@@ -601,8 +604,18 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     self._pending_device_config = None
                     return SetupError(error_type=IntegrationSetupError.OTHER)
 
+                # Validate that result is not a SetupAction (should be ConfigT at this point)
+                if isinstance(result, (RequestUserInput, SetupError, SetupComplete)):
+                    _LOG.error(
+                        "Unexpected SetupAction type after filtering: %s",
+                        type(result).__name__,
+                    )
+                    self._pending_device_config = None
+                    return SetupError(error_type=IntegrationSetupError.OTHER)
+
                 # User returned a device config instance - use it as the final config
-                self._pending_device_config = result
+                # Cast is safe here because we've eliminated all SetupAction types above
+                self._pending_device_config = cast(ConfigT, result)
 
             # At this point: result is None, SetupComplete, or we just set pending_device_config
             if self._pending_device_config is None:
@@ -697,7 +710,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self._setup_step = SetupSteps.DISCOVER
         return await self._handle_discovery()
 
-    async def _handle_backup(self) -> RequestUserInput:
+    async def _handle_backup(self) -> RequestUserInput | SetupError:
         """
         Handle backup configuration request.
 
@@ -905,7 +918,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         validate connectivity, fetch additional data, or perform authentication.
 
         **Using Device Class for Validation:**
-        
+
         The framework provides `self.device_class` which you can use to call class methods
         for validation. This keeps validation logic with your device class:
 
@@ -1090,8 +1103,6 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
     ) -> dict[str, Any]:
         """
         Convert discovered device data to input_values format for query_device.
-
-        **You must override this method if you provide a discovery_class.**
 
         This method transforms a discovered device into the same input_values format
         that manual entry produces. This allows query_device() to work uniformly for
@@ -1401,7 +1412,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         return None
 
-    async def handle_pre_discovery_response(self, msg: UserDataResponse) -> SetupAction:
+    async def handle_pre_discovery_response(
+        self, msg: UserDataResponse
+    ) -> SetupAction | None:
         """
         Handle response from pre-discovery screens.
 

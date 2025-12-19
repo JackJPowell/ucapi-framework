@@ -121,7 +121,7 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
     def __init__(
         self,
         device_class: type[DeviceT],
-        entity_classes: list[EntityTypes] | EntityTypes,
+        entity_classes: list[type[Entity]] | type[Entity],
         require_connection_before_registry: bool = False,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
@@ -129,21 +129,21 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
         Initialize the integration driver.
 
         :param device_class: The device interface class to instantiate
-        :param entity_classes: EntityTypes or list of EntityTypes (e.g., EntityTypes.MEDIA_PLAYER)
-                               Single EntityTypes value will be converted to a list
+        :param entity_classes: Entity class or list of entity classes (e.g., MediaPlayer, Light)
+                               Single entity class will be converted to a list
         :param require_connection_before_registry: If True, ensure device connection
                                                    before subscribing to entities and re-register
                                                    available entities after connection. Useful for hub-based
                                                    integrations that populate entities dynamically on connection.
         :param loop: The asyncio event loop (optional, defaults to asyncio.get_running_loop())
         """
-        self._loop = loop if loop is not None else asyncio.get_running_loop()
+        self._loop = loop if loop is not None else asyncio.get_event_loop()
         self.api = uc.IntegrationAPI(self._loop)
         self._device_class = device_class
         self._require_connection_before_registry = require_connection_before_registry
 
-        # Allow passing a single EntityTypes or a list
-        if isinstance(entity_classes, EntityTypes):
+        # Allow passing a single entity class or a list
+        if isinstance(entity_classes, type):
             self._entity_classes = [entity_classes]
         else:
             self._entity_classes = entity_classes

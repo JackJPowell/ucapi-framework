@@ -12,13 +12,13 @@ import json
 import logging
 import os
 from abc import ABC
-from typing import Any, Callable, Generic, Iterator, TypeVar, get_args, get_origin
+from typing import Any, Callable, Generic, Iterator, TypeVar, cast, get_args, get_origin
 
 _LOG = logging.getLogger(__name__)
 
 _CFG_FILENAME = "config.json"
 
-# Type variable for device configuration
+# Type variable for device configuration - must be a dataclass
 DeviceT = TypeVar("DeviceT")
 
 
@@ -174,8 +174,16 @@ class BaseConfigManager(ABC, Generic[DeviceT]):
         """
         for item in self._config:
             if self.get_device_id(item) == device_id:
-                # Return a copy
-                return dataclasses.replace(item)
+                # Return a copy if it's a dataclass
+                if dataclasses.is_dataclass(item) and not isinstance(item, type):
+                    # Cast is safe: we've verified item is a dataclass instance
+                    return cast(DeviceT, dataclasses.replace(item))
+                # Fallback: return the item as-is (shouldn't happen in normal usage)
+                _LOG.warning(
+                    "Device config is not a dataclass, returning original: %s",
+                    type(item).__name__,
+                )
+                return item
         return None
 
     def update(self, device: DeviceT) -> bool:
@@ -404,7 +412,7 @@ class BaseConfigManager(ABC, Generic[DeviceT]):
     # ========================================================================
 
     @staticmethod
-    def _deserialize_field(field_value: Any, field_type: type) -> Any:
+    def _deserialize_field(field_value: Any, field_type: Any) -> Any:
         """
         Recursively deserialize a field value based on its type annotation.
 
@@ -414,7 +422,7 @@ class BaseConfigManager(ABC, Generic[DeviceT]):
         - Primitive types (passed through)
 
         :param field_value: The value to deserialize
-        :param field_type: The target type annotation
+        :param field_type: The target type annotation (can be Any or str for forward references)
         :return: Deserialized value
         """
         # Handle None values
@@ -578,5 +586,11 @@ class BaseConfigManager(ABC, Generic[DeviceT]):
         :param updated: Updated device configuration (source of new values)
         """
         # Default: update all dataclass fields
-        for field in dataclasses.fields(existing):
-            setattr(existing, field.name, getattr(updated, field.name))
+        if dataclasses.is_dataclass(existing) and not isinstance(existing, type):
+            for field in dataclasses.fields(existing):
+                setattr(existing, field.name, getattr(updated, field.name))
+        else:
+            _LOG.warning(
+                "update_device_fields called on non-dataclass: %s",
+                type(existing).__name__,
+            )

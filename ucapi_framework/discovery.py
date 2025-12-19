@@ -356,7 +356,7 @@ class MDNSDiscovery(BaseDiscovery):
 
         try:
             try:
-                from zeroconf import ServiceBrowser, Zeroconf  # type: ignore[import-not-found]
+                from zeroconf import ServiceBrowser, ServiceListener, Zeroconf  # type: ignore[import-not-found]
             except ImportError as err:
                 raise ImportError(
                     "zeroconf package is required for mDNS discovery. "
@@ -368,7 +368,7 @@ class MDNSDiscovery(BaseDiscovery):
             zeroconf = Zeroconf()
             discovered = []
 
-            class Listener:
+            class Listener(ServiceListener):
                 def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
                     info = zc.get_service_info(type_, name)
                     if info:
