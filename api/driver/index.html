@@ -1690,7 +1690,13 @@
 
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseIntegrationDriver</span><span class="p">(</span><span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DeviceT</span><span class="p">],</span> <span class="n">entity_classes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">EntityTypes</span><span class="p">]</span> <span class="o">|</span> <span class="n">EntityTypes</span><span class="p">,</span> <span class="n">require_connection_before_registry</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseIntegrationDriver</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DeviceT</span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">entity_classes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Entity</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">type</span><span class="p">[</span><span class="n">Entity</span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">require_connection_before_registry</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">loop</span><span class="p">:</span> <span class="n">AbstractEventLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">driver_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
@@ -1757,13 +1763,15 @@
 
         <p>Initialize the integration driver.</p>
 <p>:param device_class: The device interface class to instantiate
-:param entity_classes: EntityTypes or list of EntityTypes (e.g., EntityTypes.MEDIA_PLAYER)
-                       Single EntityTypes value will be converted to a list
+:param entity_classes: Entity class or list of entity classes (e.g., MediaPlayer, Light)
+                       Single entity class will be converted to a list
 :param require_connection_before_registry: If True, ensure device connection
                                            before subscribing to entities and re-register
                                            available entities after connection. Useful for hub-based
                                            integrations that populate entities dynamically on connection.
-:param loop: The asyncio event loop (optional, defaults to asyncio.get_running_loop())</p>
+:param loop: The asyncio event loop (optional, defaults to asyncio.get_running_loop())
+:param driver_id: Optional driver/integration ID. Used for entity ID migration to automatically
+                 fetch the current version from the Remote, eliminating manual entry during upgrades.</p>
 
 
 
@@ -1967,7 +1975,9 @@ entities are unsubscribed. Override to customize cleanup behavior.</p>
 
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver.add_configured_device" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_configured_device</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">connect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_configured_device</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">connect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2018,7 +2028,9 @@ to register the default handlers, then add your custom ones.</p>
 
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver.register_available_entities" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_available_entities</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_available_entities</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2096,7 +2108,9 @@ to use the default implementation that calls create_entities().</p>
   </span>
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_connection_error" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_connection_error</span><span class="p">(</span><span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_connection_error</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2122,7 +2136,11 @@ to use the default implementation that calls create_entities().</p>
   </span>
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver.on_device_update" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_update</span><span class="p">(</span><span class="n">entity_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clear_media_when_off</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">on_device_update</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">entity_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">clear_media_when_off</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2248,27 +2266,39 @@ Override this if your config uses a different attribute name.</p>
 
 
 <a href="#ucapi_framework.driver.BaseIntegrationDriver.create_entities" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entities</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Entity</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entities</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">DeviceT</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Entity</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Create entity instances for a device.</p>
-<p>DEFAULT IMPLEMENTATION: Creates entities from the entity_classes passed to <strong>init</strong>.
-Each entity class is instantiated with (device_config, device) as parameters.</p>
-
-
-<details class="the-default-implementation-returns" open>
-  <summary>The default implementation returns</summary>
-  <p>[EntityClass1(device_config, device), EntityClass2(device_config, device), ...]</p>
-</details>        <p>Override this method if you need:
+<p>DEFAULT IMPLEMENTATION: Creates one instance per entity class passed to <strong>init</strong>,
+calling each as: entity_class(device_config, device)</p>
+<p>This works automatically for simple integrations. Override this method only when you need:
+- Variable entity counts (e.g., multi-zone receivers)
+- Hub-based discovery with runtime entity creation
 - Conditional entity creation based on device capabilities
-- Custom parameters beyond device_config and device
-- Dynamic entity creation logic</p>
+- Custom parameters beyond (device_config, device)</p>
 
 
-<details class="example-override" open>
-  <summary>Example override</summary>
+<details class="example---multi-zone-receiver" open>
+  <summary>Example - Multi-zone receiver</summary>
+  <p>def create_entities(self, device_config, device):
+    entities = []
+    for zone in device_config.zones:
+        entities.append(AnthemMediaPlayer(
+            entity_id=f"media_player.{device_config.id}<em zone.id="zone.id">zone</em>",
+            device=device,
+            device_config=device_config,
+            zone_config=zone  # Custom parameter
+        ))
+    return entities</p>
+</details>
+
+<details class="example---conditional-creation" open>
+  <summary>Example - Conditional creation</summary>
   <p>def create_entities(self, device_config, device):
     entities = []
     if device.supports_playback:
@@ -2533,7 +2563,11 @@ Override if you need custom behavior.</p>
 
 
 <a href="#ucapi_framework.driver.create_entity_id" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entity_id</span><span class="p">(</span><span class="n">entity_type</span><span class="p">:</span> <span class="n">EntityTypes</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sub_device_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_entity_id</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">entity_type</span><span class="p">:</span> <span class="n">EntityTypes</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">sub_device_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">

@@ -1514,7 +1514,15 @@
 
 
 <a href="#ucapi_framework.setup.BaseSetupFlow" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseSetupFlow</span><span class="p">(</span><span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BaseSetupFlow</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">config_manager</span><span class="p">:</span> <span class="n">BaseConfigManager</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">device_class</span><span class="p">:</span> <span class="nb">type</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">show_migration_in_ui</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">migration_testing_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
@@ -1573,7 +1581,12 @@ device_class, and discovery are set automatically by create_handler().</p>
 :param discovery: Discovery instance for auto-discovery.
                  Pass None if the device does not support discovery.
                  This is typically instantiated in your driver's main() and
-                 passed via create_handler().</p>
+                 passed via create_handler().
+:param show_migration_in_ui: Whether to show migration option in configuration mode.
+                            Default is False (hidden). Set to True for debugging/testing.
+:param migration_testing_mode: If True, migration executes all logic but skips PATCH calls.
+                               <strong>TEMPORARY PARAMETER - Will be removed before final release</strong>
+                               Default is False.</p>
 
 
 
@@ -1608,7 +1621,10 @@ device_class, and discovery are set automatically by create_handler().</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.create_handler" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_handler</span><span class="p">(</span><span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span><span class="p">,</span> <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_handler</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">driver</span><span class="p">:</span> <span class="n">BaseIntegrationDriver</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">discovery</span><span class="p">:</span> <span class="n">BaseDiscovery</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1616,12 +1632,15 @@ device_class, and discovery are set automatically by create_handler().</p>
         <p>Create a setup handler function with the given configuration.</p>
 <p>This is a convenience factory method that creates a closure containing
 the setup flow instance, suitable for passing to IntegrationAPI.init().</p>
+<p>The driver_id is automatically extracted from the driver instance. If the driver
+has a driver_id set, it will be used to automatically fetch the current version
+from the Remote during migration.</p>
 <p>Example usage in driver's main():
     discovery = MyDiscovery(api_key="...", timeout=30)
     setup_handler = MySetupFlow.create_handler(driver, discovery=discovery)
     api.init("driver-name", setup_handler=setup_handler)</p>
-<p>:param driver: The driver instance. The config_manager will be
-              retrieved from driver.config_manager.
+<p>:param driver: The driver instance. The config_manager and driver_id will be
+              retrieved from the driver.
 :param discovery: Optional initialized discovery instance for auto-discovery.
                  Pass None if the device does not support discovery.
 :return: Async function that handles SetupDriver messages</p>
@@ -1670,7 +1689,9 @@ the setup flow instance, suitable for passing to IntegrationAPI.init().</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.query_device" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">query_device</span><span class="p">(</span><span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupError</span> <span class="o">|</span> <span class="n">RequestUserInput</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">query_device</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupError</span> <span class="o">|</span> <span class="n">RequestUserInput</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1879,13 +1900,15 @@ discover() method and return the results. If no discovery_class was provided
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.prepare_input_from_discovery" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">prepare_input_from_discovery</span><span class="p">(</span><span class="n">discovered</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">,</span> <span class="n">additional_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">prepare_input_from_discovery</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">discovered</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">additional_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Convert discovered device data to input_values format for query_device.</p>
-<p><strong>You must override this method if you provide a discovery_class.</strong></p>
 <p>This method transforms a discovered device into the same input_values format
 that manual entry produces. This allows query_device() to work uniformly for
 both discovery and manual entry paths.</p>
@@ -1951,7 +1974,9 @@ Override this to customize the mapping for your integration.</p>
 
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices</span><span class="p">(</span><span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">]</span> <span class="o">|</span> <span class="n">DiscoveredDevice</span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">]</span> <span class="o">|</span> <span class="n">DiscoveredDevice</span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2054,7 +2079,9 @@ Override this if your config uses a different attribute name.</p>
 
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.format_discovered_device_label" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_discovered_device_label</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_discovered_device_label</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device</span><span class="p">:</span> <span class="n">DiscoveredDevice</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2096,7 +2123,9 @@ during discovery. The default format shows the device name and address.</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.get_discovered_devices_screen" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices_screen</span><span class="p">(</span><span class="n">devices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_discovered_devices_screen</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">devices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DiscoveredDevice</span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2176,7 +2205,9 @@ option, and includes any additional fields from get_additional_discovery_fields(
 
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.extract_additional_setup_data" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">extract_additional_setup_data</span><span class="p">(</span><span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">extract_additional_setup_data</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">input_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2237,7 +2268,9 @@ during discovery (in discover_devices()) or device creation.</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.handle_pre_discovery_response" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_pre_discovery_response</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SetupAction</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_pre_discovery_response</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SetupAction</span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2273,7 +2306,9 @@ you can access self._pre_discovery_data to use the collected information.</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.get_additional_configuration_screen" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_additional_configuration_screen</span><span class="p">(</span><span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">previous_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_additional_configuration_screen</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">device_config</span><span class="p">:</span> <span class="n">ConfigT</span><span class="p">,</span> <span class="n">previous_input</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RequestUserInput</span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2333,7 +2368,9 @@ don't need to manually handle the response!</p>
   </span>
 
 <a href="#ucapi_framework.setup.BaseSetupFlow.handle_additional_configuration_response" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_additional_configuration_response</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupAction</span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">handle_additional_configuration_response</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">msg</span><span class="p">:</span> <span class="n">UserDataResponse</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigT</span> <span class="o">|</span> <span class="n">SetupAction</span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
