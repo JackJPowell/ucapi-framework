@@ -1836,19 +1836,21 @@ class TestMigrationMethods:
             return_value=True,
         ) as mock_migrate:
             # Simulate migration request with all required fields
+            # Set automated=true to get migration data response
             msg = UserDataResponse(
                 input_values={
                     "previous_version": "1.0.0",
                     "current_version": "2.0.0",
                     "remote_url": "http://localhost",
                     "pin": "1234",
+                    "automated": "true",
                 }
             )
             result = await setup_flow._handle_migration_response(msg)
 
             # Should return RequestUserInput with migration data and success
             assert isinstance(result, RequestUserInput)
-            assert len(result.settings) == 3
+            assert len(result.settings) == 2
 
             # Check migration_success field
             success_field = result.settings[0]
@@ -1947,12 +1949,14 @@ class TestMigrationMethods:
         ):
             # Simulate migration request WITHOUT current_version
             # It should be auto-fetched
+            # Set automated=true to get migration data response
             msg = UserDataResponse(
                 input_values={
                     "previous_version": "1.0.0",
                     # No current_version provided
                     "remote_url": "http://localhost",
                     "pin": "1234",
+                    "automated": "true",
                 }
             )
             result = await setup_flow._handle_migration_response(msg)
@@ -1998,12 +2002,14 @@ class TestMigrationMethods:
             return_value=True,
         ) as mock_migrate:
             # Direct call with both versions (programmatic flow)
+            # Set automated=true to get migration data response
             msg = UserDataResponse(
                 input_values={
                     "previous_version": "1.0.0",
                     "current_version": "2.0.0",
                     "remote_url": "http://localhost",
                     "pin": "1234",
+                    "automated": "true",
                 }
             )
             result = await setup_flow._handle_migration(msg)
