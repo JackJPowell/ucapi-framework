@@ -714,6 +714,20 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             self._pending_device_config = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
 
+    def _has_migration_support(self) -> bool:
+        """
+        Check if this setup flow has migration support by detecting if
+        get_migration_data has been overridden from the base implementation.
+
+        :return: True if get_migration_data is overridden, False otherwise
+        """
+        # Get the method from this instance's class
+        this_method = self.__class__.get_migration_data
+        # Get the method from BaseSetupFlow
+        base_method = BaseSetupFlow.get_migration_data
+        # They're different if the subclass overrode it
+        return this_method is not base_method
+
     async def _build_restore_prompt_screen(self) -> RequestUserInput:
         """
         Build the restore prompt screen for initial setup.
@@ -743,6 +757,23 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     "id": "migration_required",
                     "label": {"en": ""},
                     "field": {"label": {"value": self._previous_version or ""}},
+                }
+            )
+        # If we can't determine migration requirement (no previous_version provided),
+        # check if get_migration_data is overridden to indicate migration support
+        elif self._migration_required is None and self._has_migration_support():
+            settings.append(
+                {
+                    "id": "migration_possible",
+                    "label": {"en": ""},
+                    "field": {
+                        "label": {
+                            "value": {
+                                "en": "This integration supports migration. "
+                                "If upgrading, consult documentation for migration requirements."
+                            }
+                        }
+                    },
                 }
             )
 

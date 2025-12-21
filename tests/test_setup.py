@@ -1951,6 +1951,54 @@ class TestMigrationMethods:
         )
         assert migration_field is None
 
+        # But migration_possible should NOT be present either
+        # because ConcreteSetupFlow doesn't override get_migration_data
+        migration_possible = next(
+            (s for s in result.settings if s["id"] == "migration_possible"), None
+        )
+        assert migration_possible is None
+
+    @pytest.mark.asyncio
+    async def test_migration_possible_when_get_migration_data_overridden(
+        self, config_manager, mock_driver
+    ):
+        """Test that migration_possible field appears when get_migration_data is overridden."""
+
+        class FlowWithMigrationSupport(ConcreteSetupFlow):
+            """Flow that has migration support."""
+
+            async def get_migration_data(self, previous_version, current_version):
+                return {
+                    "previous_driver_id": "old_driver",
+                    "new_driver_id": "new_driver",
+                    "entity_mappings": [],
+                }
+
+        setup_flow = FlowWithMigrationSupport(config_manager, driver=mock_driver)
+
+        # Simulate initial setup WITHOUT previous_version
+        msg = DriverSetupRequest(reconfigure=False, setup_data={})
+
+        result = await setup_flow.handle_driver_setup(msg)
+
+        # Should get restore prompt screen
+        assert isinstance(result, RequestUserInput)
+
+        # migration_required should NOT be present (no previous_version)
+        migration_field = next(
+            (s for s in result.settings if s["id"] == "migration_required"), None
+        )
+        assert migration_field is None
+
+        # But migration_possible SHOULD be present
+        migration_possible = next(
+            (s for s in result.settings if s["id"] == "migration_possible"), None
+        )
+        assert migration_possible is not None
+        assert (
+            "migration" in migration_possible["field"]["label"]["value"]["en"].lower()
+        )
+
     @pytest.mark.asyncio
     async def test_is_migration_required_default_returns_false(self, config_manager):
         """Test that default implementation of is_migration_required returns False."""

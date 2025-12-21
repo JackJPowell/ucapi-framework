@@ -415,7 +415,9 @@ Implement migration when:
 
 ### Programmatic Migration Detection
 
-The framework supports **programmatic migration detection** during setup, allowing the integration manager to determine if migration is needed without requiring manual intervention.
+The framework supports **programmatic migration detection** during setup, allowing the integration manager to determine if migration is needed or possible without requiring manual intervention.
+
+#### Approach 1: Definitive Detection (if setup_data is supported)
 
 When the manager calls setup with `previous_version` in the `setup_data`:
 
@@ -433,7 +435,7 @@ The framework will:
 2. Store the result internally
 3. If migration is required, include a `migration_required` field in the restore prompt response
 
-The manager can detect this by checking for the presence of the `migration_required` field:
+The manager can definitively detect migration requirement by checking for this field:
 
 ```python
 # Manager checks the initial setup response
@@ -445,13 +447,40 @@ response = await driver_setup_handler(
 if isinstance(response, RequestUserInput):
     for setting in response.settings:
         if setting.get("id") == "migration_required":
-            # Migration is needed - the field value contains the previous version
+            # Migration IS needed - the field value contains the previous version
             previous_version = setting["field"]["label"]["value"]
             # Complete setup, then trigger migration via reconfigure
             break
 ```
 
-This allows the manager to detect migration requirements early in the setup process. Normal users won't see this field since they don't provide `previous_version` in their setup requests.
+#### Approach 2: Capability Detection (fallback)
+
+If `setup_data` is not available or `previous_version` is not provided, the framework can still indicate migration **capability** by detecting if your setup flow has overridden `get_migration_data()`:
+
+```python
+# Manager calls setup without previous_version
+response = await driver_setup_handler(
+    DriverSetupRequest(reconfigure=False, setup_data={})
+)
+
+# Look for migration_possible field
+if isinstance(response, RequestUserInput):
+    for setting in response.settings:
+        if setting.get("id") == "migration_possible":
+            # This integration SUPPORTS migration
+            # Manager should check if migration is needed after installation
+            break
+```
+
+The `migration_possible` field indicates:
+- The integration has migration support (has overridden `get_migration_data`)
+- Migration *might* be needed, but cannot be determined without version information
+- The manager should prompt the user or check migration requirements after setup completes
+
+**Summary:**
+- `migration_required` = definitive - migration IS needed (only when `previous_version` provided)
+- `migration_possible` = hint - migration MIGHT be needed (when `get_migration_data` is overridden but no `previous_version`)
+- Neither field = no migration support in this integration
 
 ### Implementing Migration
 
