@@ -1899,29 +1899,26 @@ class TestMigrationMethods:
         # Should get restore prompt screen
         assert isinstance(result, RequestUserInput)
 
-        # Check that migration metadata is included in the response
-        metadata_fields = [s for s in result.settings if s.get("_metadata")]
-        assert len(metadata_fields) == 2
+        # Check that migration metadata is included as instance attributes
+        assert hasattr(result, "migration_required")
+        assert hasattr(result, "previous_version")
+        assert result.migration_required is True
+        assert result.previous_version == "1.2.3"
 
-        # Find the migration_required field
-        migration_field = next(
-            (s for s in metadata_fields if s["id"] == "_migration_required"), None
+        # ALSO check that it's in settings as fallback
+        metadata_setting = next(
+            (s for s in result.settings if s["id"] == "_internal_metadata"), None
         )
-        assert migration_field is not None
-        assert migration_field["field"]["label"]["value"] == "True"
-
-        # Find the previous_version field
-        version_field = next(
-            (s for s in metadata_fields if s["id"] == "_previous_version"), None
-        )
-        assert version_field is not None
-        assert version_field["field"]["label"]["value"] == "1.2.3"
+        assert metadata_setting is not None
+        metadata = metadata_setting["field"]["label"]["value"]
+        assert metadata["migration_required"] is True
+        assert metadata["previous_version"] == "1.2.3"
 
     @pytest.mark.asyncio
     async def test_no_migration_metadata_when_not_required(
         self, config_manager, mock_driver
     ):
-        """Test that no metadata is added when migration is not required."""
+        """Test that metadata shows migration not required."""
         setup_flow = ConcreteSetupFlow(config_manager, driver=mock_driver)
 
         # Simulate initial setup with previous_version
@@ -1934,16 +1931,18 @@ class TestMigrationMethods:
         # Should get restore prompt screen
         assert isinstance(result, RequestUserInput)
 
-        # Check that migration metadata is included (showing False)
-        metadata_fields = [s for s in result.settings if s.get("_metadata")]
-        assert len(metadata_fields) == 2
+        # Check that migration metadata shows False
+        assert hasattr(result, "migration_required")
+        assert result.migration_required is False
 
-        # Migration should be False
-        migration_field = next(
-            (s for s in metadata_fields if s["id"] == "_migration_required"), None
+        # Check settings fallback
+        metadata_setting = next(
+            (s for s in result.settings if s["id"] == "_internal_metadata"), None
         )
-        assert migration_field is not None
-        assert migration_field["field"]["label"]["value"] == "False"
+        assert metadata_setting is not None
+        metadata = metadata_setting["field"]["label"]["value"]
+        assert metadata["migration_required"] is False
+        assert metadata["previous_version"] == "2.0.0"
 
     @pytest.mark.asyncio
     async def test_no_migration_metadata_without_previous_version(
@@ -1961,8 +1960,14 @@ class TestMigrationMethods:
         assert isinstance(result, RequestUserInput)
 
         # Check that NO migration metadata is included
-        metadata_fields = [s for s in result.settings if s.get("_metadata")]
-        assert len(metadata_fields) == 0
+        assert not hasattr(result, "migration_required")
+        assert not hasattr(result, "previous_version")
+
+        # No metadata setting either
+        metadata_setting = next(
+            (s for s in result.settings if s["id"] == "_internal_metadata"), None
+        )
+        assert metadata_setting is None
 
     @pytest.mark.asyncio
     async def test_is_migration_required_default_returns_false(self, config_manager):

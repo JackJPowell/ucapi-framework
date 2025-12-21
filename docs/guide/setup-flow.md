@@ -431,11 +431,11 @@ The framework will:
 
 1. Call your `is_migration_required(previous_version)` method
 2. Store the result internally
-3. Include migration metadata in **all** `RequestUserInput` responses:
-   - `_migration_required` field with "True" or "False"
-   - `_previous_version` field with the version string
+3. Include migration metadata in **all** `RequestUserInput` responses
 
-The metadata fields are marked with `"_metadata": True` and are intended for programmatic access only (not displayed to users).
+The metadata is provided in a special `_internal_metadata` setting that contains a structured object with:
+- `migration_required`: Boolean indicating if migration is needed
+- `previous_version`: Version string being migrated from
 
 **Manager Usage Example:**
 
@@ -447,21 +447,20 @@ response = await driver_setup_handler(
 
 # Check metadata in response
 if isinstance(response, RequestUserInput):
-    metadata_fields = [s for s in response.settings if s.get("_metadata")]
-    
-    migration_field = next(
-        (s for s in metadata_fields if s["id"] == "_migration_required"), 
-        None
-    )
-    
-    if migration_field and migration_field["field"]["label"]["value"] == "True":
-        # Migration is needed - manager can now:
-        # 1. Complete the setup process
-        # 2. Then trigger migration via reconfigure with "migrate" action
-        print("Migration required after upgrade")
+    # Look for the _internal_metadata setting
+    for setting in response.settings:
+        if setting.get("id") == "_internal_metadata":
+            metadata = setting["field"]["label"]["value"]
+            migration_required = metadata["migration_required"]  # True or False
+            previous_version = metadata["previous_version"]  # "1.2.3"
+            
+            if migration_required:
+                # Trigger migration flow before completing setup
+                pass
+            break
 ```
 
-This allows the manager to detect migration needs **early** in the setup flow and handle it appropriately after installation completes.
+This allows the manager to detect migration requirements early in the setup process without manual intervention.
 
 ### Implementing Migration
 

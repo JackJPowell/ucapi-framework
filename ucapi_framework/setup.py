@@ -728,38 +728,50 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Add metadata to a RequestUserInput response for programmatic access.
 
-        Injects hidden fields containing various metadata that won't be displayed to users
-        but can be read programmatically (e.g., by the manager). This is the central place
-        to add any metadata that should be available in setup responses.
+        Adds metadata both as instance attributes AND in a special _metadata
+        settings field. This dual approach ensures compatibility:
+        - Instance attributes for UC API library serialization (if supported)
+        - Settings field as fallback for managers that only read settings
 
         Currently includes:
-        - Migration requirement status (if previous_version was provided)
-        - Previous version string (if available)
+        - migration_required: Boolean indicating if migration is needed
+        - previous_version: Version string being migrated from (if applicable)
 
         :param response: The RequestUserInput to augment
-        :return: The same response with metadata added
+        :return: The same response with metadata attributes added
         """
         # Add migration metadata if available
         if self._migration_required is not None:
-            # Add hidden metadata fields that won't be displayed to users
-            # but can be read programmatically (e.g., by the manager)
+            _LOG.debug(
+                "Adding migration metadata: required=%s, version=%s",
+                self._migration_required,
+                self._previous_version,
+            )
+            
+            # Add as direct instance attributes (may be preserved by UC API)
+            response.migration_required = self._migration_required  # type: ignore[attr-defined]
+            response.previous_version = self._previous_version or ""  # type: ignore[attr-defined]
+
+            # ALSO add as a structured metadata object in settings as fallback
+            # This ensures managers can access the data even if instance
+            # attributes aren't preserved during JSON serialization
             response.settings.append(
                 {
-                    "id": "_migration_required",
-                    "label": {"en": ""},
-                    "field": {"label": {"value": str(self._migration_required)}},
-                    "_metadata": True,  # Mark as metadata-only
+                    "id": "_internal_metadata",
+                    "field": {
+                        "label": {
+                            "value": {
+                                "migration_required": self._migration_required,
+                                "previous_version": self._previous_version or "",
+                            }
+                        }
+                    },
                 }
             )
-            if self._previous_version:
-                response.settings.append(
-                    {
-                        "id": "_previous_version",
-                        "label": {"en": ""},
-                        "field": {"label": {"value": self._previous_version}},
-                        "_metadata": True,  # Mark as metadata-only
-                    }
-                )
+            _LOG.debug("Metadata added, settings count: %d", len(response.settings))
+        else:
+            _LOG.debug("No migration metadata to add (_migration_required is None)")
+
         return response
 
     async def _build_restore_prompt_screen(self) -> RequestUserInput:
