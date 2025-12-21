@@ -202,10 +202,11 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         reconfigure = msg.reconfigure
         _LOG.debug("Starting driver setup, reconfigure=%s", reconfigure)
+        _LOG.debug("setup_data: %s", msg.setup_data)
 
         # Check for migration requirement if previous_version is provided in setup_data
         # This allows programmatic detection (e.g., by manager) without requiring reconfigure mode
-        if "previous_version" in msg.setup_data:
+        if msg.setup_data and "previous_version" in msg.setup_data:
             self._previous_version = msg.setup_data["previous_version"]
             _LOG.info(
                 "Checking migration requirement for upgrade from version %s",
