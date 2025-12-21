@@ -113,6 +113,8 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self._pre_discovery_data: dict[
             str, Any
         ] = {}  # Store data from pre-discovery screens
+        self._migration_required: bool | None = None  # Cached migration requirement status
+        self._previous_version: str | None = None  # Previous version for migration check
 
     @classmethod
     def create_handler(
@@ -168,23 +170,33 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Main dispatcher for setup requests.
 
+        Automatically adds response metadata to all RequestUserInput responses
+        for programmatic access by the manager.
+
         :param msg: Setup driver request object
         :return: Setup action on how to continue
         """
+        result: SetupAction
+
         if isinstance(msg, DriverSetupRequest):
             self._setup_step = SetupSteps.INIT
             self._add_mode = False
-            return await self._handle_driver_setup_request(msg)
-
-        if isinstance(msg, UserDataResponse):
+            result = await self._handle_driver_setup_request(msg)
+        elif isinstance(msg, UserDataResponse):
             _LOG.debug("User data response: %s", msg)
-            return await self._handle_user_data_response(msg)
-
-        if isinstance(msg, AbortDriverSetup):
+            result = await self._handle_user_data_response(msg)
+        elif isinstance(msg, AbortDriverSetup):
             _LOG.info("Setup was aborted with code: %s", msg.error)
             self._setup_step = SetupSteps.INIT
+            result = SetupError()
+        else:
+            result = SetupError()
 
-        return SetupError()
+        # Add metadata to all RequestUserInput responses for programmatic access
+        if isinstance(result, RequestUserInput):
+            result = self._add_response_metadata(result)
+
+        return result
 
     async def _handle_driver_setup_request(
         self, msg: DriverSetupRequest
@@ -197,6 +209,23 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         reconfigure = msg.reconfigure
         _LOG.debug("Starting driver setup, reconfigure=%s", reconfigure)
+
+        # Check for migration requirement if previous_version is provided in setup_data
+        # This allows programmatic detection (e.g., by manager) without requiring reconfigure mode
+        if "previous_version" in msg.setup_data:
+            self._previous_version = msg.setup_data["previous_version"]
+            _LOG.info(
+                "Checking migration requirement for upgrade from version %s",
+                self._previous_version,
+            )
+            self._migration_required = await self.is_migration_required(
+                self._previous_version
+            )
+            _LOG.info(
+                "Migration required: %s (previous: %s)",
+                self._migration_required,
+                self._previous_version,
+            )
 
         if reconfigure:
             self._setup_step = SetupSteps.CONFIGURATION_MODE
@@ -690,6 +719,46 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 )
             self._pending_device_config = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
+
+    def _add_response_metadata(
+        self, response: RequestUserInput
+    ) -> RequestUserInput:
+        """
+        Add metadata to a RequestUserInput response for programmatic access.
+
+        Injects hidden fields containing various metadata that won't be displayed to users
+        but can be read programmatically (e.g., by the manager). This is the central place
+        to add any metadata that should be available in setup responses.
+
+        Currently includes:
+        - Migration requirement status (if previous_version was provided)
+        - Previous version string (if available)
+
+        :param response: The RequestUserInput to augment
+        :return: The same response with metadata added
+        """
+        # Add migration metadata if available
+        if self._migration_required is not None:
+            # Add hidden metadata fields that won't be displayed to users
+            # but can be read programmatically (e.g., by the manager)
+            response.settings.append(
+                {
+                    "id": "_migration_required",
+                    "label": {"en": ""},
+                    "field": {"label": {"value": str(self._migration_required)}},
+                    "_metadata": True,  # Mark as metadata-only
+                }
+            )
+            if self._previous_version:
+                response.settings.append(
+                    {
+                        "id": "_previous_version",
+                        "label": {"en": ""},
+                        "field": {"label": {"value": self._previous_version}},
+                        "_metadata": True,  # Mark as metadata-only
+                    }
+                )
+        return response
 
     async def _build_restore_prompt_screen(self) -> RequestUserInput:
         """

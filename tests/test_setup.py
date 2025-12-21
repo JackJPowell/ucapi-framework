@@ -1874,6 +1874,97 @@ class TestAdditionalConfigurationReturnTypes:
 class TestMigrationMethods:
     """Test migration-related methods in BaseSetupFlow."""
 
+    @pytest.mark.asyncio
+    async def test_migration_check_during_initial_setup(
+        self, config_manager, mock_driver
+    ):
+        """Test that migration requirement is checked and included in response metadata."""
+
+        class FlowWithMigration(ConcreteSetupFlow):
+            """Flow that requires migration from version 1.x."""
+
+            async def is_migration_required(self, previous_version):
+                # Migration needed for upgrades from v1.x
+                return previous_version.startswith("1.")
+
+        setup_flow = FlowWithMigration(config_manager, driver=mock_driver)
+
+        # Simulate initial setup with previous_version in setup_data
+        msg = DriverSetupRequest(
+            reconfigure=False, setup_data={"previous_version": "1.2.3"}
+        )
+
+        result = await setup_flow.handle_driver_setup(msg)
+
+        # Should get restore prompt screen
+        assert isinstance(result, RequestUserInput)
+
+        # Check that migration metadata is included in the response
+        metadata_fields = [s for s in result.settings if s.get("_metadata")]
+        assert len(metadata_fields) == 2
+
+        # Find the migration_required field
+        migration_field = next(
+            (s for s in metadata_fields if s["id"] == "_migration_required"), None
+        )
+        assert migration_field is not None
+        assert migration_field["field"]["label"]["value"] == "True"
+
+        # Find the previous_version field
+        version_field = next(
+            (s for s in metadata_fields if s["id"] == "_previous_version"), None
+        )
+        assert version_field is not None
+        assert version_field["field"]["label"]["value"] == "1.2.3"
+
+    @pytest.mark.asyncio
+    async def test_no_migration_metadata_when_not_required(
+        self, config_manager, mock_driver
+    ):
+        """Test that no metadata is added when migration is not required."""
+        setup_flow = ConcreteSetupFlow(config_manager, driver=mock_driver)
+
+        # Simulate initial setup with previous_version
+        msg = DriverSetupRequest(
+            reconfigure=False, setup_data={"previous_version": "2.0.0"}
+        )
+
+        result = await setup_flow.handle_driver_setup(msg)
+
+        # Should get restore prompt screen
+        assert isinstance(result, RequestUserInput)
+
+        # Check that migration metadata is included (showing False)
+        metadata_fields = [s for s in result.settings if s.get("_metadata")]
+        assert len(metadata_fields) == 2
+
+        # Migration should be False
+        migration_field = next(
+            (s for s in metadata_fields if s["id"] == "_migration_required"), None
+        )
+        assert migration_field is not None
+        assert migration_field["field"]["label"]["value"] == "False"
+
+    @pytest.mark.asyncio
+    async def test_no_migration_metadata_without_previous_version(
+        self, config_manager, mock_driver
+    ):
+        """Test that no metadata is added when previous_version is not provided."""
+        setup_flow = ConcreteSetupFlow(config_manager, driver=mock_driver)
+
+        # Simulate initial setup WITHOUT previous_version
+        msg = DriverSetupRequest(reconfigure=False, setup_data={})
+
+        result = await setup_flow.handle_driver_setup(msg)
+
+        # Should get restore prompt screen
+        assert isinstance(result, RequestUserInput)
+
+        # Check that NO migration metadata is included
+        metadata_fields = [s for s in result.settings if s.get("_metadata")]
+        assert len(metadata_fields) == 0
+
+    @pytest.mark.asyncio
     async def test_is_migration_required_default_returns_false(self, config_manager):
         """Test that default implementation of is_migration_required returns False."""
         setup_flow = ConcreteSetupFlow(config_manager)

@@ -413,6 +413,56 @@ Implement migration when:
 - **Entity type renames** - Your entity types are renamed (e.g., `av_receiver` → `media_player`)
 - **Driver ID changes** - Your integration's driver ID changes between versions
 
+### Programmatic Migration Detection
+
+The framework supports **programmatic migration detection** during setup, allowing the integration manager to determine if migration is needed without requiring the user to manually trigger reconfigure mode.
+
+When the manager calls setup with `previous_version` in the `setup_data`:
+
+```python
+# Manager calls setup during upgrade
+setup_request = DriverSetupRequest(
+    reconfigure=False,
+    setup_data={"previous_version": "1.2.3"}
+)
+```
+
+The framework will:
+
+1. Call your `is_migration_required(previous_version)` method
+2. Store the result internally
+3. Include migration metadata in **all** `RequestUserInput` responses:
+   - `_migration_required` field with "True" or "False"
+   - `_previous_version` field with the version string
+
+The metadata fields are marked with `"_metadata": True` and are intended for programmatic access only (not displayed to users).
+
+**Manager Usage Example:**
+
+```python
+# Manager initiates setup with version info
+response = await driver_setup_handler(
+    DriverSetupRequest(reconfigure=False, setup_data={"previous_version": "1.2.3"})
+)
+
+# Check metadata in response
+if isinstance(response, RequestUserInput):
+    metadata_fields = [s for s in response.settings if s.get("_metadata")]
+    
+    migration_field = next(
+        (s for s in metadata_fields if s["id"] == "_migration_required"), 
+        None
+    )
+    
+    if migration_field and migration_field["field"]["label"]["value"] == "True":
+        # Migration is needed - manager can now:
+        # 1. Complete the setup process
+        # 2. Then trigger migration via reconfigure with "migrate" action
+        print("Migration required after upgrade")
+```
+
+This allows the manager to detect migration needs **early** in the setup flow and handle it appropriately after installation completes.
+
 ### Implementing Migration
 
 To enable migration, implement two methods in your setup flow:
