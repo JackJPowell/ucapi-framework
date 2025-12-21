@@ -354,6 +354,256 @@ class TestReplaceEntitiesInActivity:
 
         assert count == 0
 
+    def test_multiple_buttons_all_press_types(self):
+        """Test activity with multiple buttons using all press types."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "button_mapping": [
+                    {
+                        "button": "POWER",
+                        "short_press": {"entity_id": "old.main.entity1"},
+                        "long_press": {"entity_id": "old.main.entity2"},
+                        "double_press": {"entity_id": "old.main.entity3"},
+                    },
+                    {
+                        "button": "MUTE",
+                        "short_press": {"entity_id": "old.main.entity1"},
+                    },
+                ]
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [
+                {"previous_entity_id": "entity1", "new_entity_id": "new1"},
+                {"previous_entity_id": "entity2", "new_entity_id": "new2"},
+                {"previous_entity_id": "entity3", "new_entity_id": "new3"},
+            ],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 4
+        buttons = activity["options"]["button_mapping"]
+        assert buttons[0]["short_press"]["entity_id"] == "new.main.new1"
+        assert buttons[0]["long_press"]["entity_id"] == "new.main.new2"
+        assert buttons[0]["double_press"]["entity_id"] == "new.main.new3"
+        assert buttons[1]["short_press"]["entity_id"] == "new.main.new1"
+
+    def test_multiple_pages_with_mixed_commands(self):
+        """Test multiple UI pages with both string and object commands."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "user_interface": {
+                    "pages": [
+                        {
+                            "page_id": "page1",
+                            "name": "Page 1",
+                            "items": [
+                                {"command": "old.main.entity1"},
+                                {
+                                    "command": {
+                                        "entity_id": "old.main.entity2",
+                                        "cmd_id": "on",
+                                    }
+                                },
+                            ],
+                        },
+                        {
+                            "page_id": "page2",
+                            "name": "Page 2",
+                            "items": [
+                                {"media_player_id": "old.main.entity1"},
+                            ],
+                        },
+                    ]
+                }
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [
+                {"previous_entity_id": "entity1", "new_entity_id": "new1"},
+                {"previous_entity_id": "entity2", "new_entity_id": "new2"},
+            ],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 3
+        pages = activity["options"]["user_interface"]["pages"]
+        assert pages[0]["items"][0]["command"] == "new.main.new1"
+        assert pages[0]["items"][1]["command"]["entity_id"] == "new.main.new2"
+        assert pages[1]["items"][0]["media_player_id"] == "new.main.new1"
+
+    def test_both_on_and_off_sequences(self):
+        """Test activity with both on and off sequences."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "sequences": {
+                    "on": [
+                        {"command": {"entity_id": "old.main.entity1", "cmd_id": "on"}},
+                        {"command": {"entity_id": "old.main.entity2", "cmd_id": "on"}},
+                    ],
+                    "off": [
+                        {"command": {"entity_id": "old.main.entity1", "cmd_id": "off"}},
+                    ],
+                }
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [
+                {"previous_entity_id": "entity1", "new_entity_id": "new1"},
+                {"previous_entity_id": "entity2", "new_entity_id": "new2"},
+            ],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 3
+        sequences = activity["options"]["sequences"]
+        assert sequences["on"][0]["command"]["entity_id"] == "new.main.new1"
+        assert sequences["on"][1]["command"]["entity_id"] == "new.main.new2"
+        assert sequences["off"][0]["command"]["entity_id"] == "new.main.new1"
+
+    def test_page_command_without_entity_id(self):
+        """Test page items with commands that don't have entity_id."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "user_interface": {
+                    "pages": [
+                        {
+                            "page_id": "page1",
+                            "name": "Page 1",
+                            "items": [
+                                {
+                                    "command": {"cmd_id": "play"}  # No entity_id field
+                                },
+                            ],
+                        }
+                    ]
+                }
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [{"previous_entity_id": "entity1", "new_entity_id": "new1"}],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 0
+
+    def test_button_press_without_entity_id(self):
+        """Test button presses that don't have entity_id field."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "button_mapping": [
+                    {
+                        "button": "POWER",
+                        "short_press": {"cmd_id": "toggle"},  # No entity_id
+                    }
+                ]
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [{"previous_entity_id": "test", "new_entity_id": "new"}],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 0
+
+    def test_sequence_command_without_entity_id(self):
+        """Test sequences with commands that don't have entity_id."""
+        activity = {
+            "entity_id": "activity.test",
+            "options": {
+                "sequences": {
+                    "on": [
+                        {"command": {"cmd_id": "on"}},  # No entity_id
+                        {"delay": 1000},  # Not a command at all
+                    ]
+                }
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [{"previous_entity_id": "test", "new_entity_id": "new"}],
+            "old.main",
+            "new.main",
+        )
+
+        assert count == 0
+
+    def test_all_locations_in_one_activity(self):
+        """Test comprehensive activity with entities in all possible locations."""
+        activity = {
+            "entity_id": "activity.comprehensive",
+            "options": {
+                "included_entities": [
+                    {"entity_id": "old.main.entity1"},
+                    {"entity_id": "old.main.entity2"},
+                ],
+                "button_mapping": [
+                    {
+                        "button": "POWER",
+                        "short_press": {"entity_id": "old.main.entity1"},
+                        "long_press": {"entity_id": "old.main.entity2"},
+                        "double_press": {"entity_id": "old.main.entity3"},
+                    }
+                ],
+                "user_interface": {
+                    "pages": [
+                        {
+                            "page_id": "page1",
+                            "items": [
+                                {"command": "old.main.entity1"},
+                                {
+                                    "command": {
+                                        "entity_id": "old.main.entity2",
+                                        "params": {},
+                                    }
+                                },
+                                {"media_player_id": "old.main.entity3"},
+                            ],
+                        }
+                    ]
+                },
+                "sequences": {
+                    "on": [{"command": {"entity_id": "old.main.entity1"}}],
+                    "off": [{"command": {"entity_id": "old.main.entity2"}}],
+                },
+            },
+        }
+
+        count = _replace_entities_in_activity(
+            activity,
+            [
+                {"previous_entity_id": "entity1", "new_entity_id": "new1"},
+                {"previous_entity_id": "entity2", "new_entity_id": "new2"},
+                {"previous_entity_id": "entity3", "new_entity_id": "new3"},
+            ],
+            "old.main",
+            "new.main",
+        )
+
+        # 2 included + 3 button presses + 3 UI items + 2 sequences = 10 replacements
+        assert count == 10
+
 
 @pytest.mark.asyncio
 class TestUpdateActivityOnRemote:

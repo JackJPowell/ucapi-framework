@@ -655,28 +655,6 @@ async def test_migration():
     assert first_mapping["new_entity_id"] == "media_player.device1"
 ```
 
-**Testing Mode (Development Only):**
-
-For integration testing without making actual changes to the Remote, you can enable testing mode:
-
-```python
-# In your integration's setup handler creation
-setup_handler = MySetupFlow.create_handler(
-    driver,
-    discovery=discovery,
-    migration_testing_mode=True  # Skip PATCH calls during migration
-)
-```
-
-When `migration_testing_mode=True`:
-
-- All migration logic executes normally (fetching activities, replacing entity IDs, building payloads)
-- PATCH calls to the Remote are **skipped** - no actual updates are made
-- Log messages show what **would** be sent (for debugging)
-- Useful for testing migration flow without affecting Remote state
-
-**Important:** This is a **temporary testing feature** and should **only be enabled during development**. Always set to `False` (or omit) for production releases.
-
 ### Migration Best Practices
 
 1. **Test thoroughly**: Migration affects user configurations - test all entity ID changes

@@ -3,6 +3,7 @@
 
 import json
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 import pytest
 from ucapi import (
@@ -61,6 +62,13 @@ class DiscoveryForTests(BaseDiscovery):
 
 class ConcreteSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
     """Concrete setup flow implementation for testing."""
+
+    def __init__(self, config_manager, *, driver=None, **kwargs):
+        """Initialize with optional driver (creates mock if not provided)."""
+        if driver is None:
+            driver = Mock()
+            driver.loop = None
+        super().__init__(config_manager, driver=driver, **kwargs)
 
     async def discover_devices(self):
         if self.discovery:
@@ -138,6 +146,14 @@ def temp_config_dir(tmp_path):
 
 
 @pytest.fixture
+def mock_driver():
+    """Create a mock driver instance for testing."""
+    driver = Mock()
+    driver.loop = None
+    return driver
+
+
+@pytest.fixture
 def config_manager(temp_config_dir):
     """Create a test configuration manager."""
     return DeviceManagerForTests(temp_config_dir)
@@ -150,17 +166,17 @@ def discovery():
 
 
 @pytest.fixture
-def setup_flow(config_manager, discovery):
+def setup_flow(config_manager, mock_driver, discovery):
     """Create a test setup flow instance."""
-    return ConcreteSetupFlow(config_manager, discovery=discovery)
+    return ConcreteSetupFlow(config_manager, driver=mock_driver, discovery=discovery)
 
 
 class TestBaseSetupFlow:
     """Tests for BaseSetupFlow."""
 
-    def test_init(self, config_manager):
+    def test_init(self, config_manager, mock_driver):
         """Test setup flow initialization."""
-        flow = ConcreteSetupFlow(config_manager)
+        flow = ConcreteSetupFlow(config_manager, driver=mock_driver)
 
         assert flow.config == config_manager
         assert flow.discovery is None
@@ -1253,6 +1269,13 @@ class TestSetupFlowDiscoveryErrorHandling:
         class TestSetupFlow(BaseSetupFlow):
             """Test flow with failing discovery."""
 
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
+
             async def prepare_input_from_discovery(self, discovered, additional_input):
                 """Convert discovered device to input format."""
                 return {
@@ -1317,6 +1340,13 @@ class TestSetupFlowDiscoveryErrorHandling:
         class MinimalSetupFlow(BaseSetupFlow):
             """Setup flow that uses default prepare_input_from_discovery."""
 
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
+
             async def query_device(self, input_values):
                 """Create device from input values."""
                 return DeviceConfigForTests(
@@ -1365,6 +1395,13 @@ class TestSetupFlowReturnTypes:
         class ErrorReturningSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that returns errors from manual entry."""
 
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
+
             async def query_device(self, input_values):
                 """Return error if validation fails."""
                 host = input_values.get("host", "").strip()
@@ -1407,6 +1444,13 @@ class TestSetupFlowReturnTypes:
 
         class FormRedisplaySetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that re-displays form with validation errors."""
+
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
 
             async def query_device(self, input_values):
                 """Re-display form if validation fails."""
@@ -1465,6 +1509,13 @@ class TestSetupFlowReturnTypes:
         class ErrorReturningDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that returns errors from discovery."""
 
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
+
             async def prepare_input_from_discovery(self, discovered, additional_input):
                 """Convert discovered device to input format."""
                 return {
@@ -1519,6 +1570,13 @@ class TestSetupFlowReturnTypes:
 
         class AuthRequestingDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Setup flow that requests authentication during discovery."""
+
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
 
             async def prepare_input_from_discovery(self, discovered, additional_input):
                 """Convert discovered device to input format."""
@@ -1577,6 +1635,13 @@ class TestSetupFlowReturnTypes:
         class StandardSetupFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Standard setup flow that returns config."""
 
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
+
             async def query_device(self, input_values):
                 """Return valid config."""
                 return DeviceConfigForTests(
@@ -1614,6 +1679,13 @@ class TestSetupFlowReturnTypes:
 
         class StandardDiscoveryFlow(BaseSetupFlow[DeviceConfigForTests]):
             """Standard setup flow that returns config from discovery."""
+
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                """Initialize with optional driver (creates mock if not provided)."""
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
 
             async def prepare_input_from_discovery(self, discovered, additional_input):
                 """Convert discovered device to input format."""
@@ -1663,8 +1735,11 @@ class TestAdditionalConfigurationReturnTypes:
         class FlowWithAdditionalConfigReturningDevice(BaseSetupFlow):
             """Flow that returns a device config from additional configuration."""
 
-            def __init__(self, config, **kwargs):
-                super().__init__(config, **kwargs)
+            def __init__(self, config, *, driver=None, **kwargs):
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config, driver=driver, **kwargs)
                 self.config_returned = False
 
             async def query_device(self, input_values):
@@ -1740,6 +1815,12 @@ class TestAdditionalConfigurationReturnTypes:
 
         class FlowWithAdditionalConfigModifyingPending(BaseSetupFlow):
             """Flow that modifies pending config and returns None."""
+
+            def __init__(self, config_manager, *, driver=None, **kwargs):
+                if driver is None:
+                    driver = Mock()
+                    driver.loop = None
+                super().__init__(config_manager, driver=driver, **kwargs)
 
             async def query_device(self, input_values):
                 return DeviceConfigForTests(

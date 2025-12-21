@@ -54,7 +54,6 @@ async def migrate_entities_on_remote(
     migration_data: MigrationData,
     pin: str | None = None,
     api_key: str | None = None,
-    testing_mode: bool = False,
 ) -> bool:
     """
     Perform entity migration on the Remote by updating activity configurations.
@@ -85,8 +84,6 @@ async def migrate_entities_on_remote(
     :param migration_data: Complete migration data with driver IDs (without .main suffix) and entity mappings
     :param pin: Remote's web-configurator PIN for Basic Auth (username: "web-configurator")
     :param api_key: Remote's API key for Bearer token authentication
-    :param testing_mode: If True, performs all logic except PATCH calls (for testing). Default is False.
-                        **TEMPORARY PARAMETER - Will be removed before final release**
     :return: True if migration was successful, False otherwise
     :raises ValueError: If neither pin nor api_key is provided
 
@@ -150,11 +147,6 @@ async def migrate_entities_on_remote(
     if not mappings:
         _LOG.info("No entity mappings to migrate")
         return True
-
-    if testing_mode:
-        _LOG.warning(
-            "⚠️  TESTING MODE ENABLED - Migration will execute all logic but skip PATCH calls to Remote"
-        )
 
     _LOG.info(
         "Migrating %d entity mappings on Remote at %s (integration: %s -> %s)",
@@ -243,7 +235,7 @@ async def migrate_entities_on_remote(
             success_count = 0
             for activity in activities_to_migrate:
                 if await _update_activity_on_remote(
-                    session, remote_url, activity, headers, auth, testing_mode
+                    session, remote_url, activity, headers, auth
                 ):
                     success_count += 1
 
@@ -480,7 +472,6 @@ async def _update_activity_on_remote(
     activity: dict[str, Any],
     headers: dict[str, str],
     auth: Any,
-    testing_mode: bool = False,
 ) -> bool:
     """
     Update an activity on the Remote via API.
@@ -491,8 +482,6 @@ async def _update_activity_on_remote(
     3. PATCH each UI page
 
     Returns True if all updates succeeded, False otherwise.
-
-    :param testing_mode: If True, skips PATCH calls but executes all other logic (for testing)
     """
     try:
         entity_id = activity.get("entity_id")
@@ -524,31 +513,24 @@ async def _update_activity_on_remote(
 
         # Update main activity
         activity_url = f"{remote_url}/api/activities/{entity_id}"
-        if testing_mode:
-            _LOG.info(
-                "TESTING MODE: Would PATCH activity %s with payload: %s",
-                entity_id,
-                payload,
-            )
-        else:
-            async with session.patch(
-                activity_url,
-                json=payload,
-                headers=headers,
-                auth=auth,
-                timeout=aiohttp.ClientTimeout(total=30),
-            ) as response:
-                if response.status not in (200, 204):
-                    error_text = await response.text()
-                    _LOG.error(
-                        "Failed to update activity %s: HTTP %d - %s",
-                        entity_id,
-                        response.status,
-                        error_text,
-                    )
-                    return False
+        async with session.patch(
+            activity_url,
+            json=payload,
+            headers=headers,
+            auth=auth,
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as response:
+            if response.status not in (200, 204):
+                error_text = await response.text()
+                _LOG.error(
+                    "Failed to update activity %s: HTTP %d - %s",
+                    entity_id,
+                    response.status,
+                    error_text,
+                )
+                return False
 
-            _LOG.debug("Successfully updated activity %s", entity_id)
+        _LOG.debug("Successfully updated activity %s", entity_id)
 
         # Update button mappings
         button_mapping = options.get("button_mapping", [])
@@ -567,29 +549,22 @@ async def _update_activity_on_remote(
             button_url = (
                 f"{remote_url}/api/activities/{entity_id}/buttons/{button_name}"
             )
-            if testing_mode:
-                _LOG.info(
-                    "TESTING MODE: Would PATCH button %s with payload: %s",
-                    button_name,
-                    button,
-                )
-            else:
-                async with session.patch(
-                    button_url,
-                    json=button,
-                    headers=headers,
-                    auth=auth,
-                    timeout=aiohttp.ClientTimeout(total=30),
-                ) as response:
-                    if response.status not in (200, 204):
-                        _LOG.warning(
-                            "Failed to update button %s: HTTP %d",
-                            button_name,
-                            response.status,
-                        )
-                        # Don't fail the whole migration for button update failures
-                    else:
-                        _LOG.debug("Successfully updated button %s", button_name)
+            async with session.patch(
+                button_url,
+                json=button,
+                headers=headers,
+                auth=auth,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as response:
+                if response.status not in (200, 204):
+                    _LOG.warning(
+                        "Failed to update button %s: HTTP %d",
+                        button_name,
+                        response.status,
+                    )
+                    # Don't fail the whole migration for button update failures
+                else:
+                    _LOG.debug("Successfully updated button %s", button_name)
 
         # Update UI pages
         user_interface = options.get("user_interface", {})
@@ -600,31 +575,24 @@ async def _update_activity_on_remote(
                 continue
 
             page_url = f"{remote_url}/api/activities/{entity_id}/ui/pages/{page_id}"
-            if testing_mode:
-                _LOG.info(
-                    "TESTING MODE: Would PATCH page %s with payload: %s",
-                    page.get("name", page_id),
-                    page,
-                )
-            else:
-                async with session.patch(
-                    page_url,
-                    json=page,
-                    headers=headers,
-                    auth=auth,
-                    timeout=aiohttp.ClientTimeout(total=30),
-                ) as response:
-                    if response.status not in (200, 204):
-                        _LOG.warning(
-                            "Failed to update page %s: HTTP %d",
-                            page.get("name", page_id),
-                            response.status,
-                        )
-                        # Don't fail the whole migration for page update failures
-                    else:
-                        _LOG.debug(
-                            "Successfully updated page %s", page.get("name", page_id)
-                        )
+            async with session.patch(
+                page_url,
+                json=page,
+                headers=headers,
+                auth=auth,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as response:
+                if response.status not in (200, 204):
+                    _LOG.warning(
+                        "Failed to update page %s: HTTP %d",
+                        page.get("name", page_id),
+                        response.status,
+                    )
+                    # Don't fail the whole migration for page update failures
+                else:
+                    _LOG.debug(
+                        "Successfully updated page %s", page.get("name", page_id)
+                    )
 
         return True
 

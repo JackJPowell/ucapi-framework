@@ -72,11 +72,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self,
         config_manager: BaseConfigManager,
         *,
-        driver: BaseIntegrationDriver | None = None,
+        driver: BaseIntegrationDriver,
         device_class: type | None = None,
         discovery: BaseDiscovery | None = None,
         show_migration_in_ui: bool | None = None,
-        migration_testing_mode: bool = True,
     ):
         """
         Initialize the setup flow.
@@ -94,9 +93,6 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         :param show_migration_in_ui: Whether to show migration option in configuration mode.
                                     Default is None (auto-detect based on get_migration_data override).
                                     Set to True/False to explicitly override auto-detection.
-        :param migration_testing_mode: If True, migration executes all logic but skips PATCH calls.
-                                       **TEMPORARY PARAMETER - Will be removed before final release**
-                                       Default is False.
         """
         self.config = config_manager
         self.driver = driver
@@ -111,7 +107,6 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             )
 
         self.show_migration_in_ui = show_migration_in_ui
-        self.migration_testing_mode = migration_testing_mode
         self._setup_step = SetupSteps.INIT
         self._add_mode = False
         self._pending_device_config: ConfigT | None = None  # For multi-screen flows
@@ -1206,7 +1201,6 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                 remote_url=remote_url,
                 migration_data=migration_data,
                 pin=pin,
-                testing_mode=self.migration_testing_mode,
             )
 
             if not success:
