@@ -1314,7 +1314,7 @@ wheels = [
 
 [[package]]
 name = "ucapi-framework"
-version = "1.4.0b12"
+version = "1.4.0b13"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },

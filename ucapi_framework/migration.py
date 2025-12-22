@@ -825,8 +825,12 @@ async def validate_entities_configured(
                     return []
 
                 result = await resp.json()
+
+                # API returns a list of entity objects
                 configured_entities = [
-                    entity.get("entity_id", "") for entity in result.get("entities", [])
+                    entity.get("entity_id", "")
+                    for entity in result
+                    if isinstance(entity, dict)
                 ]
                 _LOG.info(
                     "Found %d configured entities on Remote", len(configured_entities)
