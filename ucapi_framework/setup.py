@@ -1155,8 +1155,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         """
         Handle migration execution request.
 
-        Expects previous_version, remote_url, and pin. If driver_id is configured,
-        current_version will be automatically fetched from the Remote.
+        Expects previous_version, remote_url, and either pin or api_key.
+        If driver_id is configured, current_version will be automatically
+        fetched from the Remote.
         Calls get_migration_data() to get entity mappings, then calls
         migrate_entities_on_remote() to perform the migration on the Remote.
 
@@ -1167,6 +1168,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         current_version = msg.input_values.get("current_version", "").strip()
         remote_url = msg.input_values.get("remote_url", "http://localhost").strip()
         pin = msg.input_values.get("pin", "").strip()
+        api_key = msg.input_values.get("api_key", "").strip()
 
         # Ensure remote_url has protocol prefix
         if remote_url and not remote_url.startswith(("http://", "https://")):
@@ -1175,11 +1177,11 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
         # If driver has driver_id set and current_version is not provided, fetch it from Remote
         driver_id = self.driver.driver_id if self.driver else None
-        if driver_id and not current_version and remote_url and pin:
+        if driver_id and not current_version and remote_url and (pin or api_key):
             _LOG.info("Fetching current version from Remote for driver %s", driver_id)
 
             fetched_version = await get_driver_version(
-                remote_url=remote_url, driver_id=driver_id, pin=pin
+                remote_url=remote_url, driver_id=driver_id, pin=pin or None, api_key=api_key or None
             )
 
             if fetched_version:
@@ -1194,8 +1196,8 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             missing_fields.append("Current Version")
         if not remote_url:
             missing_fields.append("Remote URL")
-        if not pin:
-            missing_fields.append("Remote PIN")
+        if not pin and not api_key:
+            missing_fields.append("Remote PIN or API Key")
 
         if missing_fields:
             _LOG.warning(
@@ -1274,7 +1276,8 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             success = await migrate_entities_on_remote(
                 remote_url=remote_url,
                 migration_data=migration_data,
-                pin=pin,
+                pin=pin or None,
+                api_key=api_key or None,
             )
 
             if not success:
