@@ -1181,7 +1181,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             _LOG.info("Fetching current version from Remote for driver %s", driver_id)
 
             fetched_version = await get_driver_version(
-                remote_url=remote_url, driver_id=driver_id, pin=pin or None, api_key=api_key or None
+                remote_url=remote_url,
+                driver_id=driver_id,
+                pin=pin or None,
+                api_key=api_key or None,
             )
 
             if fetched_version:
