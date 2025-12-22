@@ -2173,6 +2173,7 @@ class TestMigrationMethods:
                 remote_url="http://localhost",
                 driver_id="mydriver",
                 pin="1234",
+                api_key=None,
             )
 
             # Should return success
