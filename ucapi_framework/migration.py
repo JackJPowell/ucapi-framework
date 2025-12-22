@@ -787,7 +787,7 @@ async def validate_entities_configured(
             migration_data=migration_data,
             api_key="my-api-key"
         )
-        
+
         if missing:
             print(f"Cannot migrate - missing entities: {missing}")
         else:
@@ -802,9 +802,7 @@ async def validate_entities_configured(
         new_driver_id if new_driver_id.endswith(".main") else f"{new_driver_id}.main"
     )
 
-    _LOG.debug(
-        "Validating configured entities for integration: %s", new_integration_id
-    )
+    _LOG.debug("Validating configured entities for integration: %s", new_integration_id)
 
     try:
         # Build authentication headers
@@ -817,9 +815,7 @@ async def validate_entities_configured(
             auth = aiohttp.BasicAuth("web-configurator", pin)
 
         async with aiohttp.ClientSession() as session:
-            entities_url = (
-                f"{remote_url}/api/entities?intg_ids={new_integration_id}&page=1&limit=100"
-            )
+            entities_url = f"{remote_url}/api/entities?intg_ids={new_integration_id}&page=1&limit=100"
             async with session.get(entities_url, headers=headers, auth=auth) as resp:
                 if resp.status != 200:
                     _LOG.warning(
@@ -830,10 +826,11 @@ async def validate_entities_configured(
 
                 result = await resp.json()
                 configured_entities = [
-                    entity.get("entity_id", "")
-                    for entity in result.get("entities", [])
+                    entity.get("entity_id", "") for entity in result.get("entities", [])
                 ]
-                _LOG.info("Found %d configured entities on Remote", len(configured_entities))
+                _LOG.info(
+                    "Found %d configured entities on Remote", len(configured_entities)
+                )
 
         # Check if all entities to be migrated are configured
         missing_entities = []
