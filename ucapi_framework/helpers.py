@@ -71,9 +71,7 @@ async def find_orphaned_entities(
                 timeout=aiohttp.ClientTimeout(total=30),
             ) as response:
                 if response.status != 200:
-                    _LOG.error(
-                        "Failed to fetch activities: HTTP %d", response.status
-                    )
+                    _LOG.error("Failed to fetch activities: HTTP %d", response.status)
                     return orphaned_entities
 
                 activities_list = await response.json()
@@ -104,12 +102,16 @@ async def find_orphaned_entities(
                     activity = await response.json()
 
                     # Get activity name - try summary first, then full activity
-                    activity_name = activity_summary.get("name") or activity.get("name", {})
-                    
+                    activity_name = activity_summary.get("name") or activity.get(
+                        "name", {}
+                    )
+
                     _LOG.debug(
                         "Processing activity %s, name: %s",
                         activity_id,
-                        activity_name.get("en", "no name") if isinstance(activity_name, dict) else activity_name,
+                        activity_name.get("en", "no name")
+                        if isinstance(activity_name, dict)
+                        else activity_name,
                     )
 
                     # Check included_entities for orphaned entities
@@ -134,7 +136,9 @@ async def find_orphaned_entities(
                             _LOG.debug(
                                 "Found orphaned entity: %s in activity %s (%s)",
                                 entity.get("entity_id"),
-                                activity_name.get("en", activity_id) if isinstance(activity_name, dict) else activity_id,
+                                activity_name.get("en", activity_id)
+                                if isinstance(activity_name, dict)
+                                else activity_id,
                                 activity_id,
                             )
 
