@@ -9,7 +9,6 @@ Provides common event handlers and device lifecycle management.
 
 import asyncio
 import logging
-from abc import ABC
 from typing import Any, Generic, TypeVar
 
 import ucapi
@@ -103,7 +102,7 @@ def create_entity_id(
     return f"{type_str}.{device_id}"
 
 
-class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
+class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     """
     Base class for Remote Two integration drivers.
 
