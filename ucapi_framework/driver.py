@@ -1010,11 +1010,11 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                 return
 
         _LOG.debug("[%s] Device update: %s", entity_id, update)
-        
+
         # Check if this entity inherits from our framework Entity ABC
         # If so, use its custom methods for state mapping and attribute updates
         has_custom_behavior = isinstance(configured_entity, FrameworkEntity)
-        
+
         attributes: dict[str, Any] = {}
 
         match configured_entity.entity_type:
@@ -1210,7 +1210,9 @@ class BaseIntegrationDriver(ABC, Generic[DeviceT, ConfigT]):
                     configured_entity.update_attributes(attributes)
                 else:
                     # Use direct API update for standard entities
-                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
             elif self.api.available_entities.contains(entity_id):
                 if has_custom_behavior:
                     # Use framework entity's update method which handles filtering

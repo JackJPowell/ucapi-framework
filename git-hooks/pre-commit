@@ -9,5 +9,5 @@ uv run ruff check --fix
 
 # Run ruff format
 uv run ruff format
-
+uv run git add -u
 echo "✅ Ruff checks passed!"
