@@ -94,7 +94,64 @@ You can also force updates:
 self.update_attributes(attributes, force=True)
 ```
 
-#### 3. Manual Filtering
+#### 3. Dataclass-Based State Management
+
+Use `update_from_dataclass()` to manage entity state with dataclasses for better type safety and IDE support:
+
+```python
+from dataclasses import dataclass
+from ucapi import media_player
+from ucapi_framework import Entity
+
+@dataclass
+class MediaPlayerAttributes:
+    STATE: media_player.States = media_player.States.UNKNOWN
+    VOLUME: int = 0
+    MUTED: bool = False
+
+class MyMediaPlayer(media_player.MediaPlayer, Entity):
+    def __init__(self, device_config, device):
+        # Initialize ucapi entity
+        entity_id = create_entity_id(device.id, "media_player")
+        media_player.MediaPlayer.__init__(
+            self, entity_id, device.name, features, attributes
+        )
+        self._device = device
+        
+        # Create attributes dataclass
+        self.attrs = MediaPlayerAttributes()
+    
+    def sync_from_device(self):
+        """Map device state to entity attributes."""
+        self.attrs.STATE = self.map_entity_states(self._device.state)
+        self.attrs.VOLUME = self._device.volume
+        self.attrs.MUTED = self._device.is_muted
+    
+    async def handle_command(self, entity_id, cmd_id, params):
+        """Handle commands and update state."""
+        if cmd_id == media_player.Commands.ON:
+            await self._device.turn_on()
+            
+            # Sync state from device
+            self.sync_from_device()
+            
+            # Push to API - automatically filters unchanged attributes!
+            self.update_from_dataclass(self.attrs)
+        
+        elif cmd_id == media_player.Commands.VOLUME:
+            await self._device.set_volume(params['volume'])
+            self.attrs.VOLUME = params['volume']
+            self.update_from_dataclass(self.attrs)
+```
+
+Benefits of dataclass approach:
+
+- Type hints and IDE autocomplete
+- Easy to test and validate
+- Clear separation of state from behavior
+- Automatic change detection
+
+#### 4. Manual Filtering
 
 Use `filter_changed_attributes()` to check what would change before updating:
 
@@ -111,11 +168,50 @@ if changed:
     self._api.configured_entities.update_attributes(self.id, changed)
 ```
 
+### Update Patterns
+
+The framework supports two patterns for updating entity state:
+
+#### Pattern 1: Device Event Updates (existing pattern)
+
+```python
+# In your device class
+self.events.emit(
+    DeviceEvents.UPDATE,
+    entity_id,
+    {
+        media_player.Attributes.STATE: "PLAYING",
+        media_player.Attributes.VOLUME: 50
+    }
+)
+
+# Framework automatically:
+# 1. Maps states via entity.map_entity_states() if entity inherits from Entity
+# 2. Calls entity.update_attributes() which filters changes
+# 3. Only sends changed attributes to the API
+```
+
+#### Pattern 2: Direct Entity Updates (new pattern)
+
+```python
+# In your entity's command handler
+async def handle_command(self, entity_id, cmd_id, params):
+    if cmd_id == media_player.Commands.ON:
+        await self._device.turn_on()
+        
+        # Update attributes directly
+        self.sync_from_device()  # Your method to read device state
+        self.update_from_dataclass(self.attrs)  # Auto-filters!
+```
+
+Both patterns flow through the same `update_attributes()` → `filter_changed_attributes()` code path.
+
 ### Important Notes
 
-- **ucapi entity classes don't accept `**kwargs`**: You must call `MediaPlayer.__init__()` and `Entity.__init__()` separately if needed, or just skip `Entity.__init__()` entirely (the framework sets `_api` for you)
+- **MRO and `__init__()`**: Entity now has an `__init__()` that uses `*args, **kwargs` for cooperative multiple inheritance. You don't need to call it explicitly - Python's MRO handles it automatically when you call `super().__init__()`
 - **Framework sets `_api` automatically**: After creating entities in `create_entities()`, the driver sets `entity._api = self.api`
 - **No breaking changes**: Existing entities work without modification
+- **Dataclasses optional**: Use dataclasses for convenience, or continue using dict-based updates
 
 ## Factory Functions for Dynamic Entities
 
@@ -128,20 +224,19 @@ Instead of a class, pass a callable that returns `Entity` or `list[Entity]`:
 ```python
 from ucapi_framework import BaseIntegrationDriver
 
-class MyDriver(BaseIntegrationDriver):
-    def __init__(self):
-        super().__init__(
-            device_class=MyDevice,
-            entity_classes=[
-                MyMediaPlayer,  # Regular class
-                lambda cfg, dev: MyRemote(cfg, dev),  # Factory returning single entity
-                lambda cfg, dev: [  # Factory returning list
-                    MySensor(cfg, dev, "temperature"),
-                    MySensor(cfg, dev, "humidity"),
-                    MySensor(cfg, dev, "battery")
-                ]
-            ]
-        )
+# In main function - no custom driver class needed!
+driver = BaseIntegrationDriver(
+    device_class=MyDevice,
+    entity_classes=[
+        MyMediaPlayer,  # Regular class
+        lambda cfg, dev: MyRemote(cfg, dev),  # Factory returning single entity
+        lambda cfg, dev: [  # Factory returning list
+            MySensor(cfg, dev, "temperature"),
+            MySensor(cfg, dev, "humidity"),
+            MySensor(cfg, dev, "battery")
+        ]
+    ]
+)
 ```
 
 ### Factory Function Signature
@@ -169,18 +264,17 @@ SENSOR_TYPES = [
     {"id": "battery", "name": "Battery", "unit": "%"}
 ]
 
-class MyDriver(BaseIntegrationDriver):
-    def __init__(self):
-        super().__init__(
-            device_class=MyDevice,
-            entity_classes=[
-                MyMediaPlayer,
-                lambda cfg, dev: [
-                    MySensor(cfg, dev, sensor_config)
-                    for sensor_config in SENSOR_TYPES
-                ]
-            ]
-        )
+# In main function - no custom driver class needed
+driver = BaseIntegrationDriver(
+    device_class=MyDevice,
+    entity_classes=[
+        MyMediaPlayer,
+        lambda cfg, dev: [
+            MySensor(cfg, dev, sensor_config)
+            for sensor_config in SENSOR_TYPES
+        ]
+    ]
+)
 
 class MySensor(sensor.Sensor, Entity):
     def __init__(self, device_config, device, sensor_config):
@@ -209,24 +303,23 @@ For integrations where entities are discovered from a hub after connection, use 
 ### Setup
 
 ```python
-class LutronDriver(BaseIntegrationDriver):
-    def __init__(self):
-        super().__init__(
-            device_class=LutronHub,
-            entity_classes=[
-                # Lights discovered from hub
-                lambda cfg, dev: [
-                    LutronLight(cfg, dev, light)
-                    for light in dev.lights
-                ],
-                # Scenes discovered from hub
-                lambda cfg, dev: [
-                    LutronScene(cfg, dev, scene)
-                    for scene in dev.scenes
-                ]
-            ],
-            require_connection_before_registry=True  # Connect before creating entities
-        )
+# In main function
+driver = BaseIntegrationDriver(
+    device_class=LutronHub,
+    entity_classes=[
+        # Lights discovered from hub
+        lambda cfg, dev: [
+            LutronLight(cfg, dev, light)
+            for light in dev.lights
+        ],
+        # Scenes discovered from hub
+        lambda cfg, dev: [
+            LutronScene(cfg, dev, scene)
+            for scene in dev.scenes
+        ]
+    ],
+    require_connection_before_registry=True  # Connect before creating entities
+)
 ```
 
 ### Hub Device Implementation
@@ -319,6 +412,10 @@ class LutronLight(light.Light, Entity):
    - Multiple entities are created from the discovered data
 4. **Entity registration**: Entities are registered with the API
 
+**Note**: With factory functions, you don't need to override `async_register_available_entities()`.
+The factory functions in `entity_classes` handle entity creation automatically after the device
+connects and populates its data.
+
 ### Connection Flow
 
 ```text
@@ -337,14 +434,13 @@ on_subscribe_entities()
 You can conditionally create entities based on device capabilities:
 
 ```python
-class MyDriver(BaseIntegrationDriver):
-    def __init__(self):
-        super().__init__(
-            device_class=MyDevice,
-            entity_classes=[
-                lambda cfg, dev: create_conditional_entities(cfg, dev)
-            ]
-        )
+# In main function
+driver = BaseIntegrationDriver(
+    device_class=MyDevice,
+    entity_classes=[
+        lambda cfg, dev: create_conditional_entities(cfg, dev)
+    ]
+)
 
 def create_conditional_entities(device_config, device):
     """Create entities based on device capabilities."""
