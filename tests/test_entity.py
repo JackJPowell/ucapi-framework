@@ -307,3 +307,163 @@ class TestEntityABC:
 
         # The api should be accessible
         assert entity._api is mock_api  # noqa: SLF001
+
+    def test_button_attributes(self):
+        """Test ButtonAttributes dataclass."""
+        from ucapi import button
+        from ucapi_framework import ButtonAttributes
+
+        # Test default values
+        attrs = ButtonAttributes()
+        assert attrs.STATE is None
+
+        # Test with values
+        attrs = ButtonAttributes(STATE=button.States.AVAILABLE)
+        assert attrs.STATE == button.States.AVAILABLE
+
+    def test_climate_attributes(self):
+        """Test ClimateAttributes dataclass."""
+        from ucapi import climate
+        from ucapi_framework import ClimateAttributes
+
+        # Test default values
+        attrs = ClimateAttributes()
+        assert attrs.STATE is None
+        assert attrs.CURRENT_TEMPERATURE is None
+        assert attrs.TARGET_TEMPERATURE is None
+        assert attrs.FAN_MODE is None
+
+        # Test with values
+        attrs = ClimateAttributes(
+            STATE=climate.States.HEAT,
+            CURRENT_TEMPERATURE=20.5,
+            TARGET_TEMPERATURE=22.0,
+            FAN_MODE="auto",
+        )
+        assert attrs.STATE == climate.States.HEAT
+        assert attrs.CURRENT_TEMPERATURE == 20.5
+        assert attrs.TARGET_TEMPERATURE == 22.0
+        assert attrs.FAN_MODE == "auto"
+
+    def test_cover_attributes(self):
+        """Test CoverAttributes dataclass."""
+        from ucapi import cover
+        from ucapi_framework import CoverAttributes
+
+        # Test default values
+        attrs = CoverAttributes()
+        assert attrs.STATE is None
+        assert attrs.POSITION is None
+        assert attrs.TILT_POSITION is None
+
+        # Test with values
+        attrs = CoverAttributes(STATE=cover.States.OPEN, POSITION=100, TILT_POSITION=50)
+        assert attrs.STATE == cover.States.OPEN
+        assert attrs.POSITION == 100
+        assert attrs.TILT_POSITION == 50
+
+    def test_light_attributes(self):
+        """Test LightAttributes dataclass."""
+        from ucapi import light
+        from ucapi_framework import LightAttributes
+
+        # Test default values
+        attrs = LightAttributes()
+        assert attrs.STATE is None
+        assert attrs.BRIGHTNESS is None
+        assert attrs.HUE is None
+
+        # Test with values
+        attrs = LightAttributes(
+            STATE=light.States.ON, BRIGHTNESS=200, HUE=180, SATURATION=100
+        )
+        assert attrs.STATE == light.States.ON
+        assert attrs.BRIGHTNESS == 200
+        assert attrs.HUE == 180
+        assert attrs.SATURATION == 100
+
+    def test_remote_attributes(self):
+        """Test RemoteAttributes dataclass."""
+        from ucapi import remote
+        from ucapi_framework import RemoteAttributes
+
+        # Test default values
+        attrs = RemoteAttributes()
+        assert attrs.STATE is None
+
+        # Test with values
+        attrs = RemoteAttributes(STATE=remote.States.ON)
+        assert attrs.STATE == remote.States.ON
+
+    def test_sensor_attributes(self):
+        """Test SensorAttributes dataclass."""
+        from ucapi import sensor as ucapi_sensor
+        from ucapi_framework import SensorAttributes
+
+        # Test default values
+        attrs = SensorAttributes()
+        assert attrs.STATE is None
+        assert attrs.VALUE is None
+        assert attrs.UNIT is None
+
+        # Test with values (numeric)
+        attrs = SensorAttributes(STATE=ucapi_sensor.States.ON, VALUE=23.5, UNIT="°C")
+        assert attrs.STATE == ucapi_sensor.States.ON
+        assert attrs.VALUE == 23.5
+        assert attrs.UNIT == "°C"
+
+        # Test with values (string)
+        attrs = SensorAttributes(STATE=ucapi_sensor.States.ON, VALUE="active", UNIT="")
+        assert attrs.VALUE == "active"
+
+    def test_switch_attributes(self):
+        """Test SwitchAttributes dataclass."""
+        from ucapi import switch
+        from ucapi_framework import SwitchAttributes
+
+        # Test default values
+        attrs = SwitchAttributes()
+        assert attrs.STATE is None
+
+        # Test with values
+        attrs = SwitchAttributes(STATE=switch.States.ON)
+        assert attrs.STATE == switch.States.ON
+
+    def test_voice_assistant_attributes(self):
+        """Test VoiceAssistantAttributes dataclass."""
+        from ucapi import voice_assistant
+        from ucapi_framework import VoiceAssistantAttributes
+
+        # Test default values
+        attrs = VoiceAssistantAttributes()
+        assert attrs.STATE is None
+
+        # Test with values
+        attrs = VoiceAssistantAttributes(STATE=voice_assistant.States.ON)
+        assert attrs.STATE == voice_assistant.States.ON
+
+    def test_entity_attributes_inheritance(self):
+        """Test that all attribute dataclasses inherit from EntityAttributes."""
+        from ucapi_framework import (
+            ButtonAttributes,
+            ClimateAttributes,
+            CoverAttributes,
+            EntityAttributes,
+            LightAttributes,
+            MediaPlayerAttributes,
+            RemoteAttributes,
+            SensorAttributes,
+            SwitchAttributes,
+            VoiceAssistantAttributes,
+        )
+
+        # All should be instances of EntityAttributes
+        assert isinstance(ButtonAttributes(), EntityAttributes)
+        assert isinstance(ClimateAttributes(), EntityAttributes)
+        assert isinstance(CoverAttributes(), EntityAttributes)
+        assert isinstance(LightAttributes(), EntityAttributes)
+        assert isinstance(MediaPlayerAttributes(), EntityAttributes)
+        assert isinstance(RemoteAttributes(), EntityAttributes)
+        assert isinstance(SensorAttributes(), EntityAttributes)
+        assert isinstance(SwitchAttributes(), EntityAttributes)
+        assert isinstance(VoiceAssistantAttributes(), EntityAttributes)
