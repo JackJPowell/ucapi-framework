@@ -1642,7 +1642,7 @@ class TestAsyncRegisterEntities:
         device = DeviceForTests(config, loop)
 
         # Mock register_available_entities to verify it's called
-        with patch.object(driver, 'register_available_entities') as mock_register:
+        with patch.object(driver, "register_available_entities") as mock_register:
             await driver.async_register_available_entities(config, device)
             mock_register.assert_called_once_with(config, device)
 
