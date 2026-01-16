@@ -2,7 +2,7 @@
 
 import asyncio
 from dataclasses import dataclass
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import ucapi
@@ -1624,12 +1624,8 @@ class TestAsyncRegisterEntities:
     """Tests for async_register_available_entities."""
 
     @pytest.mark.asyncio
-    async def test_async_register_warns_when_not_overridden(self, caplog):
-        """Test async_register_available_entities warns when require_connection_before_registry is True."""
-        import logging
-
-        caplog.set_level(logging.WARNING)
-
+    async def test_async_register_calls_register_available_entities(self):
+        """Test async_register_available_entities calls register_available_entities."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
             DeviceForTests,
@@ -1645,41 +1641,10 @@ class TestAsyncRegisterEntities:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         device = DeviceForTests(config, loop)
 
-        await driver.async_register_available_entities(config, device)
-
-        # Should have logged a warning
-        assert (
-            "async_register_available_entities() called but not overridden"
-            in caplog.text
-        )
-
-    @pytest.mark.asyncio
-    async def test_async_register_no_warn_when_flag_false(self, caplog):
-        """Test async_register_available_entities doesn't warn when flag is False."""
-        import logging
-
-        caplog.set_level(logging.WARNING)
-
-        loop = asyncio.get_event_loop()
-        driver = ConcreteDriver(
-            DeviceForTests,
-            [media_player.MediaPlayer],
-            require_connection_before_registry=False,
-            loop=loop,
-        )
-        driver.api = MagicMock()
-        driver.api.available_entities = MockEntityCollection()
-
-        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
-        device = DeviceForTests(config, loop)
-
-        await driver.async_register_available_entities(config, device)
-
-        # Should NOT have logged a warning
-        assert (
-            "async_register_available_entities() called but not overridden"
-            not in caplog.text
-        )
+        # Mock register_available_entities to verify it's called
+        with patch.object(driver, "register_available_entities") as mock_register:
+            await driver.async_register_available_entities(config, device)
+            mock_register.assert_called_once_with(config, device)
 
 
 class TestRefreshEntityState:

@@ -1,17 +1,142 @@
 """
 Helper utilities for Unfolded Circle Remote integrations.
 
-Provides diagnostic and maintenance helper methods for Remote operations.
+Provides diagnostic and maintenance helper methods for Remote operations,
+as well as dataclasses for entity attribute management.
 
 :copyright: (c) 2025 by Jack Powell.
 :license: Mozilla Public License Version 2.0, see LICENSE for more details.
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 import aiohttp
 
+from ucapi import (
+    button,
+    climate,
+    cover,
+    light,
+    media_player,
+    remote,
+    sensor,
+    switch,
+    voice_assistant,
+)
+
 _LOG = logging.getLogger(__name__)
+
+
+# Entity Attribute Dataclasses
+# These provide type-safe containers for entity state with dot notation access
+
+
+@dataclass
+class EntityAttributes:
+    """
+    Base class for entity attribute containers.
+
+    All entity attribute dataclasses inherit from this to provide a common
+    type for type hints and enable polymorphic usage.
+    """
+
+    STATE: Any | None = None
+
+
+@dataclass
+class ButtonAttributes(EntityAttributes):
+    """Attribute container for Button entities."""
+
+    STATE: button.States | None = None
+
+
+@dataclass
+class ClimateAttributes(EntityAttributes):
+    """Attribute container for Climate entities."""
+
+    STATE: climate.States | None = None
+    CURRENT_TEMPERATURE: float | None = None
+    TARGET_TEMPERATURE: float | None = None
+    TARGET_TEMPERATURE_HIGH: float | None = None
+    TARGET_TEMPERATURE_LOW: float | None = None
+    FAN_MODE: str | None = None
+
+
+@dataclass
+class CoverAttributes(EntityAttributes):
+    """Attribute container for Cover entities."""
+
+    STATE: cover.States | None = None
+    POSITION: int | None = None
+    TILT_POSITION: int | None = None
+
+
+@dataclass
+class LightAttributes(EntityAttributes):
+    """Attribute container for Light entities."""
+
+    STATE: light.States | None = None
+    HUE: int | None = None
+    SATURATION: int | None = None
+    BRIGHTNESS: int | None = None
+    COLOR_TEMPERATURE: int | None = None
+
+
+@dataclass
+class MediaPlayerAttributes(EntityAttributes):
+    """Attribute container for MediaPlayer entities."""
+
+    STATE: media_player.States | None = None
+    VOLUME: int | None = None
+    MUTED: bool | None = None
+    MEDIA_DURATION: int | None = None
+    MEDIA_POSITION: int | None = None
+    MEDIA_POSITION_UPDATED_AT: str | None = None
+    MEDIA_TYPE: str | None = None
+    MEDIA_IMAGE_URL: str | None = None
+    MEDIA_TITLE: str | None = None
+    MEDIA_ARTIST: str | None = None
+    MEDIA_ALBUM: str | None = None
+    REPEAT: media_player.RepeatMode | None = None
+    SHUFFLE: bool | None = None
+    SOURCE: str | None = None
+    SOURCE_LIST: list[str] | None = None
+    SOUND_MODE: str | None = None
+    SOUND_MODE_LIST: list[str] | None = None
+
+
+@dataclass
+class RemoteAttributes(EntityAttributes):
+    """Attribute container for Remote entities."""
+
+    STATE: remote.States | None = None
+
+
+@dataclass
+class SensorAttributes(EntityAttributes):
+    """Attribute container for Sensor entities."""
+
+    STATE: sensor.States | None = None
+    VALUE: float | str | None = None
+    UNIT: str | None = None
+
+
+@dataclass
+class SwitchAttributes(EntityAttributes):
+    """Attribute container for Switch entities."""
+
+    STATE: switch.States | None = None
+
+
+@dataclass
+class VoiceAssistantAttributes(EntityAttributes):
+    """Attribute container for VoiceAssistant entities."""
+
+    STATE: voice_assistant.States | None = None
+
+
+# Helper Functions
 
 
 async def find_orphaned_entities(

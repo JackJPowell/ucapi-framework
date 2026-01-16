@@ -9,5 +9,4 @@ uv run ruff check --fix
 
 # Run ruff format
 uv run ruff format
-
 echo "✅ Ruff checks passed!"

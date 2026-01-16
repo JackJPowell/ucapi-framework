@@ -21,6 +21,7 @@ See ucapi_framework.discovery module documentation for details.
 from .driver import BaseIntegrationDriver, create_entity_id
 from .setup import BaseSetupFlow, SetupSteps
 from .config import BaseConfigManager, get_config_path
+from .entity import Entity
 from .device import (
     BaseDeviceInterface,
     StatelessHTTPDevice,
@@ -47,6 +48,16 @@ from .migration import (
 )
 from .helpers import (
     find_orphaned_entities,
+    EntityAttributes,
+    ButtonAttributes,
+    ClimateAttributes,
+    CoverAttributes,
+    LightAttributes,
+    MediaPlayerAttributes,
+    RemoteAttributes,
+    SensorAttributes,
+    SwitchAttributes,
+    VoiceAssistantAttributes,
 )
 
 __all__ = [
@@ -55,6 +66,7 @@ __all__ = [
     "SetupSteps",
     "BaseConfigManager",
     "get_config_path",
+    "Entity",
     "BaseDeviceInterface",
     "StatelessHTTPDevice",
     "PollingDevice",
@@ -75,6 +87,16 @@ __all__ = [
     "verify_migration",
     "find_orphaned_entities",
     "create_entity_id",
+    "EntityAttributes",
+    "ButtonAttributes",
+    "ClimateAttributes",
+    "CoverAttributes",
+    "LightAttributes",
+    "MediaPlayerAttributes",
+    "RemoteAttributes",
+    "SensorAttributes",
+    "SwitchAttributes",
+    "VoiceAssistantAttributes",
 ]
 
-__version__ = "1.4.0b2"
+__version__ = "1.5.0b8"

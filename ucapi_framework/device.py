@@ -23,6 +23,8 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 from pyee.asyncio import AsyncIOEventEmitter
 
+from .helpers import EntityAttributes
+
 if TYPE_CHECKING:
     from .config import BaseConfigManager
 
@@ -155,7 +157,9 @@ class BaseDeviceInterface(ABC):
         """Return the current device state."""
         return self._state
 
-    def get_device_attributes(self, entity_id: str) -> dict[str, Any]:
+    def get_device_attributes(
+        self, entity_id: str
+    ) -> dict[str, Any] | EntityAttributes:
         """
         Provide entity-specific attributes beyond STATE.
 
@@ -163,10 +167,13 @@ class BaseDeviceInterface(ABC):
         devices to supply additional attributes (e.g., SOURCE_LIST, SOUND_MODE_LIST,
         VOLUME, BRIGHTNESS, etc.) that should be included in the entity's attributes.
 
+        Can return either a dict or an EntityAttributes dataclass (e.g., MediaPlayerAttributes).
+        When returning a dataclass, None values are automatically filtered out.
+
         The default implementation returns an empty dict, meaning only STATE will be
         updated. Override this method to provide device-specific attributes.
 
-        Example implementation:
+        Example with dict:
             def get_device_attributes(self, entity_id: str) -> dict[str, Any]:
                 return {
                     media_player.Attributes.SOURCE_LIST: list(self.source_list),
@@ -174,8 +181,25 @@ class BaseDeviceInterface(ABC):
                     media_player.Attributes.VOLUME: self.volume,
                 }
 
+        Example with dataclass (recommended):
+            def get_device_attributes(self, entity_id: str) -> MediaPlayerAttributes:
+                return self.attributes  # MediaPlayerAttributes instance
+
+        Example for multi-entity devices:
+            def __init__(self, ...):
+                self.zone_attrs = {
+                    "zone1": MediaPlayerAttributes(),
+                    "zone2": MediaPlayerAttributes(),
+                }
+
+            def get_device_attributes(self, entity_id: str) -> EntityAttributes:
+                if "zone1" in entity_id:
+                    return self.zone_attrs["zone1"]
+                elif "zone2" in entity_id:
+                    return self.zone_attrs["zone2"]
+
         :param entity_id: Entity identifier to get attributes for
-        :return: Dictionary of entity attributes (Attribute enum -> value)
+        :return: Dictionary or EntityAttributes dataclass of entity attributes
         """
         return {}
 

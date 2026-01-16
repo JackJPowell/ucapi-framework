@@ -86,6 +86,7 @@ nav:
       - Configuration Management: guide/configuration.md
       - Discovery: guide/discovery.md
       - Driver Integration: guide/driver.md
+      - Advanced Entity Patterns: guide/advanced-entity-patterns.md
   - API Reference:
       - Driver: api/driver.md
       - Device: api/device.md

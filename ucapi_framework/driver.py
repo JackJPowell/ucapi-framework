@@ -9,7 +9,9 @@ Provides common event handlers and device lifecycle management.
 
 import asyncio
 import logging
-from typing import Any, Generic, TypeVar
+from collections.abc import Callable
+from dataclasses import is_dataclass
+from typing import Any, Generic, TypeVar, cast
 
 import ucapi
 import ucapi.api as uc
@@ -29,6 +31,7 @@ from ucapi import (
 
 from ucapi_framework.config import BaseConfigManager
 from .device import BaseDeviceInterface, DeviceEvents
+from .entity import Entity as FrameworkEntity, map_state_to_media_player
 
 # Type variables for generic device and entity types
 DeviceT = TypeVar("DeviceT", bound=BaseDeviceInterface)  # Device interface type
@@ -120,7 +123,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     def __init__(
         self,
         device_class: type[DeviceT],
-        entity_classes: list[type[Entity]] | type[Entity],
+        entity_classes: list[
+            type[Entity] | Callable[[ConfigT, DeviceT], Entity | list[Entity]]
+        ]
+        | type[Entity],
         require_connection_before_registry: bool = False,
         loop: asyncio.AbstractEventLoop | None = None,
         driver_id: str | None = None,
@@ -292,12 +298,12 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         - Calls refresh_entity_state() for each entity
 
         **Hub-based integrations** (require_connection_before_registry=True):
-        - If device not configured: adds device, connects, then calls async_register_available_entities()
-        - If device configured but not connected: connects with retries, then calls async_register_available_entities()
+        - If device not configured: adds device, connects, then creates entities using factory functions
+        - If device configured but not connected: connects with retries, then creates entities
+        - Factory functions in entity_classes can access device.lights, device.scenes, etc.
         - Calls refresh_entity_state() for each entity
 
         Override refresh_entity_state() for custom state refresh logic.
-        Override async_register_available_entities() for hub-based entity population.
 
         :param entity_ids: List of entity identifiers being subscribed
         """
@@ -449,61 +455,50 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Refresh state for a single entity.
 
-        Default implementation: Updates STATE attribute based on device connection state.
-        For media_player entities, uses map_device_state(). For other entity types,
-        sets STATE to AVAILABLE if connected, UNAVAILABLE otherwise.
+        **Recommended Pattern**: Device implements `get_device_attributes(entity_id)` to return
+        entity-specific attributes. Can return either a dataclass or dict:
 
-        **Device Attribute Hook**: Override `get_device_attributes(entity_id)` in your device
-        class to provide additional attributes beyond STATE. The method should return a
-        dict[Attributes, Any] with entity-specific attributes (e.g., SOURCE_LIST, SOUND_MODE_LIST,
-        VOLUME, BRIGHTNESS, etc.). These will be merged with STATE before updating.
+        Example with dataclass (recommended for type safety):
+            # In your device:
+            class MyDevice(BaseDeviceInterface):
+                def __init__(self, ...):
+                    self.zone1_attrs = MediaPlayerAttributes()
+                    self.zone2_attrs = MediaPlayerAttributes()
 
-        The default implementation in BaseDeviceInterface returns an empty dict.
+                def get_device_attributes(self, entity_id: str):
+                    # Return appropriate dataclass for this entity
+                    if "zone1" in entity_id:
+                        return self.zone1_attrs
+                    elif "zone2" in entity_id:
+                        return self.zone2_attrs
 
-        Example device implementation:
+        Example with dict (simpler, less type-safe):
             def get_device_attributes(self, entity_id: str) -> dict:
                 return {
-                    media_player.Attributes.SOURCE_LIST: list(self.source_list),
-                    media_player.Attributes.SOUND_MODE_LIST: list(self.sound_mode_list),
+                    media_player.Attributes.STATE: media_player.States.PLAYING,
                     media_player.Attributes.VOLUME: self.volume,
+                    media_player.Attributes.SOURCE_LIST: list(self.sources),
                 }
 
-        **Override this** to implement integration-specific state refresh logic,
-        especially for hub-based integrations that need to query device data.
+        Example for hub-based integration with multiple lights:
+            class MyHub(BaseDeviceInterface):
+                def __init__(self, ...):
+                    self.light_attrs = {}  # Dict of entity_id -> LightAttributes
 
-        Example for hub-based integration:
-            async def refresh_entity_state(self, entity_id: str) -> None:
-                device_id = self.device_from_entity_id(entity_id)
-                device = self._configured_devices.get(device_id)
-                if not device:
-                    return
-
-                entity_type = self.entity_type_from_entity_id(entity_id)
-                sub_device_id = self.sub_device_from_entity_id(entity_id)
-
-                match entity_type:
-                    case EntityTypes.LIGHT.value:
-                        light = next(
-                            (l for l in device.lights if l.device_id == sub_device_id),
-                            None
+                async def connect(self):
+                    # Populate light attributes during connection
+                    for light in await self.discover_lights():
+                        light_id = f"light.{self.device_id}.{light.id}"
+                        self.light_attrs[light_id] = LightAttributes(
+                            STATE=light.States.ON if light.on else light.States.OFF,
+                            BRIGHTNESS=light.brightness
                         )
-                        if light:
-                            self.api.configured_entities.update_attributes(
-                                entity_id,
-                                {
-                                    "state": "ON" if light.current_state > 0 else "OFF",
-                                    "brightness": int(light.current_state * 255 / 100),
-                                }
-                            )
-                    case EntityTypes.BUTTON.value:
-                        scene = next(
-                            (s for s in device.scenes if s.scene_id == sub_entity_id),
-                            None
-                        )
-                        if scene:
-                            self.api.configured_entities.update_attributes(
-                                entity_id, {"state": "AVAILABLE"}
-                            )
+
+                def get_device_attributes(self, entity_id: str):
+                    return self.light_attrs.get(entity_id)
+
+        **Override this method** only if you need custom refresh logic that can't be
+        expressed through get_device_attributes().
 
         :param entity_id: Entity identifier
         """
@@ -521,6 +516,42 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             _LOG.debug("Entity %s is not configured, ignoring", entity_id)
             return
 
+        # Check if entity is a framework Entity with update() method
+        has_update = isinstance(configured_entity, FrameworkEntity)
+        framework_entity = (
+            cast(FrameworkEntity, configured_entity) if has_update else None
+        )
+
+        # Try to get attributes from device
+        device_attrs = None
+        if hasattr(device, "get_device_attributes"):
+            device_attrs = device.get_device_attributes(entity_id)
+
+        # Path 1: Use entity.update() with dataclass from get_device_attributes()
+        if has_update and framework_entity and device_attrs is not None:
+            try:
+                # Check if it's a dataclass - if so, entity.update() handles it
+                if is_dataclass(device_attrs):
+                    framework_entity.update(device_attrs)
+                    return
+                # If it's a dict, use update_attributes directly
+                elif isinstance(device_attrs, dict):
+                    framework_entity.update_attributes(device_attrs)
+                    return
+            except (TypeError, AttributeError) as e:
+                _LOG.debug(
+                    "Entity %s update failed with device attributes, falling back to default: %s",
+                    entity_id,
+                    e,
+                )
+
+        # Path 2: Legacy fallback - use get_device_attributes() dict if available
+        if device_attrs and isinstance(device_attrs, dict):
+            # Update using the dict directly
+            self.api.configured_entities.update_attributes(entity_id, device_attrs)
+            return
+
+        # Path 3: Default fallback - construct minimal STATE attribute
         # Default state refresh based on device connection and entity type
         if not device.is_connected or device.state is None:
             state = media_player.States.UNAVAILABLE
@@ -532,56 +563,39 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 # For other entity types, just mark as available
                 state = button.States.AVAILABLE
 
-        # Allow device to provide additional attributes beyond STATE
-        # Device can implement get_device_attributes(entity_id) -> dict[Attributes, Any]
         attributes = {}
-        if hasattr(device, "get_device_attributes"):
-            device_attrs = device.get_device_attributes(entity_id)
-            if device_attrs:
-                attributes.update(device_attrs)
 
         # Update the appropriate STATE attribute based on entity type
         match configured_entity.entity_type:
             case EntityTypes.BUTTON:
-                # Merge STATE with device-provided attributes (STATE takes precedence if device provided it)
-                if button.Attributes.STATE not in attributes:
-                    attributes[button.Attributes.STATE] = state
+                attributes[button.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.CLIMATE:
-                if climate.Attributes.STATE not in attributes:
-                    attributes[climate.Attributes.STATE] = state
+                attributes[climate.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.COVER:
-                if cover.Attributes.STATE not in attributes:
-                    attributes[cover.Attributes.STATE] = state
+                attributes[cover.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.LIGHT:
-                if light.Attributes.STATE not in attributes:
-                    attributes[light.Attributes.STATE] = state
+                attributes[light.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.MEDIA_PLAYER:
-                if media_player.Attributes.STATE not in attributes:
-                    attributes[media_player.Attributes.STATE] = state
+                attributes[media_player.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.REMOTE:
-                if remote.Attributes.STATE not in attributes:
-                    attributes[remote.Attributes.STATE] = state
+                attributes[remote.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SENSOR:
-                if sensor.Attributes.STATE not in attributes:
-                    attributes[sensor.Attributes.STATE] = state
+                attributes[sensor.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SWITCH:
-                if switch.Attributes.STATE not in attributes:
-                    attributes[switch.Attributes.STATE] = state
+                attributes[switch.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.IR_EMITTER:  # Remote shares the same states as IR Emitter
-                if remote.Attributes.STATE not in attributes:
-                    attributes[remote.Attributes.STATE] = state
+                attributes[remote.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.VOICE_ASSISTANT:
-                if voice_assistant.Attributes.STATE not in attributes:
-                    attributes[voice_assistant.Attributes.STATE] = state
+                attributes[voice_assistant.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
 
     # ========================================================================
@@ -686,40 +700,36 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         Register available entities for a device (async version).
 
         **For hub-based integrations** (require_connection_before_registry=True):
-        Override this method to populate entities that are discovered from the hub
-        after connection. This is called after a successful device connection.
 
-        Default implementation:
-        - If require_connection_before_registry=True: logs a warning that you should
-          override this method, then falls back to register_available_entities()
-        - If require_connection_before_registry=False: calls register_available_entities()
+        With the factory function pattern in entity_classes, you typically don't need to
+        override this method. Instead, use factory functions that access device data:
 
-        Example for hub-based integration:
-            async def async_register_available_entities(
-                self, device_config: ConfigT, device: DeviceT
-            ) -> None:
-                # Query hub for available devices/entities
-                for light in device.lights:
-                    entity = ucapi.light.Light(
-                        identifier=f"{device.device_id}-light-{light.device_id}",
-                        name=light.name,
-                        features=[...],
-                        cmd_handler=...
-                    )
-                    if not self.api.available_entities.contains(entity.id):
-                        self.api.available_entities.add(entity)
+        Example (recommended approach):
+            # In main function:
+            driver = BaseIntegrationDriver(
+                device_class=MyHub,
+                entity_classes=[
+                    lambda cfg, dev: [
+                        MyLight(cfg, dev, light)
+                        for light in dev.lights  # Populated during connection
+                    ],
+                    lambda cfg, dev: [
+                        MyScene(cfg, dev, scene)
+                        for scene in dev.scenes  # Populated during connection
+                    ]
+                ],
+                require_connection_before_registry=True
+            )
+
+        Override this method only if you need custom entity registration logic that
+        can't be expressed in factory functions (rare cases).
+
+        Default implementation: calls register_available_entities() which uses
+        create_entities() with your factory functions.
 
         :param device_config: Device configuration
         :param device: Device instance
         """
-        if self._require_connection_before_registry:
-            _LOG.warning(
-                "async_register_available_entities() called but not overridden. "
-                "When using require_connection_before_registry=True, you should "
-                "override this method to register entities discovered from the hub. "
-                "Falling back to synchronous register_available_entities()."
-            )
-
         self.register_available_entities(device_config, device)
 
     def _add_device_instance(self, device_config: ConfigT) -> DeviceT:
@@ -1008,13 +1018,25 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 return
 
         _LOG.debug("[%s] Device update: %s", entity_id, update)
+
+        # Check if this entity inherits from our framework Entity ABC
+        # If so, use its custom methods for state mapping and attribute updates
+        has_custom_behavior = isinstance(configured_entity, FrameworkEntity)
+        framework_entity = (
+            cast(FrameworkEntity, configured_entity) if has_custom_behavior else None
+        )
+
         attributes: dict[str, Any] = {}
 
         match configured_entity.entity_type:
             case EntityTypes.BUTTON:
                 # Button entities: STATE
                 if button.Attributes.STATE.value in update:
-                    state = self.map_device_state(update[button.Attributes.STATE.value])
+                    state_value = update[button.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
                     attributes[button.Attributes.STATE] = state
 
             case EntityTypes.CLIMATE:
@@ -1032,7 +1054,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         value = update[attr.value]
                         # Apply state mapping for STATE attribute
                         if attr == climate.Attributes.STATE:
-                            value = self.map_device_state(value)
+                            if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
                         attributes[attr] = value
 
             case EntityTypes.COVER:
@@ -1046,7 +1071,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         value = update[attr.value]
                         # Apply state mapping for STATE attribute
                         if attr == cover.Attributes.STATE:
-                            value = self.map_device_state(value)
+                            if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
                         attributes[attr] = value
 
             case EntityTypes.LIGHT:
@@ -1062,7 +1090,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         value = update[attr.value]
                         # Apply state mapping for STATE attribute
                         if attr == light.Attributes.STATE:
-                            value = self.map_device_state(value)
+                            if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
                         attributes[attr] = value
 
             case EntityTypes.MEDIA_PLAYER:
@@ -1074,9 +1105,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 # Check if state is being updated and is OFF
                 state_value = None
                 if media_player.Attributes.STATE.value in update:
-                    state_value = self.map_device_state(
-                        update[media_player.Attributes.STATE.value]
-                    )
+                    raw_state = update[media_player.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state_value = framework_entity.map_entity_states(raw_state)
+                    else:
+                        state_value = self.map_device_state(raw_state)
                     attributes[media_player.Attributes.STATE] = state_value
 
                 # If clear_media_when_off is True and state is OFF, clear all media attributes
@@ -1117,7 +1150,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             case EntityTypes.REMOTE:
                 # Remote entities: STATE
                 if remote.Attributes.STATE.value in update:
-                    state = self.map_device_state(update[remote.Attributes.STATE.value])
+                    state_value = update[remote.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
                     attributes[remote.Attributes.STATE] = state
 
             case EntityTypes.SENSOR:
@@ -1131,27 +1168,40 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         value = update[attr.value]
                         # Apply state mapping for STATE attribute
                         if attr == sensor.Attributes.STATE:
-                            value = self.map_device_state(value)
+                            if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
                         attributes[attr] = value
 
             case EntityTypes.SWITCH:
                 # Switch entities: STATE
                 if switch.Attributes.STATE.value in update:
-                    state = self.map_device_state(update[switch.Attributes.STATE.value])
+                    state_value = update[switch.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
                     attributes[switch.Attributes.STATE] = state
 
             case EntityTypes.IR_EMITTER:
                 # IR Emitter entities: STATE (Shares same state mapping as Remote)
                 if remote.Attributes.STATE.value in update:
-                    state = self.map_device_state(update[remote.Attributes.STATE.value])
+                    state_value = update[remote.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
                     attributes[remote.Attributes.STATE] = state
 
             case EntityTypes.VOICE_ASSISTANT:
                 # Voice Assistant entities: STATE
                 if voice_assistant.Attributes.STATE.value in update:
-                    state = self.map_device_state(
-                        update[voice_assistant.Attributes.STATE.value]
-                    )
+                    state_value = update[voice_assistant.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
                     attributes[voice_assistant.Attributes.STATE] = state
 
             case _:
@@ -1166,9 +1216,21 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         # Update entity attributes if any were found
         if attributes:
             if self.api.configured_entities.contains(entity_id):
-                self.api.configured_entities.update_attributes(entity_id, attributes)
+                if has_custom_behavior and framework_entity:
+                    # Use framework entity's update method which handles filtering
+                    framework_entity.update_attributes(attributes)
+                else:
+                    # Use direct API update for standard entities
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
             elif self.api.available_entities.contains(entity_id):
-                self.api.available_entities.update_attributes(entity_id, attributes)
+                if has_custom_behavior and framework_entity:
+                    # Use framework entity's update method which handles filtering
+                    framework_entity.update_attributes(attributes)
+                else:
+                    # Use direct API update for standard entities
+                    self.api.available_entities.update_attributes(entity_id, attributes)
             _LOG.debug(
                 "[%s] Updated entity %s with attributes: %s",
                 entity_id,
@@ -1262,25 +1324,70 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Create entity instances for a device.
 
-        DEFAULT IMPLEMENTATION: Creates one instance per entity class passed to __init__,
-        calling each as: entity_class(device_config, device)
+        DEFAULT IMPLEMENTATION: Creates one instance per entity class/factory passed to __init__.
+        Supports both entity classes and factory functions:
+        - Classes are called as: entity_class(device_config, device)
+        - Factories are called as: factory(device_config, device) and can return Entity | list[Entity]
+
+        After entity creation, the framework automatically sets entity._api = self.api for
+        entities that inherit from the framework Entity ABC. This gives entities access to
+        the API without requiring it as a constructor parameter.
 
         This works automatically for simple integrations. Override this method only when you need:
-        - Variable entity counts (e.g., multi-zone receivers)
-        - Hub-based discovery with runtime entity creation
-        - Conditional entity creation based on device capabilities
+        - Complex conditional logic that can't be expressed in a factory function
         - Custom parameters beyond (device_config, device)
+        - Special initialization sequences
 
-        Example - Multi-zone receiver:
+        **Using Factory Functions** (recommended for most multi-entity patterns):
+
+        Example - Static sensor list:
+            # In main function or driver __init__:
+            driver = BaseIntegrationDriver(
+                device_class=MyDevice,
+                entity_classes=[
+                    MyMediaPlayer,
+                    MyRemote,
+                    lambda cfg, dev: [
+                        MySensor(cfg, dev, sensor_config)
+                        for sensor_config in SENSOR_TYPES
+                    ]
+                ]
+            )
+
+        Example - Hub-based discovery:
+            # In main function or driver __init__:
+            driver = BaseIntegrationDriver(
+                device_class=MyHub,
+                entity_classes=[
+                    lambda cfg, dev: [
+                        MyLight(cfg, dev, light)
+                        for light in dev.lights
+                    ],
+                    lambda cfg, dev: [
+                        MyButton(cfg, dev, scene)
+                        for scene in dev.scenes
+                    ]
+                ],
+                require_connection_before_registry=True
+            )
+
+        **Override Method** (for complex cases):
+
+        Example - Multi-zone receiver with custom logic:
             def create_entities(self, device_config, device):
                 entities = []
                 for zone in device_config.zones:
-                    entities.append(AnthemMediaPlayer(
-                        entity_id=f"media_player.{device_config.id}_zone_{zone.id}",
-                        device=device,
-                        device_config=device_config,
-                        zone_config=zone  # Custom parameter
-                    ))
+                    if zone.enabled:
+                        entities.append(AnthemMediaPlayer(
+                            entity_id=create_entity_id(
+                                EntityTypes.MEDIA_PLAYER,
+                                device_config.id,
+                                f"zone_{zone.id}"
+                            ),
+                            device=device,
+                            device_config=device_config,
+                            zone_config=zone  # Custom parameter
+                        ))
                 return entities
 
         Example - Conditional creation:
@@ -1296,23 +1403,39 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         :param device: Device instance
         :return: List of entity instances (MediaPlayer, Remote, etc.)
         """
-        # Default: instantiate from entity_classes
-        return [
-            entity_class(device_config, device) for entity_class in self._entity_classes
-        ]
+        entities = []
+        for item in self._entity_classes:
+            if callable(item) and not isinstance(item, type):
+                # Factory function: call it and collect results
+                result = item(device_config, device)
+                # Normalize to list for uniform processing
+                result_list = result if isinstance(result, list) else [result]
+                # Set _api on entities that inherit from Entity ABC
+                for entity in result_list:
+                    if isinstance(entity, Entity):
+                        entity._api = self.api  # type: ignore[misc]
+                entities.extend(result_list)
+            else:
+                # Entity class: instantiate it
+                entity = item(device_config, device)
+                # Set _api if entity inherits from Entity ABC
+                if isinstance(entity, Entity):
+                    entity._api = self.api  # type: ignore[misc]
+                entities.append(entity)
+        return entities
 
     def map_device_state(self, device_state: Any) -> media_player.States:
         """
         Map device-specific state to ucapi media player state.
 
-        DEFAULT IMPLEMENTATION: Converts device_state to uppercase string and maps
-        common state values to media_player.States:
+        DEFAULT IMPLEMENTATION: Uses map_state_to_media_player() helper to convert
+        device_state to uppercase string and map common state values to media_player.States:
 
         - UNAVAILABLE → UNAVAILABLE
         - UNKNOWN → UNKNOWN
         - ON, MENU, IDLE, ACTIVE, READY → ON
-        - OFF, POWER_OFF, POWERED_OFF → OFF
-        - PLAYING, PLAY → PLAYING
+        - OFF, POWER_OFF, POWERED_OFF, STOPPED → OFF
+        - PLAYING, PLAY, SEEKING → PLAYING
         - PAUSED, PAUSE → PAUSED
         - STANDBY, SLEEP → STANDBY
         - BUFFERING, LOADING → BUFFERING
@@ -1338,35 +1461,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         :param device_state: Device-specific state (string, enum, or any object with __str__)
         :return: Media player state
         """
-        if device_state is None:
-            return media_player.States.UNKNOWN
-
-        # If already a media_player.States enum, return it directly
-        if isinstance(device_state, media_player.States):
-            return device_state
-
-        # Convert to uppercase string for comparison
-        state_str = str(device_state).upper()
-
-        match state_str:
-            case "UNAVAILABLE":
-                return media_player.States.UNAVAILABLE
-            case "UNKNOWN":
-                return media_player.States.UNKNOWN
-            case "ON" | "MENU" | "IDLE" | "ACTIVE" | "READY":
-                return media_player.States.ON
-            case "OFF" | "POWER_OFF" | "POWERED_OFF" | "STOPPED":
-                return media_player.States.OFF
-            case "PLAYING" | "PLAY" | "SEEKING":
-                return media_player.States.PLAYING
-            case "PAUSED" | "PAUSE":
-                return media_player.States.PAUSED
-            case "STANDBY" | "SLEEP":
-                return media_player.States.STANDBY
-            case "BUFFERING" | "LOADING":
-                return media_player.States.BUFFERING
-            case _:
-                return media_player.States.UNKNOWN
+        return map_state_to_media_player(device_state)
 
     # ========================================================================
     # Entity ID Methods (should be overridden together if custom format used)
