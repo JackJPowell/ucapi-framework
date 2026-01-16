@@ -1304,7 +1304,8 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         """
         _LOG.debug("[%s] Starting persistent connection", self.log_id)
         self._stop_reconnect.clear()
-        self._reconnect_task = asyncio.create_task(self._connection_loop())
+        if self._reconnect_task is None or self._reconnect_task.done():
+            self._reconnect_task = asyncio.create_task(self._connection_loop())
         return True
 
     async def disconnect(self) -> None:
