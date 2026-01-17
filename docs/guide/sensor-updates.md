@@ -1,26 +1,26 @@
 # Sensor Update Patterns
 
-Sensors are unique among entity types because they're read-only - they don't have command handlers where state updates naturally occur. This guide covers two framework-provided patterns for updating sensor entities from device events.
+Sensors are unique among entity types because they're read-only - they don't have command handlers where state updates naturally occur. This guide covers recommended patterns for updating sensor entities from device events.
 
 ## Overview
 
-The framework provides two complementary approaches for updating sensor entities:
+The framework supports sensor updates through:
 
-1. **Entity Registry Pattern** - Direct method calls using `update_entity()`
+1. **Direct Pattern** - Store entity references and call `update()` directly (Recommended)
 2. **Event-Based Pattern** - Using `DeviceEvents.UPDATE` with entity_id
 
-Both patterns integrate seamlessly with the dataclass attribute system and work with `get_device_attributes()`.
+Both patterns integrate with `get_device_attributes()` for centralized attribute management.
 
-## Pattern 1: Entity Registry (Recommended)
+## Pattern 1: Direct Updates (Recommended)
 
-The entity registry pattern provides a simple API where entities register themselves during initialization, and the device calls `update_entity()` when state changes.
+The direct pattern stores entity references in your device class and calls `update()` directly when state changes. This is the most straightforward and Pythonic approach.
 
 ### How It Works
 
-1. Entity registers itself during `__init__` using `device.register_entity()`
-2. Device updates internal state
-3. Device calls `update_entity(entity_id)` to push to Remote
-4. Framework retrieves attributes via `get_device_attributes()` and calls `entity.update()`
+1. Store entity references in your device (dict, list, whatever fits your needs)
+2. Update internal state
+3. Call `entity.update()` directly with your data
+4. Framework handles the rest
 
 ### Example: Sensor with Polling Device
 
@@ -34,7 +34,7 @@ from ucapi_framework import (
 )
 
 class MySensor(sensor.Sensor, Entity):
-    """Sensor that registers with device for updates."""
+    """Simple sensor entity."""
     
     def __init__(self, device_config, device, sensor_config):
         entity_id = create_entity_id(
@@ -55,13 +55,10 @@ class MySensor(sensor.Sensor, Entity):
         
         self._device = device
         self.sensor_id = sensor_config.id
-        
-        # Register with device for updates
-        device.register_entity(self.id, self)
 
 
 class MyDevice(PollingDevice):
-    """Device with sensors that updates via registry."""
+    """Device with sensors that updates directly."""
     
     def __init__(self, device_config, config_manager=None):
         super().__init__(
@@ -69,20 +66,15 @@ class MyDevice(PollingDevice):
             poll_interval=30,
             config_manager=config_manager
         )
-        # Track sensor data by sensor_id
-        self.sensor_data = {}
-    
-    def get_device_attributes(self, entity_id: str) -> SensorAttributes:
-        """Return current sensor attributes."""
-        # Extract sensor_id from entity_id (e.g., "sensor.device.temp" -> "temp")
-        sensor_id = entity_id.split('.')[-1]
-        data = self.sensor_data.get(sensor_id, {})
+        # Store sensors however makes sense for your integration
+        # Option 1: By sensor_id (natural lookup key)
+        self.sensors = {}  # sensor_id -> MySensor instance
         
-        return SensorAttributes(
-            STATE=sensor.States.ON if data else sensor.States.UNAVAILABLE,
-            VALUE=data.get('value'),
-            UNIT=data.get('unit', '°C')
-        )
+        # Option 2: By entity_id
+        # self.sensors = {}  # entity_id -> MySensor instance
+        
+        # Option 3: With runtime data
+        # self.sensors = {}  # sensor_id -> {"entity": MySensor, "value": x, "unit": y}
     
     async def poll_device(self):
         """Poll device and update all sensors."""
@@ -90,14 +82,14 @@ class MyDevice(PollingDevice):
         readings = await self.api.get_sensor_readings()
         
         for sensor_id, reading in readings.items():
-            # Update internal state
-            self.sensor_data[sensor_id] = {
-                'value': reading.value,
-                'unit': reading.unit
-            }
-            
-            # Push to Remote - super clean!
-            entity_id = f"sensor.{self.device_id}.{sensor_id}"
+            sensor_entity = self.sensors.get(sensor_id)
+            if sensor_entity:
+                # Update directly - clean and obvious!
+                sensor_entity.update(SensorAttributes(
+                    STATE=sensor.States.ON,
+                    VALUE=reading.value,
+                    UNIT=reading.unit
+                ))
             self.update_entity(entity_id)
 ```
 
@@ -135,36 +127,49 @@ class MyDevice(WebSocketDevice):
             
             # Push to Remote
             entity_id = f"sensor.{self.device_id}.{sensor_id}"
-            self.update_entity(entity_id)
-```
-
-### Benefits
-
-- ✅ **Simple API** - Just call `update_entity(entity_id)`
-- ✅ **Type-safe** - Works with dataclass attributes
-- ✅ **No manual wiring** - Framework handles everything
-- ✅ **Automatic validation** - Checks for Entity inheritance
-- ✅ **Override detection** - Warns if `get_device_attributes()` not implemented
-
-### Warning System
-
-If you call `update_entity()` without overriding `get_device_attributes()`, you'll see:
 
 ```
-WARNING: update_entity() called but get_device_attributes() is not overridden.
-Override get_device_attributes() to return entity attributes for sensor.device.temp
+
+### Data Storage Patterns
+
+Choose a data structure that fits your integration:
+
+**Pattern A: Simple value storage**
+```python
+class MyDevice(PollingDevice):
+    def __init__(self, device_config):
+        super().__init__(device_config)
+        self.sensor_values = {}  # sensor_id -> value
+        self.sensors = {}  # sensor_id -> MySensor entity
+```
+
+**Pattern B: Rich data with entity reference**
+```python
+class MyDevice(PollingDevice):
+    def __init__(self, device_config):
+        super().__init__(device_config)
+        self.sensors = {}  # sensor_id -> {"entity": MySensor, "value": x, "last_update": ts}
+```
+
+**Pattern C: Dataclass instances**
+```python
+class MyDevice(PollingDevice):
+    def __init__(self, device_config):
+        super().__init__(device_config)
+        self.sensors = {}  # sensor_id -> MySensor entity
+        self.sensor_attrs = {}  # sensor_id -> SensorAttributes()
 ```
 
 ## Pattern 2: Event-Based Updates
 
-The event-based pattern uses the existing `DeviceEvents.UPDATE` event system with an optional `entity_id` parameter.
+The event-based pattern uses `DeviceEvents.UPDATE` event system with an optional `entity_id` parameter to target specific entities.
 
 ### How It Works
 
 1. Device emits `DeviceEvents.UPDATE` with `entity_id` and `update` parameters
 2. Framework's `on_device_update()` handler receives the event
-3. Framework calls `refresh_entity_state()` for the specific entity
-4. Entity state is updated via `entity.update()`
+3. Entity state is updated via framework routing
+4. Works with both dataclass and dict updates
 
 ### Example: Event-Based Sensor Updates
 
@@ -216,30 +221,28 @@ class MyDevice(WebSocketDevice):
 
 ### Benefits
 
-- ✅ **Event-driven** - Loose coupling between device and entities
-- ✅ **Async-friendly** - Works naturally with WebSocket/async code
-- ✅ **Dataclass support** - Pass dataclass or dict
-- ✅ **No registration** - No need to register entities
+- Event-driven architecture with loose coupling
+- Async-friendly - works naturally with WebSocket/async code
+- Dataclass and dict support
+- No need to store entity references
 
 ## Choosing a Pattern
 
-### Use Entity Registry When:
+**Use Direct Updates When:**
 
-- ✅ You prefer explicit, direct method calls
-- ✅ Entity registration feels natural (entity knows its device)
-- ✅ You want type checking at the call site
-- ✅ Debugging is easier with direct calls
+- You want the simplest, most straightforward code
+- Entity references naturally fit your data model
+- Debugging with direct calls is easier
 
-### Use Event-Based When:
+**Use Event-Based When:**
 
-- ✅ You prefer event-driven architecture
-- ✅ You're already using events for other updates
-- ✅ You want loose coupling
-- ✅ Multiple entities update from single message
+- You prefer event-driven architecture
+- You're already using events for other updates
+- Multiple entities update from single device message
 
 ## Complete Working Example
 
-Here's a complete example showing both patterns:
+Here's a complete example showing the direct pattern:
 
 ```python
 from dataclasses import dataclass
@@ -344,120 +347,204 @@ class MyDevice(PollingDevice):
             
             # Choose one pattern:
             
-            # Pattern 1: Registry (recommended)
-            self.update_entity(entity_id)
-            
-            # OR Pattern 2: Event-based
-            # self.events.emit(
-            #     DeviceEvents.UPDATE,
-            #     entity_id=entity_id,
-            #     update=SensorAttributes(
-            #         STATE=sensor.States.ON,
-            #         VALUE=reading['value'],
-            #         UNIT=reading['unit']
-            #     )
-            # )
+# Entity class
+class MySensor(sensor.Sensor, Entity):
+    def __init__(self, device_config, device, sensor_config):
+        entity_id = create_entity_id("sensor", device_config.id, sensor_config.id)
+        
+        super().__init__(
+            entity_id,
+            sensor_config.name,
+            features=[],
+            attributes={
+                sensor.Attributes.STATE: sensor.States.UNAVAILABLE,
+                sensor.Attributes.UNIT: sensor_config.unit
+            }
+        )
+        
+        self._device = device
+        self.sensor_id = sensor_config.id
 
-# Driver setup with factory function
-driver = BaseIntegrationDriver(
-    device_class=MyDevice,
-    entity_classes=[
-        lambda cfg, dev: [
-            MySensor(cfg, dev, sensor_config)
-            for sensor_config in SENSORS
-        ]
-    ]
-)
-```
-
-## Best Practices
-
-1. **Override `get_device_attributes()`** - Always implement this method when using the registry pattern
-2. **Use dataclasses** - Prefer `SensorAttributes` over dict for type safety
-3. **Filter None values** - Dataclasses automatically filter None, dict updates should too
-4. **Be consistent** - Choose one pattern and stick with it per device class
-5. **Log sensor updates** - Help debugging with clear log messages
-
-## Common Pitfalls
-
-### Forgetting to Override get_device_attributes()
-
-```python
-# ❌ Won't work - no attributes returned
+# Device class
 class MyDevice(PollingDevice):
-    async def poll_device(self):
-        self.update_entity("sensor.device.temp")  # Warning logged!
-
-# ✅ Correct - implements get_device_attributes()
-class MyDevice(PollingDevice):
-    def get_device_attributes(self, entity_id: str) -> SensorAttributes:
-        return SensorAttributes(STATE=sensor.States.ON, VALUE=23.5)
+    def __init__(self, device_config, config_manager=None):
+        super().__init__(
+            device_config,
+            poll_interval=30,
+            config_manager=config_manager
+        )
+        # Store sensors by sensor_id for easy lookup
+        self.sensors = {}  # sensor_id -> MySensor entity
+    
+    @property
+    def identifier(self) -> str:
+        return self._device_config.id
+    
+    @property
+    def name(self) -> str:
+        return self._device_config.name
+    
+    @property
+    def address(self) -> str:
+        return self._device_config.host
+    
+    @property
+    def log_id(self) -> str:
+        return f"Device[{self.identifier}]"
+    
+    async def establish_connection(self):
+        """Initial connection setup."""
+        pass  # Your connection logic
     
     async def poll_device(self):
-        self.update_entity("sensor.device.temp")  # Works!
-```
+        """Poll device and update sensors."""
+        # Simulate getting sensor readings
+        readings = {
+            'temp': {'value': 23.5, 'unit': '°C'},
+            'humidity': {'value': 65, 'unit': '%'},
+            'pressure': {'value': 1013, 'unit': 'hPa'}
+        }
+        
+        for sensor_id, reading in readings.items():
+            sensor_entity = self.sensors.get(sensor_id)
+            if sensor_entity:
+                # Direct update - simple and clean!
+                sensor_entity.update(SensorAttributes(
+                    STATE=sensor.States.ON,
+                    VALUE=reading['value'],
+                    UNIT=reading['unit']
+                ))
 
-### Not Registering Entity
+# Driver factory function
+def create_sensor_entities(device_config, device):
+    """Factory function to create all sensor entities."""
+    entities = []
+    for sensor_config in SENSORS:
+        entity = MySensor(device_config, device, sensor_config)
+        # Store reference in device for updates
+        device.sensors[sensor_config.id] = entity
+        entities.append(entity)
+    return entities
 
-```python
-# ❌ Won't work - entity not registered
-class MySensor(sensor.Sensor, Entity):
-    def __init__(self, device_config, device, sensor_config):
-        super().__init__(...)
-        # Forgot to register!
-
-# ✅ Correct - registers during init
-class MySensor(sensor.Sensor, Entity):
-    def __init__(self, device_config, device, sensor_config):
-        super().__init__(...)
-        device.register_entity(self.id, self)  # Required!
+# Driver setup
+driver = BaseIntegrationDriver(
+    device_class=MyDevice,
+    entity_classes=[create_sensor_entities]
+)
 ```
 
 ## Migration from Custom Patterns
 
-If you implemented a custom sensor update pattern:
+If you have existing sensor code, here's how to migrate:
 
-### Before (Custom Pattern)
-
-```python
-class MySensor(sensor.Sensor, Entity):
-    def refresh_from_device(self):
-        attrs = self._device.get_sensor_data(self.sensor_id)
-        self.update_attributes(attrs)
-
-class MyDevice(PollingDevice):
-    def __init__(self):
-        self._sensors = {}
-    
-    def register_sensor(self, sensor_id, sensor_entity):
-        self._sensors[sensor_id] = sensor_entity
-    
-    async def poll_device(self):
-        for sensor_id, entity in self._sensors.items():
-            entity.refresh_from_device()
-```
-
-### After (Framework Pattern)
+**Before (Custom Pattern):**
 
 ```python
-class MySensor(sensor.Sensor, Entity):
-    def __init__(self, device_config, device, sensor_config):
-        super().__init__(...)
-        device.register_entity(self.id, self)  # Use framework registry
-
 class MyDevice(PollingDevice):
-    def get_device_attributes(self, entity_id: str) -> SensorAttributes:
-        sensor_id = entity_id.split('.')[-1]
-        return self.get_sensor_data(sensor_id)
-    
     async def poll_device(self):
-        for sensor_id in self.sensor_ids:
-            entity_id = f"sensor.{self.device_id}.{sensor_id}"
-            self.update_entity(entity_id)  # Framework handles the rest!
+        for sensor in self.sensors:
+            sensor.current_value = await self.read_sensor(sensor.id)
+            # Custom update logic
+            self.api.configured_entities.update_attributes(
+                sensor.entity_id,
+                {
+                    sensor.Attributes.STATE: sensor.States.ON,
+                    sensor.Attributes.VALUE: sensor.current_value
+                }
+            )
 ```
 
-Benefits of migration:
-- Less boilerplate code
-- Framework handles validation
-- Consistent with other integrations
-- Better error messages
+**After (Direct Pattern):**
+
+```python
+class MyDevice(PollingDevice):
+    async def poll_device(self):
+        for sensor_id, sensor_entity in self.sensors.items():
+            value = await self.read_sensor(sensor_id)
+            # Framework handles everything!
+            sensor_entity.update(SensorAttributes(
+                STATE=sensor.States.ON,
+                VALUE=value
+            ))
+```
+
+## Best Practices
+
+1. **Choose your data structure** - Use whatever makes sense for your integration (dict by sensor_id, dict by entity_id, list, etc.)
+2. **Store entity references** - Keep references to your sensor entities for easy updates
+3. **Use dataclasses** - SensorAttributes provides type safety and automatic None filtering
+4. **Keep it simple** - Direct calls to `entity.update()` are the most straightforward
+
+## Common Patterns
+
+### Pattern: Sensors with Different Types
+
+```python
+class MyDevice(PollingDevice):
+    def __init__(self, device_config):
+        super().__init__(device_config)
+        self.temperature_sensors = {}  # sensor_id -> MySensor
+        self.binary_sensors = {}  # sensor_id -> MyBinarySensor
+```
+
+### Pattern: Sensors with Metadata
+
+```python
+class MyDevice(PollingDevice):
+    def __init__(self, device_config):
+        super().__init__(device_config)
+        self.sensors = {}  # sensor_id -> {
+                           #   "entity": MySensor,
+                           #   "last_update": timestamp,
+                           #   "native_id": device_native_id
+                           # }
+```
+
+### Pattern: Dynamic Sensor Discovery
+
+```python
+class MyDevice(PollingDevice):
+    async def establish_connection(self):
+        # Discover sensors from device
+        discovered = await self.device_api.discover_sensors()
+        for sensor_info in discovered:
+            # Sensors will be created by driver during entity registration
+            pass
+    
+    async def poll_device(self):
+        # Update only discovered sensors
+        for sensor_id, sensor_entity in self.sensors.items():
+            value = await self.read_sensor(sensor_id)
+            sensor_entity.update(SensorAttributes(
+                STATE=sensor.States.ON,
+                VALUE=value
+            ))
+```
+
+## Troubleshooting
+
+### Entity Update Not Working
+
+Check that:
+
+1. You're storing the entity reference correctly
+2. Entity inherits from `Entity` ABC
+3. You're calling `entity.update()` with proper attributes
+4. Entity `_api` is set by the framework (automatic)
+
+### Type Errors with Dataclasses
+
+Make sure you:
+
+1. Import the correct dataclass (`from ucapi_framework import SensorAttributes`)
+2. Use `None` for optional fields, not omitting them
+3. Check attribute names match ucapi enum names (STATE, VALUE, UNIT)
+
+### Performance Issues
+
+If updating many sensors is slow:
+
+- Batch updates when possible
+- Use event-based pattern for async updates
+- Consider update frequency - not all sensors need real-time updates
+

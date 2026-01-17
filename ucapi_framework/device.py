@@ -94,7 +94,6 @@ class BaseDeviceInterface(ABC):
         self._device_config = device_config
         self._config_manager: BaseConfigManager | None = config_manager
         self._state: Any = None
-        self._entity_registry: dict[str, Any] = {}  # Maps entity_id -> Entity instance
 
     @property
     def device_config(self) -> Any:
@@ -177,102 +176,6 @@ class BaseDeviceInterface(ABC):
     def state(self) -> Any:
         """Return the current device state."""
         return self._state
-
-    def register_entity(self, entity_id: str, entity: Any) -> None:
-        """
-        Register an entity for direct access and updates.
-
-        This is useful for read-only entities (like sensors) that need to be updated
-        from device events rather than command handlers. Entities registered here can
-        be updated using update_entity().
-
-        Typically called during entity initialization:
-
-        Example:
-            class MySensor(sensor.Sensor, Entity):
-                def __init__(self, device_config, device, sensor_config):
-                    super().__init__(...)
-                    device.register_entity(self.id, self)
-
-        :param entity_id: Entity identifier
-        :param entity: Entity instance (should inherit from framework Entity)
-        """
-        self._entity_registry[entity_id] = entity
-        _LOG.debug("[%s] Registered entity: %s", self.log_id, entity_id)
-
-    def get_entity(self, entity_id: str) -> Any | None:
-        """
-        Get a registered entity by ID.
-
-        :param entity_id: Entity identifier
-        :return: Entity instance or None if not registered
-        """
-        return self._entity_registry.get(entity_id)
-
-    def update_entity(self, entity_id: str) -> None:
-        """
-        Trigger entity refresh from device state.
-
-        This method provides a convenient way to update registered entities from
-        device events. It retrieves the entity from the registry, gets current
-        attributes from get_device_attributes(), and calls entity.update().
-
-        Particularly useful for read-only entities (sensors) that need updates
-        from device events rather than command handlers.
-
-        Example - Sensor updates from polling:
-            class MySensorDevice(PollingDevice):
-                async def poll_device(self):
-                    readings = await self.get_sensor_readings()
-                    for sensor_id, value in readings.items():
-                        entity_id = f"sensor.{self.device_id}.{sensor_id}"
-                        self.sensor_values[sensor_id] = value  # Update internal state
-                        self.update_entity(entity_id)  # Push to Remote
-
-        Example - Sensor updates from WebSocket events:
-            class MyDevice(WebSocketDevice):
-                async def handle_message(self, message):
-                    if message['type'] == 'sensor_update':
-                        entity_id = f"sensor.{self.device_id}.{message['sensor_id']}"
-                        self.sensor_data[message['sensor_id']] = message['value']
-                        self.update_entity(entity_id)
-
-        :param entity_id: Entity identifier to update
-        """
-        entity = self.get_entity(entity_id)
-        if entity is None:
-            _LOG.debug(
-                "[%s] Entity %s not registered, cannot update",
-                self.log_id,
-                entity_id,
-            )
-            return
-
-        # Duck typing: check if entity has an update method
-        if not hasattr(entity, "update") or not callable(getattr(entity, "update")):
-            _LOG.warning(
-                "[%s] Entity %s does not have an update() method, cannot update",
-                self.log_id,
-                entity_id,
-            )
-            return
-
-        # Check if get_device_attributes has been overridden
-        if (
-            type(self).get_device_attributes
-            is BaseDeviceInterface.get_device_attributes
-        ):
-            _LOG.warning(
-                "[%s] update_entity() called but get_device_attributes() is not overridden. "
-                "Override get_device_attributes() to return entity attributes for %s",
-                self.log_id,
-                entity_id,
-            )
-            return
-
-        attrs = self.get_device_attributes(entity_id)
-        if attrs:
-            entity.update(attrs)
 
     def get_device_attributes(
         self, entity_id: str
