@@ -536,7 +536,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     return
                 # If it's a dict, use update_attributes directly
                 elif isinstance(device_attrs, dict):
-                    framework_entity.update_attributes(device_attrs)
+                    framework_entity.update_attributes(
+                        cast(dict[str, Any], device_attrs)
+                    )
                     return
             except (TypeError, AttributeError) as e:
                 _LOG.debug(
@@ -548,7 +550,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         # Path 2: Legacy fallback - use get_device_attributes() dict if available
         if device_attrs and isinstance(device_attrs, dict):
             # Update using the dict directly
-            self.api.configured_entities.update_attributes(entity_id, device_attrs)
+            self.api.configured_entities.update_attributes(
+                entity_id, cast(dict[str, Any], device_attrs)
+            )
             return
 
         # Path 3: Default fallback - construct minimal STATE attribute
