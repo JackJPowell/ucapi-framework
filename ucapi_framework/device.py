@@ -12,7 +12,6 @@ Provides base classes for different device connection patterns:
 """
 
 from __future__ import annotations
-from ucapi_framework import BaseIntegrationDriver
 
 import asyncio
 import logging
@@ -23,8 +22,11 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from pyee.asyncio import AsyncIOEventEmitter
-
 from .helpers import EntityAttributes
+
+if TYPE_CHECKING:
+    from ucapi_framework.driver import BaseIntegrationDriver
+
 
 if TYPE_CHECKING:
     from .config import BaseConfigManager
