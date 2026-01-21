@@ -541,12 +541,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             try:
                 # Check if it's a dataclass - if so, entity.update() handles it
                 if is_dataclass(device_attrs):
-                    framework_entity.update(device_attrs)
+                    framework_entity.update(device_attrs, True)
                     return
                 # If it's a dict, use update_attributes directly
                 elif isinstance(device_attrs, dict):
                     framework_entity.update_attributes(
-                        cast(dict[str, Any], device_attrs)
+                        cast(dict[str, Any], device_attrs),
+                        True
                     )
                     return
             except (TypeError, AttributeError) as e:
