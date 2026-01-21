@@ -38,8 +38,8 @@ SENSOR_TYPES = [
 class TestDevice(BaseDeviceInterface):
     """Test device with hub capabilities."""
 
-    def __init__(self, device_config, loop=None, config_manager=None):
-        super().__init__(device_config, loop, config_manager)
+    def __init__(self, device_config, loop=None, config_manager=None, driver=None):
+        super().__init__(device_config, loop, config_manager, driver)
         self._connected = False
         # Simulated hub-discovered entities
         self.lights = [

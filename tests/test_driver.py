@@ -9,7 +9,7 @@ import ucapi
 from ucapi import media_player
 
 from ucapi_framework.device import BaseDeviceInterface, DeviceEvents
-from ucapi_framework.driver import BaseIntegrationDriver, create_entity_id
+from ucapi_framework.driver import BaseIntegrationDriver, create_entity_id, EntitySource
 from ucapi import EntityTypes
 
 
@@ -25,8 +25,8 @@ class DeviceConfigForTests:
 class DeviceForTests(BaseDeviceInterface):
     """Test device implementation."""
 
-    def __init__(self, device_config, loop=None, config_manager=None):
-        super().__init__(device_config, loop, config_manager)
+    def __init__(self, device_config, loop=None, config_manager=None, driver=None):
+        super().__init__(device_config, loop, config_manager, driver)
         self._connected = False
         self._state = None
 
@@ -2659,3 +2659,294 @@ class TestCreateEntities:
         device_none = CapableDevice(config_none, loop=mock_loop)
         entities = driver.create_entities(config_none, device_none)
         assert len(entities) == 0
+
+
+class TestDynamicEntityRegistration:
+    """Test dynamic entity registration at runtime."""
+
+    def test_device_has_driver_reference(self, driver):
+        """Test that devices receive a reference to the driver."""
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        device = driver._configured_devices["dev1"]
+        assert device.driver is driver
+
+    def test_add_entity_dynamically(self, driver):
+        """Test adding a single entity dynamically at runtime."""
+        # Create a new entity
+        entity = media_player.MediaPlayer(
+            "media_player.new_device",
+            "New Device",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+
+        # Add it dynamically
+        driver.add_entity(entity)
+
+        # Verify it was added to available entities
+        assert driver.api.available_entities.contains("media_player.new_device")
+
+    def test_add_entity_with_framework_entity(self, driver):
+        """Test that framework entities get _api reference when added dynamically."""
+        from ucapi_framework.entity import Entity as FrameworkEntity
+
+        class TestFrameworkEntity(FrameworkEntity):
+            def __init__(self):
+                self._id = "test.entity"
+                self._name = "Test Entity"
+
+            @property
+            def id(self) -> str:
+                return self._id
+
+        entity = TestFrameworkEntity()
+        driver.add_entity(entity)
+
+        # Verify entity got API reference
+        assert hasattr(entity, "_api")
+        assert entity._api is driver.api
+
+    def test_add_entity_replaces_existing(self, driver):
+        """Test that adding an entity with existing ID replaces it."""
+        entity1 = media_player.MediaPlayer(
+            "media_player.test",
+            "Test 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        entity2 = media_player.MediaPlayer(
+            "media_player.test",
+            "Test 2",  # Different name, same ID
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+
+        driver.add_entity(entity1)
+        driver.add_entity(entity2)  # Should replace entity1
+
+        # Verify entity was replaced (both calls should succeed without error)
+        assert driver.api.available_entities.contains("media_player.test")
+
+    def test_device_can_add_entity_via_driver_reference(self, driver):
+        """Test that a device can add entities dynamically using its driver reference."""
+        config = DeviceConfigForTests("hub1", "Hub 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        device = driver._configured_devices["hub1"]
+
+        # Simulate device discovering a new sub-device
+        new_light = media_player.MediaPlayer(
+            "light.hub1.bedroom",
+            "Bedroom Light",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+
+        # Device adds it via driver reference
+        if device.driver:
+            device.driver.add_entity(new_light)
+
+        # Verify it was added
+        assert driver.api.available_entities.contains("light.hub1.bedroom")
+
+
+class TestFilterEntitiesByType:
+    """Test filtering entities by type."""
+
+    def test_filter_entities_by_type_all_sources(self, driver):
+        """Test filtering entities from all sources."""
+        # Add some available entities
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [],
+            {},
+        )
+
+        driver.add_entity(player1)
+        driver.add_entity(player2)
+
+        # Mock configured entities
+        driver.api.configured_entities = MockEntityCollection()
+        player3 = media_player.MediaPlayer(
+            "media_player.dev3",
+            "Player 3",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player3)
+
+        # Filter for media_players from all sources
+        players = driver.filter_entities_by_type("media_player", source="all")
+
+        # Should get all three players
+        assert len(players) == 3
+        entity_ids = [e["entity_id"] for e in players]
+        assert "media_player.dev1" in entity_ids
+        assert "media_player.dev2" in entity_ids
+        assert "media_player.dev3" in entity_ids
+
+    def test_filter_entities_by_type_available_only(self, driver):
+        """Test filtering only available entities."""
+        # Add available entity
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Mock configured entities
+        driver.api.configured_entities = MockEntityCollection()
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player2)
+
+        # Filter for media_players from available only
+        players = driver.filter_entities_by_type("media_player", source="available")
+
+        # Should only get player1
+        assert len(players) == 1
+        assert players[0]["entity_id"] == "media_player.dev1"
+
+    def test_filter_entities_by_type_configured_only(self, driver):
+        """Test filtering only configured entities."""
+        # Add available entity
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Mock configured entities
+        driver.api.configured_entities = MockEntityCollection()
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player2)
+
+        # Filter for media_players from configured only
+        players = driver.filter_entities_by_type("media_player", source="configured")
+
+        # Should only get player2
+        assert len(players) == 1
+        assert players[0]["entity_id"] == "media_player.dev2"
+
+    def test_filter_entities_by_type_with_enum(self, driver):
+        """Test filtering using EntityTypes enum."""
+        # Add media player entity
+        player = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player)
+
+        # Filter using enum
+        players = driver.filter_entities_by_type(EntityTypes.MEDIA_PLAYER)
+
+        assert len(players) == 1
+        assert players[0]["entity_id"] == "media_player.dev1"
+
+    def test_filter_entities_by_type_with_source_enum(self, driver):
+        """Test filtering using EntitySource enum for source parameter."""
+        # Add available entity
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Mock configured entities
+        driver.api.configured_entities = MockEntityCollection()
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player2)
+
+        # Filter using EntitySource enum
+        available_only = driver.filter_entities_by_type(
+            EntityTypes.MEDIA_PLAYER, source=EntitySource.AVAILABLE
+        )
+        configured_only = driver.filter_entities_by_type(
+            EntityTypes.MEDIA_PLAYER, source=EntitySource.CONFIGURED
+        )
+        all_players = driver.filter_entities_by_type(
+            EntityTypes.MEDIA_PLAYER, source=EntitySource.ALL
+        )
+
+        # Verify filtering works with enum
+        assert len(available_only) == 1
+        assert available_only[0]["entity_id"] == "media_player.dev1"
+
+        assert len(configured_only) == 1
+        assert configured_only[0]["entity_id"] == "media_player.dev2"
+
+        assert len(all_players) == 2
+
+    def test_filter_entities_by_type_no_matches(self, driver):
+        """Test filtering when no entities match."""
+        # Add a media_player
+        player = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player)
+
+        # Filter for sensors (none exist)
+        sensors = driver.filter_entities_by_type("sensor")
+
+        assert len(sensors) == 0
+
+    def test_filter_entities_by_type_invalid_source(self, driver):
+        """Test that invalid source raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid source"):
+            driver.filter_entities_by_type("media_player", source="invalid")
+
+    def test_filter_entities_by_type_avoids_duplicates(self, driver):
+        """Test that entities appearing in both collections are not duplicated."""
+        # Add entity to available
+        player = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player)
+
+        # Add same entity to configured
+        driver.api.configured_entities = MockEntityCollection()
+        driver.api.configured_entities.add(player)
+
+        # Filter from all sources
+        players = driver.filter_entities_by_type("media_player", source="all")
+
+        # Should only get one instance
+        assert len(players) == 1
+        assert players[0]["entity_id"] == "media_player.dev1"
