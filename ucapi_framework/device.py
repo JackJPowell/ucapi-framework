@@ -12,6 +12,7 @@ Provides base classes for different device connection patterns:
 """
 
 from __future__ import annotations
+from ucapi_framework import BaseIntegrationDriver
 
 import asyncio
 import logging
@@ -81,7 +82,7 @@ class BaseDeviceInterface(ABC):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         config_manager: BaseConfigManager | None = None,
-        driver: Any | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Create device interface instance.
@@ -275,7 +276,7 @@ class StatelessHTTPDevice(BaseDeviceInterface):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         config_manager: BaseConfigManager | None = None,
-        driver: Any | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """Initialize stateless HTTP device."""
         super().__init__(device_config, loop, config_manager, driver)
@@ -358,7 +359,7 @@ class PollingDevice(BaseDeviceInterface):
         loop: AbstractEventLoop | None = None,
         poll_interval: int = 30,
         config_manager: BaseConfigManager | None = None,
-        driver: Any | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Initialize polling device.
@@ -487,7 +488,7 @@ class WebSocketDevice(BaseDeviceInterface):
         ping_interval: int = 30,
         ping_timeout: int = 10,
         config_manager: BaseConfigManager | None = None,
-        driver: Any | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Initialize WebSocket device.
@@ -855,6 +856,7 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
         ping_timeout: int = 10,
         keep_polling_on_disconnect: bool = True,
         config_manager: BaseConfigManager | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Initialize WebSocket + Polling device.
@@ -878,8 +880,11 @@ class WebSocketPollingDevice(WebSocketDevice, PollingDevice):
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
             config_manager=config_manager,
+            driver=driver,
         )
-        PollingDevice.__init__(self, device_config, loop, poll_interval, config_manager)
+        PollingDevice.__init__(
+            self, device_config, loop, poll_interval, config_manager, driver=driver
+        )
         self._keep_polling_on_disconnect = keep_polling_on_disconnect
 
     async def connect(self) -> bool:
@@ -1056,7 +1061,7 @@ class ExternalClientDevice(BaseDeviceInterface):
         reconnect_delay: int = 5,
         max_reconnect_attempts: int | None = 3,
         config_manager: BaseConfigManager | None = None,
-        driver: Any | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Initialize external client device.
@@ -1331,6 +1336,7 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         loop: AbstractEventLoop | None = None,
         backoff_max: int = BACKOFF_MAX,
         config_manager: BaseConfigManager | None = None,
+        driver: BaseIntegrationDriver | None = None,
     ):
         """
         Initialize persistent connection device.
@@ -1340,7 +1346,7 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         :param backoff_max: Maximum backoff time in seconds
         :param config_manager: Optional config manager for persisting configuration updates
         """
-        super().__init__(device_config, loop, config_manager)
+        super().__init__(device_config, loop, config_manager, driver=driver)
         self._connection: Any = None
         self._reconnect_task: asyncio.Task | None = None
         self._stop_reconnect = asyncio.Event()
