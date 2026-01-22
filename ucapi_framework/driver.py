@@ -794,6 +794,59 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         return filtered_entities
 
+    def get_entity_by_id(
+        self, entity_id: str, source: EntitySource | str = EntitySource.ALL
+    ) -> Entity | None:
+        """
+        Get a specific entity by its ID.
+
+        Searches for the entity in available entities, configured entities, or both.
+
+        Example usage:
+            # Get an entity from any source
+            entity = driver.get_entity_by_id("light.living_room.main")
+
+            # Get only from configured entities
+            entity = driver.get_entity_by_id(
+                "sensor.bedroom.temp",
+                source=EntitySource.CONFIGURED
+            )
+
+            if entity:
+                print(f"Found entity: {entity.name}")
+
+        :param entity_id: Entity identifier to search for
+        :param source: Which collection(s) to search (EntitySource enum or string):
+                      EntitySource.ALL or "all" (default) - both available and configured
+                      EntitySource.AVAILABLE or "available" - only available entities
+                      EntitySource.CONFIGURED or "configured" - only configured entities
+        :return: Entity object if found, None otherwise
+        :raises ValueError: If source is not valid
+        """
+        # Normalize source to string
+        source_str = source.value if isinstance(source, EntitySource) else source
+
+        # Validate source parameter
+        if source_str not in ("all", "available", "configured"):
+            raise ValueError(
+                f"Invalid source '{source_str}'. Must be 'all', 'available', or 'configured', "
+                f"or use EntitySource enum (ALL, AVAILABLE, CONFIGURED)"
+            )
+
+        # Search in configured entities first (if applicable)
+        if source_str in ("all", "configured"):
+            entity = self.api.configured_entities.get(entity_id)
+            if entity:
+                return entity
+
+        # Search in available entities (if not found or if source is available/all)
+        if source_str in ("all", "available"):
+            entity = self.api.available_entities.get(entity_id)
+            if entity:
+                return entity
+
+        return None
+
     def register_available_entities(
         self, device_config: ConfigT, device: DeviceT
     ) -> None:

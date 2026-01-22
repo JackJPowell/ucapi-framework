@@ -120,11 +120,15 @@ class SmartHomeHub(WebSocketDevice):
 - **Entity replacement** - Adding an entity with an existing ID replaces the old one
 - **Works with both entity types** - Accepts `ucapi.Entity` or framework `Entity` objects
 
-### 3. Entity Filtering by Type
+### 3. Entity Querying Methods
 
-New `filter_entities_by_type()` method enables querying entities by their type.
+Two new methods for finding and retrieving entities: `filter_entities_by_type()` and `get_entity_by_id()`.
 
-#### Method Signature
+#### filter_entities_by_type()
+
+Query entities by their type from available entities, configured entities, or both.
+
+**Method Signature:**
 
 ```python
 def filter_entities_by_type(
@@ -210,6 +214,69 @@ class MyHub(WebSocketDevice):
         # Update each light
         for light_entity in lights:
             await self.update_light_state(light_entity.id)
+```
+
+#### get_entity_by_id()
+
+Retrieve a specific entity by its ID from available or configured entities.
+
+**Method Signature:**
+
+```python
+def get_entity_by_id(
+    self,
+    entity_id: str,
+    source: EntitySource | str = EntitySource.ALL,
+) -> Entity | None:
+    """
+    Get a specific entity by its ID.
+    
+    Args:
+        entity_id: Entity identifier to search for
+        source: Which collection(s) to search:
+            - EntitySource.ALL or "all" (default): Both available and configured
+            - EntitySource.AVAILABLE or "available": Only available entities
+            - EntitySource.CONFIGURED or "configured": Only configured entities
+    
+    Returns:
+        Entity object if found, None otherwise
+    """
+```
+
+**Examples:**
+
+```python
+# Get an entity from any source
+entity = driver.get_entity_by_id("light.living_room.main")
+if entity:
+    print(f"Found: {entity.name}, State: {entity.attributes.get('state')}")
+
+# Get only from configured entities
+entity = driver.get_entity_by_id(
+    "sensor.bedroom.temp",
+    source=EntitySource.CONFIGURED
+)
+
+# Get only from available entities
+entity = driver.get_entity_by_id(
+    "media_player.zone1",
+    source=EntitySource.AVAILABLE
+)
+```
+
+**Using in Devices:**
+
+```python
+class MyDevice(WebSocketDevice):
+    async def handle_command(self, entity_id: str, command: str):
+        """Handle a command for a specific entity."""
+        if not self.driver:
+            return
+        
+        # Get the specific entity
+        entity = self.driver.get_entity_by_id(entity_id)
+        if entity:
+            await self.execute_command(entity, command)
 ```
 
 ## Complete Example: Dynamic Hub Device

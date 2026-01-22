@@ -2752,6 +2752,160 @@ class TestDynamicEntityRegistration:
         assert driver.api.available_entities.contains("light.hub1.bedroom")
 
 
+class TestGetEntityById:
+    """Test getting entities by ID."""
+
+    def test_get_entity_by_id_from_configured(self, driver):
+        """Test getting entity from configured entities."""
+        # Add entity to configured
+        driver.api.configured_entities = MockEntityCollection()
+        player = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player)
+
+        # Get entity
+        entity = driver.get_entity_by_id("media_player.dev1")
+
+        assert entity is not None
+        assert entity.id == "media_player.dev1"
+        assert entity.name["en"] == "Player 1"
+
+    def test_get_entity_by_id_from_available(self, driver):
+        """Test getting entity from available entities."""
+        # Initialize configured entities as empty
+        driver.api.configured_entities = MockEntityCollection()
+
+        # Add entity to available
+        player = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player)
+
+        # Get entity
+        entity = driver.get_entity_by_id("media_player.dev1")
+
+        assert entity is not None
+        assert entity.id == "media_player.dev1"
+        assert entity is player
+
+    def test_get_entity_by_id_configured_source_only(self, driver):
+        """Test getting entity from configured entities only."""
+        # Add entity to available
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Add different entity to configured
+        driver.api.configured_entities = MockEntityCollection()
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player2)
+
+        # Get from configured only - should not find dev1
+        entity = driver.get_entity_by_id(
+            "media_player.dev1", source=EntitySource.CONFIGURED
+        )
+        assert entity is None
+
+        # Should find dev2
+        entity = driver.get_entity_by_id(
+            "media_player.dev2", source=EntitySource.CONFIGURED
+        )
+        assert entity is not None
+        assert entity.id == "media_player.dev2"
+
+    def test_get_entity_by_id_available_source_only(self, driver):
+        """Test getting entity from available entities only."""
+        # Add entity to available
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Add different entity to configured
+        driver.api.configured_entities = MockEntityCollection()
+        player2 = media_player.MediaPlayer(
+            "media_player.dev2",
+            "Player 2",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.api.configured_entities.add(player2)
+
+        # Get from available only - should not find dev2
+        entity = driver.get_entity_by_id(
+            "media_player.dev2", source=EntitySource.AVAILABLE
+        )
+        assert entity is None
+
+        # Should find dev1
+        entity = driver.get_entity_by_id(
+            "media_player.dev1", source=EntitySource.AVAILABLE
+        )
+        assert entity is not None
+        assert entity.id == "media_player.dev1"
+
+    def test_get_entity_by_id_not_found(self, driver):
+        """Test getting entity that doesn't exist."""
+        # Initialize with mock collections that return None for non-existent entities
+        driver.api.configured_entities = MockEntityCollection()
+
+        entity = driver.get_entity_by_id("nonexistent.entity")
+        assert entity is None
+
+    def test_get_entity_by_id_invalid_source(self, driver):
+        """Test that invalid source raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid source"):
+            driver.get_entity_by_id("media_player.dev1", source="invalid")
+
+    def test_get_entity_by_id_prefers_configured(self, driver):
+        """Test that configured entities are returned first when source=all."""
+        # Add same entity to both collections
+        player_available = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player Available",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player_available)
+
+        driver.api.configured_entities = MockEntityCollection()
+        player_configured = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player Configured",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.ON},
+        )
+        driver.api.configured_entities.add(player_configured)
+
+        # Get entity - should return configured version
+        entity = driver.get_entity_by_id("media_player.dev1", source=EntitySource.ALL)
+
+        assert entity is not None
+        assert entity.id == "media_player.dev1"
+        assert (
+            entity.name["en"] == "Player Configured"
+        )  # From configured, not available
+
+
 class TestFilterEntitiesByType:
     """Test filtering entities by type."""
 
