@@ -1,6 +1,6 @@
 [project]
 name = "ucapi-framework"
-version = "1.6.5"
+version = "1.6.6"
 description = "ucapi framework that provides core functionality for building integrations."
 readme = "README.md"
 requires-python = ">=3.11"
