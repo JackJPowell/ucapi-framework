@@ -717,6 +717,79 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         self.api.available_entities.add(entity)
         _LOG.info("Dynamically added entity: %s", entity.id)
 
+    def add_entities(
+        self,
+        entity_factory: Callable[[], Entity | list[Entity]],
+        *,
+        skip_existing: bool = True,
+    ) -> list[Entity]:
+        """
+        Create and add entities using a factory function, optionally skipping duplicates.
+
+        This method is useful for dynamic entity creation, such as when a hub device
+        discovers new sub-devices at runtime. The factory function is called to create
+        the entities, and they are added to available entities if they don't already exist.
+
+        The keyword-only skip_existing parameter forces explicit, self-documenting code:
+            driver.add_entities(factory, skip_existing=False)  # Clear intent
+
+        Example usage in a device:
+            # Add single entity
+            added = self.driver.add_entities(
+                lambda: MyLight(self.device_config, self, light_data)
+            )
+
+            # Add multiple entities
+            added = self.driver.add_entities(
+                lambda: [
+                    MyLight(self.device_config, self, light)
+                    for light in self.discovered_lights
+                ]
+            )
+
+            # Force add even if entities exist (replace existing)
+            added = self.driver.add_entities(
+                lambda: [MyLight(self.device_config, self, light) for light in lights],
+                skip_existing=False
+            )
+
+        :param entity_factory: Callable that returns an Entity or list of Entities
+        :param skip_existing: If True (default), skip entities that already exist in
+                             available_entities. If False, add all entities
+                             (removing existing ones first to avoid duplicates).
+        :return: List of entities that were actually added
+        """
+        # Call factory to create entities
+        result = entity_factory()
+
+        # Normalize to list
+        entities = [result] if isinstance(result, Entity) else result
+
+        added_entities = []
+
+        for entity in entities:
+            # Check if entity already exists (if skip_existing is True)
+            if skip_existing:
+                if self.api.available_entities.contains(entity.id):
+                    _LOG.debug(
+                        "Entity %s already exists, skipping (skip_existing=True)",
+                        entity.id,
+                    )
+                    continue
+
+            # Add the entity (removes and re-adds if it exists)
+            self.add_entity(entity)
+            added_entities.append(entity)
+
+        if added_entities:
+            _LOG.info(
+                "Added %d new entities (skipped %d existing)",
+                len(added_entities),
+                len(entities) - len(added_entities),
+            )
+
+        return added_entities
+
     def filter_entities_by_type(
         self,
         entity_type: EntityTypes | str,

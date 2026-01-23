@@ -7,8 +7,8 @@ This guide covers the new features and changes introduced in version 1.6.0, whic
 Version 1.6.0 introduces three major enhancements for more flexible device and entity management:
 
 1. **Driver Reference in Devices** - Devices can now access their parent driver
-2. **Dynamic Entity Registration** - Add entities at runtime via `driver.add_entity()`
-3. **Entity Filtering by Type** - Query entities by type using `driver.filter_entities_by_type()`
+2. **Dynamic Entity Registration** - Add entities at runtime via `driver.add_entity()` or bulk registration via `driver.add_entities()`
+3. **Entity Querying Methods** - Query entities by type using `driver.filter_entities_by_type()` or retrieve specific entities with `driver.get_entity_by_id()`
 
 These features enable advanced use cases like hub devices that discover sub-devices dynamically.
 
@@ -97,16 +97,10 @@ class SmartHomeHub(WebSocketDevice):
         """Handle WebSocket messages from the hub."""
         if message.get("type") == "new_device_discovered":
             # Hub discovered a new light
-            device_data = message["device"]
+            light_config = message["device"]
             
-            # Create a new entity
-            new_light = Entity(
-                entity_id=f"light.{self.identifier}.{device_data['id']}",
-                entity_type=EntityTypes.LIGHT,
-                name=device_data["name"],
-                features=[light.Features.ON_OFF, light.Features.DIM],
-                attributes={light.Attributes.STATE: light.States.OFF}
-            )
+            # Create a new light entity using your custom entity class
+            new_light = HubLight(self.device_config, self, light_config)
             
             # Dynamically register it with the driver
             if self.driver:
@@ -119,6 +113,86 @@ class SmartHomeHub(WebSocketDevice):
 - **Automatic `_api` injection** - Framework entities automatically get the API reference
 - **Entity replacement** - Adding an entity with an existing ID replaces the old one
 - **Works with both entity types** - Accepts `ucapi.Entity` or framework `Entity` objects
+
+#### Bulk Entity Registration
+
+For adding multiple entities at once, use `add_entities()`:
+
+**Method Signature:**
+
+```python
+def add_entities(
+    self,
+    entity_factory: Callable[[], Entity | list[Entity]],
+    *,
+    skip_existing: bool = True,
+) -> list[Entity]:
+    """
+    Create and add entities using a factory function, optionally skipping duplicates.
+    
+    Args:
+        entity_factory: Callable that returns an Entity or list of Entities
+        skip_existing: If True (default), skip entities that already exist.
+                      If False, add all entities (removing existing first to avoid duplicates).
+    
+    Returns:
+        List of entities that were actually added
+    """
+```
+
+**Use Cases:**
+
+- **Periodic refresh**: Hub devices that periodically re-discover all sub-devices
+- **Batch discovery**: Creating multiple entities from a list of discovered devices
+- **Incremental updates**: Adding only new entities while skipping existing ones
+
+**Examples:**
+
+```python
+class SmartHomeHub(WebSocketDevice):
+    def __init__(self, config, driver=None):
+        super().__init__(config, driver=driver)
+        self.discovered_devices = []
+    
+    async def refresh_devices(self):
+        """Refresh the list of available devices from the hub."""
+        # Fetch latest device list from hub
+        devices = await self.hub_api.get_all_devices()
+        self.discovered_devices = devices
+        
+        # Create entities for new devices only
+        if self.driver:
+            added = self.driver.add_entities(
+                lambda: [
+                    HubLight(self.device_config, self, light_config)
+                    for light_config in self.discovered_devices
+                ],
+                skip_existing=True  # Only add new ones
+            )
+            _LOG.info(f"Added {len(added)} new lights")
+    
+    async def force_refresh_all(self):
+        """Force refresh all entities, replacing existing ones."""
+        if self.driver:
+            # Replace all entities (removes existing first to avoid duplicates)
+            added = self.driver.add_entities(
+                lambda: [
+                    HubLight(self.device_config, self, light_config)
+                    for light_config in self.discovered_devices
+                ],
+                skip_existing=False  # Remove and re-add existing entities
+            )
+            _LOG.info(f"Refreshed {len(added)} light entities")
+```
+
+**Key Differences from `add_entity()`:**
+
+| Feature | `add_entity()` | `add_entities()` |
+| ------- | ------------- | ---------------- |
+| Use case | Single entity at a time | Bulk entity creation |
+| Duplicate handling | Always removes then re-adds | Configurable via `skip_existing` |
+| Return value | None | List of added entities |
+| Typical usage | Event-driven discovery | Periodic refresh/scan |
 
 ### 3. Entity Querying Methods
 

@@ -2752,6 +2752,207 @@ class TestDynamicEntityRegistration:
         assert driver.api.available_entities.contains("light.hub1.bedroom")
 
 
+class TestAddEntities:
+    """Test adding entities from factory function."""
+
+    def test_add_entities_single_entity(self, driver):
+        """Test adding a single entity from factory."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Factory that returns single entity
+        added = driver.add_entities(
+            lambda: media_player.MediaPlayer(
+                "media_player.dev1",
+                "Player 1",
+                [media_player.Features.ON_OFF],
+                {media_player.Attributes.STATE: media_player.States.OFF},
+            )
+        )
+
+        assert len(added) == 1
+        assert added[0].id == "media_player.dev1"
+        assert driver.api.available_entities.contains("media_player.dev1")
+
+    def test_add_entities_multiple_entities(self, driver):
+        """Test adding multiple entities from factory."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Factory that returns list of entities
+        added = driver.add_entities(
+            lambda: [
+                media_player.MediaPlayer(
+                    f"media_player.dev{i}",
+                    f"Player {i}",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                )
+                for i in range(1, 4)
+            ]
+        )
+
+        assert len(added) == 3
+        assert added[0].id == "media_player.dev1"
+        assert added[1].id == "media_player.dev2"
+        assert added[2].id == "media_player.dev3"
+        assert driver.api.available_entities.contains("media_player.dev1")
+        assert driver.api.available_entities.contains("media_player.dev2")
+        assert driver.api.available_entities.contains("media_player.dev3")
+
+    def test_add_entities_skip_existing_in_available(self, driver):
+        """Test that existing entities in available are skipped by default."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Add entity first
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Factory returns mix of existing and new
+        added = driver.add_entities(
+            lambda: [
+                media_player.MediaPlayer(
+                    "media_player.dev1",  # Existing
+                    "Player 1 Updated",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.ON},
+                ),
+                media_player.MediaPlayer(
+                    "media_player.dev2",  # New
+                    "Player 2",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                ),
+            ]
+        )
+
+        # Should only add dev2, skip dev1
+        assert len(added) == 1
+        assert added[0].id == "media_player.dev2"
+        assert driver.api.available_entities.contains("media_player.dev1")
+        assert driver.api.available_entities.contains("media_player.dev2")
+
+    def test_add_entities_mixed_existing_and_new(self, driver):
+        """Test adding a mix of existing and new entities."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Add some entities to available first
+        for i in [1, 3]:
+            driver.add_entity(
+                media_player.MediaPlayer(
+                    f"media_player.dev{i}",
+                    f"Player {i}",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                )
+            )
+
+        # Factory returns mix: dev1 exists, dev2 is new, dev3 exists, dev4 is new
+        added = driver.add_entities(
+            lambda: [
+                media_player.MediaPlayer(
+                    f"media_player.dev{i}",
+                    f"Player {i}",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                )
+                for i in range(1, 5)
+            ]
+        )
+
+        # Should only add dev2 and dev4 (dev1 and dev3 already exist)
+        assert len(added) == 2
+        assert added[0].id == "media_player.dev2"
+        assert added[1].id == "media_player.dev4"
+
+    def test_add_entities_force_add_existing(self, driver):
+        """Test adding entities with skip_existing=False replaces existing."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Add entity first
+        player1 = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1 Original",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        driver.add_entity(player1)
+
+        # Factory returns updated version
+        added = driver.add_entities(
+            lambda: [
+                media_player.MediaPlayer(
+                    "media_player.dev1",
+                    "Player 1 Updated",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.ON},
+                ),
+            ],
+            skip_existing=False,
+        )
+
+        # Should add the entity (replace existing)
+        assert len(added) == 1
+        assert added[0].id == "media_player.dev1"
+        assert added[0].name["en"] == "Player 1 Updated"
+
+    def test_add_entities_empty_list(self, driver):
+        """Test that empty list from factory returns empty list."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        added = driver.add_entities(lambda: [])
+
+        assert len(added) == 0
+
+    def test_add_entities_all_skipped(self, driver):
+        """Test when all entities are skipped."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+        
+        # Add entities first
+        for i in range(1, 4):
+            driver.add_entity(
+                media_player.MediaPlayer(
+                    f"media_player.dev{i}",
+                    f"Player {i}",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                )
+            )
+
+        # Factory returns same entities
+        added = driver.add_entities(
+            lambda: [
+                media_player.MediaPlayer(
+                    f"media_player.dev{i}",
+                    f"Player {i}",
+                    [media_player.Features.ON_OFF],
+                    {media_player.Attributes.STATE: media_player.States.OFF},
+                )
+                for i in range(1, 4)
+            ]
+        )
+
+        # All should be skipped
+        assert len(added) == 0
+
+
 class TestGetEntityById:
     """Test getting entities by ID."""
 
