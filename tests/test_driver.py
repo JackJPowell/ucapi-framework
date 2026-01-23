@@ -2760,7 +2760,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Factory that returns single entity
         added = driver.add_entities(
             lambda: media_player.MediaPlayer(
@@ -2780,7 +2780,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Factory that returns list of entities
         added = driver.add_entities(
             lambda: [
@@ -2807,7 +2807,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Add entity first
         player1 = media_player.MediaPlayer(
             "media_player.dev1",
@@ -2846,7 +2846,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Add some entities to available first
         for i in [1, 3]:
             driver.add_entity(
@@ -2881,7 +2881,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Add entity first
         player1 = media_player.MediaPlayer(
             "media_player.dev1",
@@ -2914,7 +2914,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         added = driver.add_entities(lambda: [])
 
         assert len(added) == 0
@@ -2924,7 +2924,7 @@ class TestAddEntities:
         # Set up mock entity collections
         driver.api.available_entities = MockEntityCollection()
         driver.api.configured_entities = MockEntityCollection()
-        
+
         # Add entities first
         for i in range(1, 4):
             driver.add_entity(
