@@ -719,27 +719,33 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
     def add_entities(
         self,
-        entity_factory: Callable[[], Entity | list[Entity]],
+        entities: Entity | list[Entity] | Callable[[], Entity | list[Entity]],
         *,
         skip_existing: bool = True,
     ) -> list[Entity]:
         """
-        Create and add entities using a factory function, optionally skipping duplicates.
+        Add entities dynamically, optionally skipping duplicates.
 
         This method is useful for dynamic entity creation, such as when a hub device
-        discovers new sub-devices at runtime. The factory function is called to create
-        the entities, and they are added to available entities if they don't already exist.
+        discovers new sub-devices at runtime. You can pass entities directly or use
+        a factory function that creates them.
 
         The keyword-only skip_existing parameter forces explicit, self-documenting code:
-            driver.add_entities(factory, skip_existing=False)  # Clear intent
+            driver.add_entities(entities, skip_existing=False)  # Clear intent
 
         Example usage in a device:
-            # Add single entity
+            # Add single entity directly
             added = self.driver.add_entities(
-                lambda: MyLight(self.device_config, self, light_data)
+                MyLight(self.device_config, self, light_data)
             )
 
-            # Add multiple entities
+            # Add multiple entities directly
+            added = self.driver.add_entities([
+                MyLight(self.device_config, self, light)
+                for light in self.discovered_lights
+            ])
+
+            # Add using factory function
             added = self.driver.add_entities(
                 lambda: [
                     MyLight(self.device_config, self, light)
@@ -749,25 +755,28 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
             # Force add even if entities exist (replace existing)
             added = self.driver.add_entities(
-                lambda: [MyLight(self.device_config, self, light) for light in lights],
+                my_entities,
                 skip_existing=False
             )
 
-        :param entity_factory: Callable that returns an Entity or list of Entities
+        :param entities: Entity, list of Entities, or Callable that returns Entity or list of Entities
         :param skip_existing: If True (default), skip entities that already exist in
                              available_entities. If False, add all entities
                              (removing existing ones first to avoid duplicates).
         :return: List of entities that were actually added
         """
-        # Call factory to create entities
-        result = entity_factory()
+        # Handle callable (factory function)
+        if callable(entities):
+            result = entities()
+        else:
+            result = entities
 
         # Normalize to list
-        entities = [result] if isinstance(result, Entity) else result
+        entity_list = [result] if isinstance(result, Entity) else result
 
         added_entities = []
 
-        for entity in entities:
+        for entity in entity_list:
             # Check if entity already exists (if skip_existing is True)
             if skip_existing:
                 if self.api.available_entities.contains(entity.id):
@@ -785,7 +794,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             _LOG.info(
                 "Added %d new entities (skipped %d existing)",
                 len(added_entities),
-                len(entities) - len(added_entities),
+                len(entity_list) - len(added_entities),
             )
 
         return added_entities
