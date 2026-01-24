@@ -123,15 +123,15 @@ For adding multiple entities at once, use `add_entities()`:
 ```python
 def add_entities(
     self,
-    entity_factory: Callable[[], Entity | list[Entity]],
+    entities: Entity | list[Entity] | Callable[[], Entity | list[Entity]],
     *,
     skip_existing: bool = True,
 ) -> list[Entity]:
     """
-    Create and add entities using a factory function, optionally skipping duplicates.
+    Add entities dynamically, optionally skipping duplicates.
     
     Args:
-        entity_factory: Callable that returns an Entity or list of Entities
+        entities: Entity, list of Entities, or Callable that returns Entity or list of Entities
         skip_existing: If True (default), skip entities that already exist.
                       If False, add all entities (removing existing first to avoid duplicates).
     
@@ -139,6 +139,8 @@ def add_entities(
         List of entities that were actually added
     """
 ```
+
+**Note on the `*` separator**: The asterisk before `skip_existing` makes it a keyword-only parameter. This forces you to write `skip_existing=False` instead of just `False`, making your code self-documenting. When someone reads `driver.add_entities(entities, skip_existing=False)`, they immediately understand what `False` means.
 
 **Use Cases:**
 
@@ -160,13 +162,14 @@ class SmartHomeHub(WebSocketDevice):
         devices = await self.hub_api.get_all_devices()
         self.discovered_devices = devices
         
-        # Create entities for new devices only
+        # Create entities for new devices only - pass list directly
         if self.driver:
+            new_entities = [
+                HubLight(self.device_config, self, light_config)
+                for light_config in self.discovered_devices
+            ]
             added = self.driver.add_entities(
-                lambda: [
-                    HubLight(self.device_config, self, light_config)
-                    for light_config in self.discovered_devices
-                ],
+                new_entities,
                 skip_existing=True  # Only add new ones
             )
             _LOG.info(f"Added {len(added)} new lights")
@@ -175,6 +178,7 @@ class SmartHomeHub(WebSocketDevice):
         """Force refresh all entities, replacing existing ones."""
         if self.driver:
             # Replace all entities (removes existing first to avoid duplicates)
+            # Can also use a lambda factory if preferred
             added = self.driver.add_entities(
                 lambda: [
                     HubLight(self.device_config, self, light_config)
