@@ -2755,6 +2755,51 @@ class TestDynamicEntityRegistration:
 class TestAddEntities:
     """Test adding entities from factory function."""
 
+    def test_add_entities_single_entity_direct(self, driver):
+        """Test adding a single entity directly (not via factory)."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+
+        # Pass entity directly
+        entity = media_player.MediaPlayer(
+            "media_player.dev1",
+            "Player 1",
+            [media_player.Features.ON_OFF],
+            {media_player.Attributes.STATE: media_player.States.OFF},
+        )
+        added = driver.add_entities(entity)
+
+        assert len(added) == 1
+        assert added[0].id == "media_player.dev1"
+        assert driver.api.available_entities.contains("media_player.dev1")
+
+    def test_add_entities_list_direct(self, driver):
+        """Test adding multiple entities directly as a list (not via factory)."""
+        # Set up mock entity collections
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.configured_entities = MockEntityCollection()
+
+        # Pass list of entities directly
+        entities = [
+            media_player.MediaPlayer(
+                f"media_player.dev{i}",
+                f"Player {i}",
+                [media_player.Features.ON_OFF],
+                {media_player.Attributes.STATE: media_player.States.OFF},
+            )
+            for i in range(1, 4)
+        ]
+        added = driver.add_entities(entities)
+
+        assert len(added) == 3
+        assert added[0].id == "media_player.dev1"
+        assert added[1].id == "media_player.dev2"
+        assert added[2].id == "media_player.dev3"
+        assert driver.api.available_entities.contains("media_player.dev1")
+        assert driver.api.available_entities.contains("media_player.dev2")
+        assert driver.api.available_entities.contains("media_player.dev3")
+
     def test_add_entities_single_entity(self, driver):
         """Test adding a single entity from factory."""
         # Set up mock entity collections
