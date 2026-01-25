@@ -570,9 +570,7 @@ class TestBaseIntegrationDriver:
             assert device.name == f"Device {i}"
 
     @pytest.mark.asyncio
-    async def test_register_all_device_instances_empty_config_manager(
-        self, mock_loop
-    ):
+    async def test_register_all_device_instances_empty_config_manager(self, mock_loop):
         """Test registration with empty config manager registers no devices."""
         driver = ConcreteDriver(
             DeviceForTests,
