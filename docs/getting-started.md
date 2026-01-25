@@ -221,8 +221,8 @@ async def main():
         config_class=MyDeviceConfig,
     )
 
-    # Connect to all configured PowerView hubs
-    await driver.register_all_configured_devices()
+    # Register all configured PowerView hubs
+    await driver.register_all_device_instances()
 
     setup_handler = PowerviewSetupFlow.create_handler(driver, None)
     await driver.api.init("driver.json", setup_handler)
