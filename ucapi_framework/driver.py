@@ -212,11 +212,15 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         Example:
             driver = MyDriver(device_class=MyDevice, entity_classes=[EntityTypes.MEDIA_PLAYER])
             driver.config_manager = my_config_manager
-        :param connect: Whether to connect devices after adding them (default: False).
+
+            # Register devices and make entities available (but don't connect)
+            await driver.register_all_device_instances(connect=False)
+
+            # Later, when user configures entities, on_subscribe_entities will connect
+
+        :param connect: Whether to connect devices immediately (default: False).
                          Only applies when require_connection_before_registry=False.
                          When require_connection_before_registry=True, devices are always connected.
-
-        :param connect: Whether to connect devices after adding them (default: False)
         """
         if self._config_manager is None:
             _LOG.warning("Cannot register devices: config_manager is not set")
@@ -227,6 +231,18 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 await self.async_add_configured_device(device_config)
             else:
                 self.add_configured_device(device_config, connect=connect)
+
+    async def register_all_configured_devices(self, connect: bool = False) -> None:
+        """
+        Register all devices from the configuration manager.
+
+        .. deprecated:: 1.7.0
+            Use :meth:`register_all_device_instances` instead. This method is kept for
+            backward compatibility and simply calls the new method.
+
+        :param connect: Whether to connect devices after adding them (default: False)
+        """
+        await self.register_all_device_instances(connect=connect)
 
     def _setup_event_handlers(self) -> None:
         """Register all event handlers with the API."""
@@ -1943,10 +1959,6 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 entity_ids.add(entity["entity_id"])
 
         return list(entity_ids)
-
-    # ========================================================================
-    # Utility Methods
-    # ========================================================================
 
     def remove_device(self, device_id: str) -> None:
         """
