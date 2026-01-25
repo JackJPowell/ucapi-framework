@@ -206,7 +206,7 @@ class TestBaseIntegrationDriver:
 
         assert driver._device_class == DeviceForTests
         assert driver._entity_classes == [media_player.MediaPlayer]
-        assert driver._configured_devices == {}
+        assert driver._device_instances == {}
 
     @pytest.mark.asyncio
     async def test_on_r2_connect_cmd(self):
@@ -234,7 +234,7 @@ class TestBaseIntegrationDriver:
         await asyncio.sleep(0.01)
 
         # Should connect all devices
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         assert device.is_connected is True
 
         # Wait for all pending tasks to complete (event handlers)
@@ -260,7 +260,7 @@ class TestBaseIntegrationDriver:
         # Add and connect a device
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
 
         await driver.on_r2_disconnect_cmd()
@@ -288,8 +288,8 @@ class TestBaseIntegrationDriver:
         driver.add_configured_device(config1, connect=False)
         driver.add_configured_device(config2, connect=False)
 
-        dev1 = driver._configured_devices["dev1"]
-        dev2 = driver._configured_devices["dev2"]
+        dev1 = driver._device_instances["dev1"]
+        dev2 = driver._device_instances["dev2"]
         await dev1.connect()
         await dev2.connect()
 
@@ -318,7 +318,7 @@ class TestBaseIntegrationDriver:
         # Give the background task time to start and run
         await asyncio.sleep(0.01)
 
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         assert device.is_connected is True
 
         # Wait for all pending tasks to complete (event handlers)
@@ -337,7 +337,7 @@ class TestBaseIntegrationDriver:
         # Add device
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         device._state = "on"
 
         # Mock configured entity with entity_type
@@ -364,7 +364,7 @@ class TestBaseIntegrationDriver:
         await driver.on_subscribe_entities(["media_player.dev1"])
 
         # Device should be added
-        assert "dev1" in driver._configured_devices
+        assert "dev1" in driver._device_instances
 
     @pytest.mark.asyncio
     async def test_on_unsubscribe_entities(self, driver):
@@ -372,7 +372,7 @@ class TestBaseIntegrationDriver:
         # Add device
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
 
         # Mock that no entities are configured
@@ -381,7 +381,7 @@ class TestBaseIntegrationDriver:
         await driver.on_unsubscribe_entities(["media_player.dev1"])
 
         # Device should be disconnected and removed
-        assert "dev1" not in driver._configured_devices
+        assert "dev1" not in driver._device_instances
         assert device.is_connected is False
 
     def test_add_configured_device(self, driver):
@@ -390,8 +390,8 @@ class TestBaseIntegrationDriver:
 
         driver.add_configured_device(config, connect=False)
 
-        assert "dev1" in driver._configured_devices
-        device = driver._configured_devices["dev1"]
+        assert "dev1" in driver._device_instances
+        device = driver._device_instances["dev1"]
         assert device.identifier == "dev1"
         assert device.name == "Device 1"
 
@@ -402,10 +402,10 @@ class TestBaseIntegrationDriver:
         driver.add_configured_device(config, connect=False)
         driver.add_configured_device(config, connect=False)
 
-        assert len(driver._configured_devices) == 1
+        assert len(driver._device_instances) == 1
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_without_connection_requirement(
+    async def test_register_all_device_instances_without_connection_requirement(
         self, mock_loop
     ):
         """Test registration with require_connection_before_registry=False uses add_configured_device."""
@@ -426,19 +426,19 @@ class TestBaseIntegrationDriver:
         mock_config_manager.all.return_value = [config1, config2]
         driver.config_manager = mock_config_manager
 
-        await driver.register_all_configured_devices(connect=False)
+        await driver.register_all_device_instances(connect=False)
 
         # Both devices should be registered
-        assert "dev1" in driver._configured_devices
-        assert "dev2" in driver._configured_devices
-        assert len(driver._configured_devices) == 2
+        assert "dev1" in driver._device_instances
+        assert "dev2" in driver._device_instances
+        assert len(driver._device_instances) == 2
 
         # Devices should NOT be connected (connect=False)
-        assert driver._configured_devices["dev1"].is_connected is False
-        assert driver._configured_devices["dev2"].is_connected is False
+        assert driver._device_instances["dev1"].is_connected is False
+        assert driver._device_instances["dev2"].is_connected is False
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_with_connection_requirement(
+    async def test_register_all_device_instances_with_connection_requirement(
         self, mock_loop
     ):
         """Test registration with require_connection_before_registry=True uses async_add_configured_device."""
@@ -459,19 +459,19 @@ class TestBaseIntegrationDriver:
         mock_config_manager.all.return_value = [config1, config2]
         driver.config_manager = mock_config_manager
 
-        await driver.register_all_configured_devices()
+        await driver.register_all_device_instances()
 
         # Both devices should be registered
-        assert "dev1" in driver._configured_devices
-        assert "dev2" in driver._configured_devices
-        assert len(driver._configured_devices) == 2
+        assert "dev1" in driver._device_instances
+        assert "dev2" in driver._device_instances
+        assert len(driver._device_instances) == 2
 
         # Devices should be connected (async_add_configured_device always connects)
-        assert driver._configured_devices["dev1"].is_connected is True
-        assert driver._configured_devices["dev2"].is_connected is True
+        assert driver._device_instances["dev1"].is_connected is True
+        assert driver._device_instances["dev2"].is_connected is True
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_with_no_config_manager(
+    async def test_register_all_device_instances_with_no_config_manager(
         self, mock_loop, caplog
     ):
         """Test that registration logs warning and returns when config_manager is None."""
@@ -487,16 +487,16 @@ class TestBaseIntegrationDriver:
         # config_manager is None by default
         assert driver.config_manager is None
 
-        await driver.register_all_configured_devices()
+        await driver.register_all_device_instances()
 
         # Should log warning
         assert "Cannot register devices: config_manager is not set" in caplog.text
 
         # No devices should be registered
-        assert len(driver._configured_devices) == 0
+        assert len(driver._device_instances) == 0
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_with_connect_parameter(self):
+    async def test_register_all_device_instances_with_connect_parameter(self):
         """Test that connect parameter is passed through to add_configured_device."""
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(
@@ -517,10 +517,10 @@ class TestBaseIntegrationDriver:
         driver.config_manager = mock_config_manager
 
         # Register with connect=True
-        await driver.register_all_configured_devices(connect=True)
+        await driver.register_all_device_instances(connect=True)
 
         # Device should be registered
-        assert "dev1" in driver._configured_devices
+        assert "dev1" in driver._device_instances
 
         # Give the background connection task time to run
         await asyncio.sleep(0.05)
@@ -535,10 +535,10 @@ class TestBaseIntegrationDriver:
             await asyncio.wait(pending, timeout=0.1)
 
         # Device should be connected
-        assert driver._configured_devices["dev1"].is_connected is True
+        assert driver._device_instances["dev1"].is_connected is True
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_multiple_devices(self, mock_loop):
+    async def test_register_all_device_instances_multiple_devices(self, mock_loop):
         """Test registration of multiple devices from the config manager."""
         driver = ConcreteDriver(
             DeviceForTests,
@@ -559,18 +559,18 @@ class TestBaseIntegrationDriver:
         mock_config_manager.all.return_value = configs
         driver.config_manager = mock_config_manager
 
-        await driver.register_all_configured_devices(connect=False)
+        await driver.register_all_device_instances(connect=False)
 
         # All 5 devices should be registered
-        assert len(driver._configured_devices) == 5
+        assert len(driver._device_instances) == 5
         for i in range(1, 6):
-            assert f"dev{i}" in driver._configured_devices
-            device = driver._configured_devices[f"dev{i}"]
+            assert f"dev{i}" in driver._device_instances
+            device = driver._device_instances[f"dev{i}"]
             assert device.identifier == f"dev{i}"
             assert device.name == f"Device {i}"
 
     @pytest.mark.asyncio
-    async def test_register_all_configured_devices_empty_config_manager(
+    async def test_register_all_device_instances_empty_config_manager(
         self, mock_loop
     ):
         """Test registration with empty config manager registers no devices."""
@@ -588,17 +588,17 @@ class TestBaseIntegrationDriver:
         mock_config_manager.all.return_value = []
         driver.config_manager = mock_config_manager
 
-        await driver.register_all_configured_devices()
+        await driver.register_all_device_instances()
 
         # No devices should be registered
-        assert len(driver._configured_devices) == 0
+        assert len(driver._device_instances) == 0
 
     def test_setup_device_event_handlers(self, driver):
         """Test that event handlers are attached to devices."""
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
 
         # Verify event handlers are attached
         assert device.events._events.get(DeviceEvents.CONNECTED) is not None
@@ -617,7 +617,7 @@ class TestBaseIntegrationDriver:
         mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
         driver.api.configured_entities.get.return_value = mock_entity
 
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         device._state = "on"
 
         await driver.on_device_connected("dev1")
@@ -713,7 +713,7 @@ class TestBaseIntegrationDriver:
 
         driver.remove_device("dev1")
 
-        assert "dev1" not in driver._configured_devices
+        assert "dev1" not in driver._device_instances
 
     def test_clear_devices(self, driver):
         """Test clearing all devices."""
@@ -724,7 +724,7 @@ class TestBaseIntegrationDriver:
 
         driver.clear_devices()
 
-        assert len(driver._configured_devices) == 0
+        assert len(driver._device_instances) == 0
 
     def test_on_device_added_callback(self, driver):
         """Test on_device_added callback."""
@@ -732,7 +732,7 @@ class TestBaseIntegrationDriver:
 
         driver.on_device_added(config)
 
-        assert "dev1" in driver._configured_devices
+        assert "dev1" in driver._device_instances
 
     def test_on_device_removed_callback(self, driver):
         """Test on_device_removed callback."""
@@ -741,7 +741,7 @@ class TestBaseIntegrationDriver:
 
         driver.on_device_removed(config)
 
-        assert "dev1" not in driver._configured_devices
+        assert "dev1" not in driver._device_instances
 
     def test_on_device_removed_none_clears_all(self, driver):
         """Test that on_device_removed with None clears all devices."""
@@ -752,7 +752,7 @@ class TestBaseIntegrationDriver:
 
         driver.on_device_removed(None)
 
-        assert len(driver._configured_devices) == 0
+        assert len(driver._device_instances) == 0
 
     def test_entity_type_from_entity_id(self, driver):
         """Test extracting entity type from entity ID."""
@@ -1050,7 +1050,7 @@ class TestBaseIntegrationDriver:
         # Create a device (but don't add it - we're manually managing entities for this test)
         device_config = DeviceConfigForTests("mp1", "Media Player", "192.168.1.100")
         device = DeviceForTests(device_config)
-        driver._configured_devices["mp1"] = device
+        driver._device_instances["mp1"] = device
 
         # Create a media player entity
         entity = ucapi.MediaPlayer(
@@ -1109,7 +1109,7 @@ class TestBaseIntegrationDriver:
         # Create a device (but don't add it - we're manually managing entities for this test)
         device_config = DeviceConfigForTests("multi1", "Multi Device", "192.168.1.101")
         device = DeviceForTests(device_config)
-        driver._configured_devices["multi1"] = device
+        driver._device_instances["multi1"] = device
 
         # Create multiple entities
         mp_entity = ucapi.MediaPlayer(
@@ -1191,7 +1191,7 @@ class TestBaseIntegrationDriver:
             "avail1", "Available Device", "192.168.1.103"
         )
         device = DeviceForTests(device_config)
-        driver._configured_devices["avail1"] = device
+        driver._device_instances["avail1"] = device
 
         # Create an available entity (not configured)
         entity = ucapi.MediaPlayer(
@@ -1228,7 +1228,7 @@ class TestBaseIntegrationDriver:
         # Create a device
         device_config = DeviceConfigForTests("mydevice", "My Device", "192.168.1.100")
         device = DeviceForTests(device_config)
-        driver._configured_devices["mydevice"] = device
+        driver._device_instances["mydevice"] = device
 
         # Create an entity where entity_id equals device_id (no prefix like "media_player.")
         entity = ucapi.MediaPlayer(
@@ -1385,8 +1385,8 @@ class TestHubBasedIntegration:
         await driver.on_subscribe_entities(entity_ids)
 
         # Device should be added and connected
-        assert "dev1" in driver._configured_devices
-        device = driver._configured_devices["dev1"]
+        assert "dev1" in driver._device_instances
+        device = driver._device_instances["dev1"]
         assert device.is_connected is True
 
     @pytest.mark.asyncio
@@ -1413,7 +1413,7 @@ class TestHubBasedIntegration:
         # Add a device that's not connected
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver._add_device_instance(config)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         assert device.is_connected is False
 
         entity_ids = ["media_player.dev1"]
@@ -1453,7 +1453,7 @@ class TestHubBasedIntegration:
         await driver.on_subscribe_entities(entity_ids)
 
         # Device should not be added
-        assert "dev1" not in driver._configured_devices
+        assert "dev1" not in driver._device_instances
 
     @pytest.mark.asyncio
     async def test_on_device_added_hub_based(self):
@@ -1479,8 +1479,8 @@ class TestHubBasedIntegration:
         await asyncio.sleep(0.1)
 
         # Device should be added and connected
-        assert "dev1" in driver._configured_devices
-        device = driver._configured_devices["dev1"]
+        assert "dev1" in driver._device_instances
+        device = driver._device_instances["dev1"]
         assert device.is_connected is True
 
 
@@ -1502,8 +1502,8 @@ class TestAsyncDeviceMethods:
         result = await driver.async_add_configured_device(config)
 
         assert result is True
-        assert "dev1" in driver._configured_devices
-        assert driver._configured_devices["dev1"].is_connected is True
+        assert "dev1" in driver._device_instances
+        assert driver._device_instances["dev1"].is_connected is True
         # Check entities were registered
         assert len(driver.api.available_entities._entities) > 0
 
@@ -1521,7 +1521,7 @@ class TestAsyncDeviceMethods:
 
         # Add device first, then mock its connect to fail
         driver._add_device_instance(config)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
 
         async def mock_connect():
             return False
@@ -1544,7 +1544,7 @@ class TestAsyncDeviceMethods:
 
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver._add_device_instance(config)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
 
         result = await driver._ensure_device_connected("dev1")
@@ -1575,7 +1575,7 @@ class TestAsyncDeviceMethods:
 
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver._add_device_instance(config)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
 
         # Make connect fail twice then succeed
         connect_count = 0
@@ -1607,7 +1607,7 @@ class TestAsyncDeviceMethods:
 
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver._add_device_instance(config)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
 
         # Make connect always fail
         async def mock_connect():
@@ -1687,7 +1687,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "playing"
 
@@ -1705,7 +1705,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1723,7 +1723,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1741,7 +1741,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1759,7 +1759,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1777,7 +1777,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1795,7 +1795,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1813,7 +1813,7 @@ class TestRefreshEntityState:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         await device.connect()
         device._state = "on"
 
@@ -1862,7 +1862,7 @@ class TestRefreshEntityState:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         device = DeviceWithDataclassAttrs(config)
         device._state = "playing"
-        driver._configured_devices["dev1"] = device
+        driver._device_instances["dev1"] = device
 
         # Create framework entity
         entity = TestMediaPlayer(
@@ -1900,7 +1900,7 @@ class TestRefreshEntityState:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         device = DeviceWithDictAttrs(config)
         device._state = "playing"
-        driver._configured_devices["dev1"] = device
+        driver._device_instances["dev1"] = device
 
         # Create framework entity
         entity = TestMediaPlayer(
@@ -1933,7 +1933,7 @@ class TestRefreshEntityState:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         device = DeviceWithDictAttrs(config)
         device._state = "playing"
-        driver._configured_devices["dev1"] = device
+        driver._device_instances["dev1"] = device
 
         # Create standard ucapi entity (not framework Entity)
         entity = media_player.MediaPlayer(
@@ -1970,7 +1970,7 @@ class TestOnSubscribeEntitiesEdgeCases:
         await driver.on_subscribe_entities([])
 
         # Should return early without error
-        assert len(driver._configured_devices) == 0
+        assert len(driver._device_instances) == 0
 
     @pytest.mark.asyncio
     async def test_on_subscribe_entities_invalid_entity_id(self):
@@ -1995,7 +1995,7 @@ class TestOnSubscribeEntitiesEdgeCases:
         await driver.on_subscribe_entities(entity_ids)
 
         # Should not add any device
-        assert "dev1" not in driver._configured_devices
+        assert "dev1" not in driver._device_instances
 
 
 class TestDeviceEventHandlersEntityTypes:
@@ -2017,7 +2017,7 @@ class TestDeviceEventHandlersEntityTypes:
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         device._state = "on"
 
         # Test with different entity types
@@ -2669,7 +2669,7 @@ class TestDynamicEntityRegistration:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        device = driver._configured_devices["dev1"]
+        device = driver._device_instances["dev1"]
         assert device.driver is driver
 
     def test_add_entity_dynamically(self, driver):
@@ -2734,7 +2734,7 @@ class TestDynamicEntityRegistration:
         config = DeviceConfigForTests("hub1", "Hub 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        device = driver._configured_devices["hub1"]
+        device = driver._device_instances["hub1"]
 
         # Simulate device discovering a new sub-device
         new_light = media_player.MediaPlayer(
