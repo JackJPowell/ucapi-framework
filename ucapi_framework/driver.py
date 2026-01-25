@@ -380,10 +380,18 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         # Path 2: Standard integrations - add devices for entities that aren't configured yet
         else:
+            # Track devices we've already processed in this subscription event
+            processed_devices = set()
+
             for entity_id in entity_ids:
                 eid_device_id = self.device_from_entity_id(entity_id)
                 if eid_device_id is None:
                     continue
+
+                # Skip if we already processed this device in this subscription event
+                if eid_device_id in processed_devices:
+                    continue
+                processed_devices.add(eid_device_id)
 
                 # Check if device is already configured
                 if eid_device_id in self._device_instances:
