@@ -100,4 +100,4 @@ __all__ = [
     "VoiceAssistantAttributes",
 ]
 
-__version__ = "1.7.0b1"
+__version__ = "1.7.0"
