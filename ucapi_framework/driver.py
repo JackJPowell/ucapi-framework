@@ -166,7 +166,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         else:
             self._entity_classes = entity_classes
 
-        self._configured_devices: dict[str, DeviceT] = {}
+        self._device_instances: dict[str, DeviceT] = {}
         self._config_manager = None  # Set via config_manager property
         self.entity_id_separator = "."  # Default separator for entity IDs
         self._setup_event_handlers()
@@ -198,7 +198,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         return self._loop
 
-    async def register_all_configured_devices(self, connect: bool = False) -> None:
+    async def register_all_device_instances(self, connect: bool = False) -> None:
         """
         Register all devices from the configuration manager.
 
@@ -257,7 +257,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Client connect command: connecting device(s)")
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
-        for device in self._configured_devices.values():
+        for device in self._device_instances.values():
             # start background task
             self._loop.create_task(device.connect())
 
@@ -269,7 +269,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         Override to add custom disconnect logic.
         """
         _LOG.debug("Client disconnect command: disconnecting device(s)")
-        for device in self._configured_devices.values():
+        for device in self._device_instances.values():
             # start background task
             self._loop.create_task(device.disconnect())
 
@@ -281,7 +281,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         Override to customize standby behavior.
         """
         _LOG.debug("Enter standby event: disconnecting device(s)")
-        for device in self._configured_devices.values():
+        for device in self._device_instances.values():
             await device.disconnect()
 
     async def on_r2_exit_standby(self) -> None:
@@ -292,7 +292,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         Override to customize wake behavior.
         """
         _LOG.debug("Exit standby event: connecting device(s)")
-        for device in self._configured_devices.values():
+        for device in self._device_instances.values():
             # start background task
             self._loop.create_task(device.connect())
 
@@ -326,10 +326,14 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             _LOG.error("Could not extract device_id from entity_id: %s", entity_ids[0])
             return
 
+        # Track which devices existed before this subscribe event
+        # Used later to skip state refresh for newly added devices
+        devices_before_subscribe = set(self._device_instances.keys())
+
         # Path 1: Hub-based integrations that need connection before entity registration
         if self._require_connection_before_registry:
             # Check if device is already configured
-            if device_id not in self._configured_devices:
+            if device_id not in self._device_instances:
                 # Device not configured - add it and connect
                 device_config = self.get_device_config(device_id)
                 if device_config:
@@ -343,7 +347,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     return
 
             # Get the device and ensure it's connected
-            device = self._configured_devices.get(device_id)
+            device = self._device_instances.get(device_id)
             if device and not device.is_connected:
                 # Connect with retries
                 if not await self._ensure_device_connected(device_id):
@@ -366,7 +370,15 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     continue
 
                 # Check if device is already configured
-                if eid_device_id in self._configured_devices:
+                if eid_device_id in self._device_instances:
+                    # Device exists, but check if it needs connection
+                    device = self._device_instances[eid_device_id]
+                    if not device.is_connected:
+                        _LOG.debug(
+                            "Device %s exists but not connected, starting connection",
+                            eid_device_id,
+                        )
+                        self._loop.create_task(device.connect())
                     continue
 
                 # Device not configured yet, add it with background connect
@@ -380,8 +392,18 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     )
 
         # Refresh each entity's state
+        # Only refresh entities for devices that existed before this subscribe event
+        # Newly added devices will get their state updated when connection completes
         for entity_id in entity_ids:
-            await self.refresh_entity_state(entity_id)
+            device_id = self.device_from_entity_id(entity_id)
+            if device_id and device_id in devices_before_subscribe:
+                await self.refresh_entity_state(entity_id)
+            elif device_id and device_id not in devices_before_subscribe:
+                _LOG.debug(
+                    "Skipping immediate state refresh for newly added device %s "
+                    "(will refresh when connection completes)",
+                    device_id,
+                )
 
     async def on_unsubscribe_entities(self, entity_ids: list[str]) -> None:
         """
@@ -399,7 +421,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         for entity_id in entity_ids:
             device_id = self.device_from_entity_id(entity_id)
-            if device_id is not None and device_id in self._configured_devices:
+            if device_id is not None and device_id in self._device_instances:
                 devices_to_check.add(device_id)
 
         # For each device, check if any of its entities are still configured
@@ -412,7 +434,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
             if not any_entity_configured:
                 # No entities are configured anymore, disconnect and cleanup
-                device = self._configured_devices.get(device_id)
+                device = self._device_instances.get(device_id)
                 if device:
                     _LOG.info(
                         "No entities configured for device '%s', disconnecting and cleaning up",
@@ -420,19 +442,19 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     )
                     await device.disconnect()
                     device.events.remove_all_listeners()
-                    self._configured_devices.pop(device_id, None)
+                    self._device_instances.pop(device_id, None)
 
     async def _ensure_device_connected(self, device_id: str) -> bool:
         """
         Ensure device is connected, with retry logic.
 
         This helper method attempts to connect to the device with up to 3 retries.
-        The device must already exist in _configured_devices.
+        The device must already exist in _device_instances.
 
         :param device_id: Device identifier
         :return: True if device is connected, False otherwise
         """
-        device = self._configured_devices.get(device_id)
+        device = self._device_instances.get(device_id)
 
         if not device:
             _LOG.error("Device %s not found in configured devices", device_id)
@@ -515,7 +537,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         if device_id is None:
             return
 
-        device = self._configured_devices.get(device_id)
+        device = self._device_instances.get(device_id)
         if device is None:
             _LOG.warning("Device %s not found for entity %s", device_id, entity_id)
             return
@@ -1002,11 +1024,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         device_id = self.get_device_id(device_config)
 
-        if device_id in self._configured_devices:
+        if device_id in self._device_instances:
             _LOG.debug(
                 "Device %s already exists, returning existing instance", device_id
             )
-            return self._configured_devices[device_id]
+            return self._device_instances[device_id]
 
         _LOG.info(
             "Adding device instance: %s (%s)",
@@ -1020,7 +1042,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             driver=self,
         )
         self.setup_device_event_handlers(device)
-        self._configured_devices[device_id] = device
+        self._device_instances[device_id] = device
 
         return device
 
@@ -1036,13 +1058,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Device connected: %s", device_id)
 
-        if device_id not in self._configured_devices:
+        if device_id not in self._device_instances:
             _LOG.warning("Device %s is not configured", device_id)
             return
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-        device = self._configured_devices[device_id]
+        device = self._device_instances[device_id]
         state = (
             self.map_device_state(device.state)
             if device.state
@@ -1503,7 +1525,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Get device configuration for the given device ID.
 
-        Default implementation: checks _configured_devices first, then falls
+        Default implementation: checks _device_instances first, then falls
         back to self._config_manager.get() if config manager is available.
         Override this if your integration uses a different config structure.
 
@@ -1511,7 +1533,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         :return: Device configuration or None
         """
         # First check if device is already configured
-        device = self._configured_devices.get(device_id)
+        device = self._device_instances.get(device_id)
         if device:
             return device.device_config
 
@@ -1932,9 +1954,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         :param device_id: Device identifier
         """
-        if device_id in self._configured_devices:
+        if device_id in self._device_instances:
             _LOG.info("Removing device %s", device_id)
-            device = self._configured_devices.pop(device_id)
+            device = self._device_instances.pop(device_id)
             device.events.remove_all_listeners()
 
             # Remove all associated entities
@@ -1947,9 +1969,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     def clear_devices(self) -> None:
         """Remove all configured devices."""
         _LOG.info("Clearing all configured devices")
-        for device in self._configured_devices.values():
+        for device in self._device_instances.values():
             device.events.remove_all_listeners()
-        self._configured_devices.clear()
+        self._device_instances.clear()
         self.api.configured_entities.clear()
         self.api.available_entities.clear()
 
