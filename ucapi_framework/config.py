@@ -158,11 +158,15 @@ class BaseConfigManager(Generic[DeviceT]):
 
         :param device: Device configuration to add or update
         """
+        device_id = self.get_device_id(device)
         if not self.update(device):
+            _LOG.info("Adding new device to configuration: %s", device_id)
             self._config.append(device)
             self.store()
             if self._add_handler is not None:
                 self._add_handler(device)
+        else:
+            _LOG.info("Updated existing device in configuration: %s", device_id)
 
     def get(self, device_id: str) -> DeviceT | None:
         """
@@ -247,6 +251,16 @@ class BaseConfigManager(Generic[DeviceT]):
 
             with open(self._cfg_file_path, "w+", encoding="utf-8") as f:
                 json.dump(self._config, f, ensure_ascii=False, cls=_EnhancedJSONEncoder)
+                # Explicitly flush to OS buffer and sync to disk
+                # Critical for Docker volumes to ensure data persistence
+                f.flush()
+                os.fsync(f.fileno())
+
+            _LOG.debug(
+                "Stored %d device(s) to configuration file: %s",
+                len(self._config),
+                self._cfg_file_path,
+            )
             return True
         except OSError as err:
             _LOG.error("Cannot write the config file: %s", err)
@@ -268,6 +282,10 @@ class BaseConfigManager(Generic[DeviceT]):
         try:
             with open(self._cfg_file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+            # Clear existing config before loading (defensive programming)
+            # Prevents duplicates if load() is called multiple times
+            self._config.clear()
 
             for item in data:
                 device = self.deserialize_device(item)
