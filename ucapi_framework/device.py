@@ -95,7 +95,7 @@ class BaseDeviceInterface(ABC):
         :param driver: Optional reference to the integration driver. Allows devices to dynamically
                       register entities at runtime (e.g., when a hub discovers new sub-devices).
         """
-        self._loop: AbstractEventLoop = loop or asyncio.get_running_loop()
+        self._loop: AbstractEventLoop = loop or asyncio.get_event_loop()
         self.events = AsyncIOEventEmitter(self._loop)
         self._device_config = device_config
         self._config_manager: BaseConfigManager | None = config_manager
