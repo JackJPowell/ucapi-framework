@@ -337,46 +337,59 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         if not entity_ids:
             return
 
-        device_id = self.device_from_entity_id(entity_ids[0])
-        if device_id is None:
-            _LOG.error("Could not extract device_id from entity_id: %s", entity_ids[0])
-            return
-
         # Track which devices existed before this subscribe event
         # Used later to skip state refresh for newly added devices
         devices_before_subscribe = set(self._device_instances.keys())
 
         # Path 1: Hub-based integrations that need connection before entity registration
         if self._require_connection_before_registry:
-            # Check if device is already configured
-            if device_id not in self._device_instances:
-                # Device not configured - add it and connect
-                device_config = self.get_device_config(device_id)
-                if device_config:
-                    # Add device without registering entities yet (connect=False, register=False)
-                    self._add_device_instance(device_config)
-                else:
-                    _LOG.error(
-                        "Failed to subscribe entity: no device config found for %s",
-                        device_id,
-                    )
-                    return
+            # Track devices we've already processed in this subscription event
+            processed_devices = set()
 
-            # Get the device and ensure it's connected
-            device = self._device_instances.get(device_id)
-            if device and not device.is_connected:
-                # Connect with retries
-                if not await self._ensure_device_connected(device_id):
-                    _LOG.error(
-                        "Failed to connect to device %s for entity subscription",
-                        device_id,
+            for entity_id in entity_ids:
+                device_id = self.device_from_entity_id(entity_id)
+                if device_id is None:
+                    _LOG.warning(
+                        "Could not extract device_id from entity_id: %s", entity_id
                     )
-                    return
+                    continue
 
-                # After successful connection, register entities from the hub (async)
-                await self.async_register_available_entities(
-                    self.get_device_config(device_id), device
-                )
+                # Skip if we already processed this device in this subscription event
+                if device_id in processed_devices:
+                    continue
+
+                # Mark this device as processed
+                processed_devices.add(device_id)
+
+                # Check if device is already configured
+                if device_id not in self._device_instances:
+                    # Device not configured - add it and connect
+                    device_config = self.get_device_config(device_id)
+                    if device_config:
+                        # Add device without registering entities yet (connect=False, register=False)
+                        self._add_device_instance(device_config)
+                    else:
+                        _LOG.error(
+                            "Failed to subscribe entity: no device config found for %s",
+                            device_id,
+                        )
+                        continue
+
+                # Get the device and ensure it's connected
+                device = self._device_instances.get(device_id)
+                if device and not device.is_connected:
+                    # Connect with retries
+                    if not await self._ensure_device_connected(device_id):
+                        _LOG.error(
+                            "Failed to connect to device %s for entity subscription",
+                            device_id,
+                        )
+                        continue
+
+                    # After successful connection, register entities from the hub (async)
+                    await self.async_register_available_entities(
+                        self.get_device_config(device_id), device
+                    )
 
         # Path 2: Standard integrations - add devices for entities that aren't configured yet
         else:
