@@ -2012,7 +2012,7 @@ class TestDeviceEventHandlersEntityTypes:
 
         # Should only set integration device state
         driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
-        
+
         # Should NOT update entity attributes (that happens via refresh_entity_state)
         driver.api.configured_entities.update_attributes.assert_not_called()
 
