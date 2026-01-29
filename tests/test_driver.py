@@ -610,18 +610,10 @@ class TestBaseIntegrationDriver:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        # Mock entity with entity_type
-        mock_entity = Mock()
-        mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
-        driver.api.configured_entities.get.return_value = mock_entity
-
-        device = driver._device_instances["dev1"]
-        device._state = "on"
-
         await driver.on_device_connected("dev1")
 
-        # Should update entity attributes and set device state
-        driver.api.configured_entities.update_attributes.assert_called()
+        # Should only set integration device state to CONNECTED
+        # Entity state updates happen via refresh_entity_state() separately
         driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
 
         # Give any background event handler tasks time to complete
@@ -2010,34 +2002,19 @@ class TestDeviceEventHandlersEntityTypes:
         return driver
 
     @pytest.mark.asyncio
-    async def test_on_device_connected_different_entity_types(self):
-        """Test on_device_connected updates various entity types."""
+    async def test_on_device_connected_only_sets_device_state(self):
+        """Test on_device_connected only sets integration device state (no entity updates)."""
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
-        device = driver._device_instances["dev1"]
-        device._state = "on"
 
-        # Test with different entity types
-        for entity_type in [
-            EntityTypes.BUTTON,
-            EntityTypes.CLIMATE,
-            EntityTypes.COVER,
-            EntityTypes.LIGHT,
-            EntityTypes.REMOTE,
-            EntityTypes.SENSOR,
-            EntityTypes.SWITCH,
-            EntityTypes.IR_EMITTER,
-            EntityTypes.VOICE_ASSISTANT,
-        ]:
-            mock_entity = MagicMock()
-            mock_entity.entity_type = entity_type
-            driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
-            driver.api.configured_entities.update_attributes = MagicMock()
+        await driver.on_device_connected("dev1")
 
-            await driver.on_device_connected("dev1")
-
-            driver.api.configured_entities.update_attributes.assert_called()
+        # Should only set integration device state
+        driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
+        
+        # Should NOT update entity attributes (that happens via refresh_entity_state)
+        driver.api.configured_entities.update_attributes.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_on_device_disconnected_different_entity_types(self):
