@@ -168,13 +168,18 @@ class Entity(ABC):
         """
         if force:
             attributes = update
+            # Even with force=True, skip if update is empty
+            if not attributes:
+                return
         else:
             attributes = self.filter_changed_attributes(update)
+            # Skip if no attributes changed
+            if not attributes:
+                return
 
-        if attributes:
-            self._api.configured_entities.update_attributes(
-                self._framework_entity_id, attributes
-            )
+        self._api.configured_entities.update_attributes(
+            self._framework_entity_id, attributes
+        )
 
     def update(
         self, attributes: EntityAttributes | dict[str, Any], *, force: bool = False

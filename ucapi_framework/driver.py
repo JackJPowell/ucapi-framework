@@ -1091,6 +1091,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device connection.
 
+        Sets integration device state to CONNECTED. Entity states are updated
+        separately via refresh_entity_state() which uses get_device_attributes()
+        to get per-entity state (important for hub-based integrations with multiple entities).
+
         :param device_id: Device identifier
         """
         _LOG.debug("Device connected: %s", device_id)
@@ -1101,67 +1105,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-        device = self._device_instances[device_id]
-        state = (
-            self.map_device_state(device.state)
-            if device.state
-            else media_player.States.UNKNOWN
-        )
-
-        for entity_id in self.get_entity_ids_for_device(device_id):
-            configured_entity = self.api.configured_entities.get(entity_id)
-            if configured_entity is None:
-                _LOG.debug("Entity %s is not configured, ignoring", entity_id)
-                continue
-
-            # Update STATE attribute for the appropriate entity type
-            match configured_entity.entity_type:
-                case EntityTypes.BUTTON:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {button.Attributes.STATE: state}
-                    )
-                case EntityTypes.CLIMATE:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {climate.Attributes.STATE: state}
-                    )
-                case EntityTypes.COVER:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {cover.Attributes.STATE: state}
-                    )
-                case EntityTypes.LIGHT:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {light.Attributes.STATE: state}
-                    )
-                case EntityTypes.MEDIA_PLAYER:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {media_player.Attributes.STATE: state}
-                    )
-                case EntityTypes.REMOTE:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {remote.Attributes.STATE: state}
-                    )
-                case EntityTypes.SENSOR:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {sensor.Attributes.STATE: state}
-                    )
-                case EntityTypes.SWITCH:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {switch.Attributes.STATE: state}
-                    )
-                case (
-                    EntityTypes.IR_EMITTER
-                ):  # Remote shares the same states as IR Emitter
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {remote.Attributes.STATE: state}
-                    )
-                case EntityTypes.VOICE_ASSISTANT:
-                    self.api.configured_entities.update_attributes(
-                        entity_id, {voice_assistant.Attributes.STATE: state}
-                    )
-
     async def on_device_disconnected(self, device_id: str) -> None:
         """
         Handle device disconnection.
+
+        Sets all entity states to UNAVAILABLE when device disconnects.
 
         :param device_id: Device identifier
         """
@@ -1234,6 +1182,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     async def on_device_connection_error(self, device_id: str, message: str) -> None:
         """
         Handle device connection error.
+
+        Sets all entity states to UNAVAILABLE when device connection fails.
 
         :param device_id: Device identifier
         :param message: Error message
