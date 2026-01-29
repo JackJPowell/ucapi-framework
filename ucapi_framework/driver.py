@@ -428,19 +428,21 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                     )
 
-        # Refresh each entity's state
-        # Only refresh entities for devices that existed before this subscribe event
-        # Newly added devices will get their state updated when connection completes
+        # Refresh entity state only for devices that already existed and are connected
+        # Newly added devices will get their state refreshed in on_device_connected()
+        # after the device has finished connecting and populated its attributes
         for entity_id in entity_ids:
             device_id = self.device_from_entity_id(entity_id)
             if device_id and device_id in devices_before_subscribe:
-                await self.refresh_entity_state(entity_id)
-            elif device_id and device_id not in devices_before_subscribe:
-                _LOG.debug(
-                    "Skipping immediate state refresh for newly added device %s "
-                    "(will refresh when connection completes)",
-                    device_id,
-                )
+                device = self._device_instances.get(device_id)
+                if device and device.is_connected:
+                    await self.refresh_entity_state(entity_id)
+                else:
+                    _LOG.debug(
+                        "Skipping state refresh for disconnected device %s "
+                        "(will refresh when connection completes)",
+                        device_id,
+                    )
 
     async def on_unsubscribe_entities(self, entity_ids: list[str]) -> None:
         """
@@ -1091,9 +1093,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device connection.
 
-        Sets integration device state to CONNECTED. Entity states are updated
-        separately via refresh_entity_state() which uses get_device_attributes()
-        to get per-entity state (important for hub-based integrations with multiple entities).
+        Sets integration device state to CONNECTED and refreshes all entity states
+        for this device. This ensures entity states are updated after the device
+        has connected and populated its attributes via get_device_attributes().
 
         :param device_id: Device identifier
         """
@@ -1104,6 +1106,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             return
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
+
+        # Refresh entity states now that device is connected and has populated attributes
+        for entity_id in self.get_entity_ids_for_device(device_id):
+            await self.refresh_entity_state(entity_id)
 
     async def on_device_disconnected(self, device_id: str) -> None:
         """

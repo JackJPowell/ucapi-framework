@@ -189,9 +189,12 @@ def driver(mock_loop):
     )
     # Mock the API
     driver.api = MagicMock()
-    driver.api.configured_entities = MagicMock()
+    driver.api.configured_entities = MockEntityCollection()
     driver.api.available_entities = MockEntityCollection()
     driver.api.set_device_state = AsyncMock()
+    # Add mock for update_attributes
+    driver.api.configured_entities.update_attributes = MagicMock()
+    driver.api.available_entities.update_attributes = MagicMock()
     return driver
 
 
@@ -339,15 +342,19 @@ class TestBaseIntegrationDriver:
         driver.add_configured_device(config, connect=False)
         device = driver._device_instances["dev1"]
         device._state = "on"
+        device._connected = True  # Mark device as connected so state refresh happens
 
-        # Mock configured entity with entity_type
+        # Add entity to configured collection so it can be found
         mock_entity = Mock()
+        mock_entity.id = "media_player.dev1"
         mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
-        driver.api.configured_entities.get.return_value = mock_entity
+        mock_entity.features = []
+        mock_entity.name = {"en": "Device 1"}
+        driver.api.configured_entities._entities.append(mock_entity)
 
         await driver.on_subscribe_entities(["media_player.dev1"])
 
-        # Should update entity state
+        # Should update entity state for connected device
         driver.api.configured_entities.update_attributes.assert_called()
 
         # Give any background event handler tasks time to complete
@@ -375,8 +382,8 @@ class TestBaseIntegrationDriver:
         device = driver._device_instances["dev1"]
         await device.connect()
 
-        # Mock that no entities are configured
-        driver.api.configured_entities.get.return_value = None
+        # Note: No entities in configured collection by default
+        # test just verifies no errors when unsubscribing
 
         await driver.on_unsubscribe_entities(["media_player.dev1"])
 
@@ -610,11 +617,21 @@ class TestBaseIntegrationDriver:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
+        # Mark device as connected
+        device = driver._device_instances["dev1"]
+        device._connected = True
+
+        # Add entity to configured collection so get_entity_ids_for_device finds it
+        mock_entity = Mock()
+        mock_entity.id = "media_player.dev1"
+        mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
+        driver.api.configured_entities._entities.append(mock_entity)
+
         await driver.on_device_connected("dev1")
 
-        # Should only set integration device state to CONNECTED
-        # Entity state updates happen via refresh_entity_state() separately
+        # Should set integration device state and refresh entity states
         driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
+        driver.api.configured_entities.update_attributes.assert_called()
 
         # Give any background event handler tasks time to complete
         await asyncio.sleep(0.01)
@@ -625,10 +642,13 @@ class TestBaseIntegrationDriver:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        # Mock entity with entity_type
+        # Add entity to configured collection
         mock_entity = Mock()
+        mock_entity.id = "media_player.dev1"
         mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
-        driver.api.configured_entities.get.return_value = mock_entity
+        mock_entity.features = []
+        mock_entity.name = {"en": "Device 1"}
+        driver.api.configured_entities._entities.append(mock_entity)
 
         await driver.on_device_disconnected("dev1")
 
@@ -641,10 +661,13 @@ class TestBaseIntegrationDriver:
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
-        # Mock entity with entity_type
+        # Add entity to configured collection
         mock_entity = Mock()
+        mock_entity.id = "media_player.dev1"
         mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
-        driver.api.configured_entities.get.return_value = mock_entity
+        mock_entity.features = []
+        mock_entity.name = {"en": "Device 1"}
+        driver.api.configured_entities._entities.append(mock_entity)
 
         await driver.on_device_connection_error("dev1", "Connection timeout")
 
@@ -1996,25 +2019,42 @@ class TestDeviceEventHandlersEntityTypes:
         loop = asyncio.get_event_loop()
         driver = ConcreteDriver(DeviceForTests, [media_player.MediaPlayer], loop=loop)
         driver.api = MagicMock()
-        driver.api.configured_entities = MagicMock()
+        driver.api.configured_entities = MockEntityCollection()
+        driver.api.configured_entities.update_attributes = MagicMock()
         driver.api.available_entities = MockEntityCollection()
         driver.api.set_device_state = AsyncMock()
         return driver
 
     @pytest.mark.asyncio
-    async def test_on_device_connected_only_sets_device_state(self):
-        """Test on_device_connected only sets integration device state (no entity updates)."""
+    async def test_on_device_connected_refreshes_entity_state(self):
+        """Test on_device_connected sets device state and refreshes entity states."""
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         driver.add_configured_device(config, connect=False)
 
+        # Mark device as connected and mock get_device_attributes
+        device = driver._device_instances["dev1"]
+        device._connected = True
+        device.get_device_attributes = MagicMock(
+            return_value={media_player.Attributes.STATE: media_player.States.ON}
+        )
+
+        # Add entity to configured collection so get_entity_ids_for_device finds it
+        mock_entity = Mock()
+        mock_entity.id = "media_player.dev1"
+        mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
+        mock_entity.features = []
+        mock_entity.name = {"en": "Device 1"}
+        driver.api.configured_entities._entities.append(mock_entity)
+
         await driver.on_device_connected("dev1")
 
-        # Should only set integration device state
+        # Should set integration device state
         driver.api.set_device_state.assert_called_with(ucapi.DeviceStates.CONNECTED)
 
-        # Should NOT update entity attributes (that happens via refresh_entity_state)
-        driver.api.configured_entities.update_attributes.assert_not_called()
+        # Should refresh entity attributes now that device is connected
+        driver.api.configured_entities.update_attributes.assert_called()
+        driver.api.configured_entities.update_attributes.assert_called()
 
     @pytest.mark.asyncio
     async def test_on_device_disconnected_different_entity_types(self):
