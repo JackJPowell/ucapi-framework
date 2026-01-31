@@ -22,9 +22,11 @@ from ucapi import (
     button,
     climate,
     cover,
+    ir_emitter,
     light,
     media_player,
     remote,
+    select,
     sensor,
     switch,
     voice_assistant,
@@ -650,6 +652,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             case EntityTypes.COVER:
                 attributes[cover.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
+            case EntityTypes.IR_EMITTER:
+                attributes[ir_emitter.Attributes.STATE] = state
+                self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.LIGHT:
                 attributes[light.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
@@ -659,14 +664,14 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             case EntityTypes.REMOTE:
                 attributes[remote.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
+            case EntityTypes.SELECT:
+                attributes[select.Attributes.STATE] = state
+                self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SENSOR:
                 attributes[sensor.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SWITCH:
                 attributes[switch.Attributes.STATE] = state
-                self.api.configured_entities.update_attributes(entity_id, attributes)
-            case EntityTypes.IR_EMITTER:  # Remote shares the same states as IR Emitter
-                attributes[remote.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.VOICE_ASSISTANT:
                 attributes[voice_assistant.Attributes.STATE] = state
@@ -1143,6 +1148,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                         {cover.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
+                case EntityTypes.IR_EMITTER:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {ir_emitter.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
                 case EntityTypes.LIGHT:
                     self.api.configured_entities.update_attributes(
                         entity_id,
@@ -1160,6 +1170,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                         {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
+                case EntityTypes.SELECT:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {select.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
                 case EntityTypes.SENSOR:
                     self.api.configured_entities.update_attributes(
                         entity_id,
@@ -1169,13 +1184,6 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {switch.Attributes.STATE: media_player.States.UNAVAILABLE},
-                    )
-                case (
-                    EntityTypes.IR_EMITTER
-                ):  # Remote shares the same states as IR Emitter
-                    self.api.configured_entities.update_attributes(
-                        entity_id,
-                        {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
                 case EntityTypes.VOICE_ASSISTANT:
                     self.api.configured_entities.update_attributes(
@@ -1218,6 +1226,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                         {cover.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
+                case EntityTypes.IR_EMITTER:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {ir_emitter.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
                 case EntityTypes.LIGHT:
                     self.api.configured_entities.update_attributes(
                         entity_id,
@@ -1235,6 +1248,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                         {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
+                case EntityTypes.SELECT:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {select.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
                 case EntityTypes.SENSOR:
                     self.api.configured_entities.update_attributes(
                         entity_id,
@@ -1244,13 +1262,6 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {switch.Attributes.STATE: media_player.States.UNAVAILABLE},
-                    )
-                case (
-                    EntityTypes.IR_EMITTER
-                ):  # Remote shares the same states as IR Emitter
-                    self.api.configured_entities.update_attributes(
-                        entity_id,
-                        {remote.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
                 case EntityTypes.VOICE_ASSISTANT:
                     self.api.configured_entities.update_attributes(
@@ -1353,6 +1364,15 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                                 value = self.map_device_state(value)
                         attributes[attr] = value
 
+            case EntityTypes.IR_EMITTER:
+                if ir_emitter.Attributes.STATE.value in update:
+                    state_value = update[ir_emitter.Attributes.STATE.value]
+                    if has_custom_behavior and framework_entity:
+                        state = framework_entity.map_entity_states(state_value)
+                    else:
+                        state = self.map_device_state(state_value)
+                    attributes[ir_emitter.Attributes.STATE] = state
+
             case EntityTypes.LIGHT:
                 # Light entities: STATE, HUE, SATURATION, BRIGHTNESS, COLOR_TEMPERATURE
                 for attr in [
@@ -1433,6 +1453,23 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         state = self.map_device_state(state_value)
                     attributes[remote.Attributes.STATE] = state
 
+            case EntityTypes.SELECT:
+                # Select entities: STATE, CURRENT_OPTION, OPTIONS
+                for attr in [
+                    select.Attributes.STATE,
+                    select.Attributes.CURRENT_OPTION,
+                    select.Attributes.OPTIONS,
+                ]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        # Apply state mapping for STATE attribute
+                        if attr == select.Attributes.STATE:
+                            if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
+                        attributes[attr] = value
+
             case EntityTypes.SENSOR:
                 # Sensor entities: STATE, VALUE, UNIT
                 for attr in [
@@ -1459,16 +1496,6 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     else:
                         state = self.map_device_state(state_value)
                     attributes[switch.Attributes.STATE] = state
-
-            case EntityTypes.IR_EMITTER:
-                # IR Emitter entities: STATE (Shares same state mapping as Remote)
-                if remote.Attributes.STATE.value in update:
-                    state_value = update[remote.Attributes.STATE.value]
-                    if has_custom_behavior and framework_entity:
-                        state = framework_entity.map_entity_states(state_value)
-                    else:
-                        state = self.map_device_state(state_value)
-                    attributes[remote.Attributes.STATE] = state
 
             case EntityTypes.VOICE_ASSISTANT:
                 # Voice Assistant entities: STATE

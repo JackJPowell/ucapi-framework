@@ -17,9 +17,11 @@ from ucapi import (
     button,
     climate,
     cover,
+    ir_emitter,
     light,
     media_player,
     remote,
+    select,
     sensor,
     switch,
     voice_assistant,
@@ -73,6 +75,13 @@ class CoverAttributes(EntityAttributes):
 
 
 @dataclass
+class IREmitterAttributes(EntityAttributes):
+    """Attribute container for IR Emitter entities."""
+
+    STATE: ir_emitter.States | None = None
+
+
+@dataclass
 class LightAttributes(EntityAttributes):
     """Attribute container for Light entities."""
 
@@ -111,6 +120,15 @@ class RemoteAttributes(EntityAttributes):
     """Attribute container for Remote entities."""
 
     STATE: remote.States | None = None
+
+
+@dataclass
+class SelectAttributes(EntityAttributes):
+    """Attribute container for Select entities."""
+
+    STATE: select.States | None = None
+    CURRENT_OPTION: str | None = None
+    OPTIONS: list[str] | None = None
 
 
 @dataclass
