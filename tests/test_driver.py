@@ -1821,6 +1821,24 @@ class TestRefreshEntityState:
         driver.api.configured_entities.update_attributes.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_refresh_entity_state_select(self):
+        """Test refresh_entity_state for select entity."""
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+        device = driver._device_instances["dev1"]
+        await device.connect()
+        device._state = "on"
+
+        mock_entity = MagicMock()
+        mock_entity.entity_type = EntityTypes.SELECT
+        driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
+
+        await driver.refresh_entity_state("media_player.dev1")
+
+        driver.api.configured_entities.update_attributes.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_refresh_entity_state_sensor(self):
         """Test refresh_entity_state for sensor entity."""
         driver = self._create_driver()
@@ -2224,6 +2242,23 @@ class TestOnDeviceUpdateEntityTypes:
 
         mock_entity = MagicMock()
         mock_entity.entity_type = EntityTypes.REMOTE
+        driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
+        driver.api.configured_entities.contains = MagicMock(return_value=True)
+        driver.api.configured_entities.update_attributes = MagicMock()
+
+        await driver.on_device_update("dev1", {"state": "on"})
+
+        driver.api.configured_entities.update_attributes.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_select(self):
+        """Test on_device_update for select entity."""
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        mock_entity = MagicMock()
+        mock_entity.entity_type = EntityTypes.SELECT
         driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
         driver.api.configured_entities.contains = MagicMock(return_value=True)
         driver.api.configured_entities.update_attributes = MagicMock()
