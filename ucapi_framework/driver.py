@@ -628,54 +628,122 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             return
 
         # Path 3: Default fallback - construct minimal STATE attribute
-        # Default state refresh based on device connection and entity type
-        if not device.is_connected or device.state is None:
-            state = media_player.States.UNAVAILABLE
-        else:
-            # For media_player entities, use the device state mapping
-            if configured_entity.entity_type == EntityTypes.MEDIA_PLAYER:
-                state = self.map_device_state(device.state)
-            else:
-                # For other entity types, just mark as available
-                state = button.States.AVAILABLE
+        # Only update state for entity types where we can reasonably infer it
+        # For complex entity types (climate, cover, light, voice_assistant), skip updates
+        # to avoid setting incorrect states
+        is_connected = device.is_connected and device.state is not None
 
         attributes = {}
 
         # Update the appropriate STATE attribute based on entity type
         match configured_entity.entity_type:
             case EntityTypes.BUTTON:
+                # Button: Can safely infer AVAILABLE when connected
+                state = (
+                    button.States.AVAILABLE
+                    if is_connected
+                    else button.States.UNAVAILABLE
+                )
                 attributes[button.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.CLIMATE:
-                attributes[climate.Attributes.STATE] = state
-                self.api.configured_entities.update_attributes(entity_id, attributes)
+                # Climate: Can set UNAVAILABLE or OFF, or if device.state matches a valid climate state
+                if not is_connected:
+                    state = climate.States.UNAVAILABLE
+                    attributes[climate.Attributes.STATE] = state
+                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                else:
+                    # Try to match device.state to a valid climate state enum
+                    state_str = str(device.state).upper()
+                    try:
+                        # Check if the state string matches a climate.States enum member
+                        state = climate.States[state_str]
+                        attributes[climate.Attributes.STATE] = state
+                        self.api.configured_entities.update_attributes(entity_id, attributes)
+                    except (KeyError, AttributeError):
+                        # State doesn't match - skip update, device should provide get_device_attributes()
+                        pass
             case EntityTypes.COVER:
-                attributes[cover.Attributes.STATE] = state
-                self.api.configured_entities.update_attributes(entity_id, attributes)
+                # Cover: Cannot reliably infer state - skip update when connected
+                if not is_connected:
+                    state = cover.States.UNAVAILABLE
+                    attributes[cover.Attributes.STATE] = state
+                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                # else: skip update - device should provide get_device_attributes()
             case EntityTypes.IR_EMITTER:
+                # IR Emitter: Can assume ON when available/ready
+                if not is_connected:
+                    state = ir_emitter.States.UNAVAILABLE
+                else:
+                    state = ir_emitter.States.ON
                 attributes[ir_emitter.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.LIGHT:
-                attributes[light.Attributes.STATE] = state
-                self.api.configured_entities.update_attributes(entity_id, attributes)
+                # Light: Cannot reliably infer state - skip update when connected
+                if not is_connected:
+                    state = light.States.UNAVAILABLE
+                    attributes[light.Attributes.STATE] = state
+                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                # else: skip update - device should provide get_device_attributes()
             case EntityTypes.MEDIA_PLAYER:
+                # Media player: Can use device state mapping
+                if not is_connected:
+                    state = media_player.States.UNAVAILABLE
+                else:
+                    state = self.map_device_state(device.state)
                 attributes[media_player.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.REMOTE:
+                # Remote: Can map device state to ON/OFF
+                if not is_connected:
+                    state = remote.States.UNAVAILABLE
+                else:
+                    mapped = self.map_device_state(device.state)
+                    if mapped == media_player.States.ON:
+                        state = remote.States.ON
+                    elif mapped == media_player.States.OFF:
+                        state = remote.States.OFF
+                    else:
+                        state = remote.States.UNKNOWN
                 attributes[remote.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SELECT:
+                # Select: Can assume ON when available
+                if not is_connected:
+                    state = select.States.UNAVAILABLE
+                else:
+                    state = select.States.ON
                 attributes[select.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SENSOR:
+                # Sensor: Can assume ON when available/reading data
+                if not is_connected:
+                    state = sensor.States.UNAVAILABLE
+                else:
+                    state = sensor.States.ON
                 attributes[sensor.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SWITCH:
+                # Switch: Can map device state to ON/OFF
+                if not is_connected:
+                    state = switch.States.UNAVAILABLE
+                else:
+                    mapped = self.map_device_state(device.state)
+                    if mapped == media_player.States.ON:
+                        state = switch.States.ON
+                    elif mapped == media_player.States.OFF:
+                        state = switch.States.OFF
+                    else:
+                        state = switch.States.UNKNOWN
                 attributes[switch.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.VOICE_ASSISTANT:
-                attributes[voice_assistant.Attributes.STATE] = state
-                self.api.configured_entities.update_attributes(entity_id, attributes)
+                # Voice Assistant: Cannot reliably infer state - skip update when connected
+                if not is_connected:
+                    state = voice_assistant.States.UNAVAILABLE
+                    attributes[voice_assistant.Attributes.STATE] = state
+                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                # else: skip update - device should provide get_device_attributes()
 
     # ========================================================================
     # Device Lifecycle Management

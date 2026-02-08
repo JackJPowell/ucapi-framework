@@ -1746,7 +1746,9 @@ class TestRefreshEntityState:
 
         await driver.refresh_entity_state("media_player.dev1")
 
-        driver.api.configured_entities.update_attributes.assert_called_once()
+        # Light entities skip state update when connected (can't reliably infer)
+        # Device should provide get_device_attributes() instead
+        driver.api.configured_entities.update_attributes.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_entity_state_switch(self):
@@ -1774,7 +1776,7 @@ class TestRefreshEntityState:
         driver.add_configured_device(config, connect=False)
         device = driver._device_instances["dev1"]
         await device.connect()
-        device._state = "on"
+        device._state = "heat"  # Use valid climate state
 
         mock_entity = MagicMock()
         mock_entity.entity_type = EntityTypes.CLIMATE
@@ -1782,6 +1784,7 @@ class TestRefreshEntityState:
 
         await driver.refresh_entity_state("media_player.dev1")
 
+        # Climate should update when device.state matches a valid climate state
         driver.api.configured_entities.update_attributes.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1800,7 +1803,9 @@ class TestRefreshEntityState:
 
         await driver.refresh_entity_state("media_player.dev1")
 
-        driver.api.configured_entities.update_attributes.assert_called_once()
+        # Cover entities skip state update when connected (can't reliably infer)
+        # Device should provide get_device_attributes() instead
+        driver.api.configured_entities.update_attributes.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_refresh_entity_state_remote(self):
