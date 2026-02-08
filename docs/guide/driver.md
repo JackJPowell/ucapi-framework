@@ -250,7 +250,7 @@ def get_entity_ids_for_device(self, device_id: str) -> list[str]:
 
 ```python
 # Works automatically - device sends update, entities get updated
-device.events.emit(DeviceEvents.UPDATE, device_id, {
+device.events.emit(DeviceEvents.UPDATE, entity_id, {
     "state": "PLAYING",
     "volume": 50,
     "media_title": "Song Name"
