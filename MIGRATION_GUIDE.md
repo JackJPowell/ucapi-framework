@@ -240,7 +240,7 @@ class PSNAccount:
     async def _process_message(self, data: dict) -> None:
         """Process received message."""
         self.state = data.get("state", "UNKNOWN")
-        self.events.emit("state_changed", self.identifier, self.state)
+        self.events.emit("state_changed", entity_id, self.state)
 ```
 
 **Problems:**
@@ -281,7 +281,7 @@ class PSNAccount(WebSocketDevice):
         """Handle received WebSocket message - called by base class."""
         data = json.loads(message)
         self.state = data.get("state", "UNKNOWN")
-        self.events.emit("state_changed", self.identifier, self.state)
+        self.events.emit("state_changed", entity_id, self.state)
 ```
 
 **Benefits:**
@@ -318,7 +318,7 @@ class MyDevice(PollingDevice):
     async def poll_device(self) -> None:
         """Fetch and process state."""
         state = await self._fetch_state()
-        self.events.emit("state_changed", self.identifier, state)
+        self.events.emit("state_changed", entity_id, state)
 ```
 
 ### 3. Setup Flow
