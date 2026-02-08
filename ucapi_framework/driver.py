@@ -651,7 +651,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 if not is_connected:
                     state = climate.States.UNAVAILABLE
                     attributes[climate.Attributes.STATE] = state
-                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
                 else:
                     # Try to match device.state to a valid climate state enum
                     state_str = str(device.state).upper()
@@ -659,7 +661,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         # Check if the state string matches a climate.States enum member
                         state = climate.States[state_str]
                         attributes[climate.Attributes.STATE] = state
-                        self.api.configured_entities.update_attributes(entity_id, attributes)
+                        self.api.configured_entities.update_attributes(
+                            entity_id, attributes
+                        )
                     except (KeyError, AttributeError):
                         # State doesn't match - skip update, device should provide get_device_attributes()
                         pass
@@ -668,7 +672,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 if not is_connected:
                     state = cover.States.UNAVAILABLE
                     attributes[cover.Attributes.STATE] = state
-                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
                 # else: skip update - device should provide get_device_attributes()
             case EntityTypes.IR_EMITTER:
                 # IR Emitter: Can assume ON when available/ready
@@ -683,7 +689,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 if not is_connected:
                     state = light.States.UNAVAILABLE
                     attributes[light.Attributes.STATE] = state
-                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
                 # else: skip update - device should provide get_device_attributes()
             case EntityTypes.MEDIA_PLAYER:
                 # Media player: Can use device state mapping
@@ -742,7 +750,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 if not is_connected:
                     state = voice_assistant.States.UNAVAILABLE
                     attributes[voice_assistant.Attributes.STATE] = state
-                    self.api.configured_entities.update_attributes(entity_id, attributes)
+                    self.api.configured_entities.update_attributes(
+                        entity_id, attributes
+                    )
                 # else: skip update - device should provide get_device_attributes()
 
     # ========================================================================
