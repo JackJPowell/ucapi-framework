@@ -1,6 +1,6 @@
 """Tests for Entity ABC."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from ucapi import media_player, sensor
@@ -536,3 +536,102 @@ class TestEntityABC:
         # Should return all attributes when entity not found
         result = entity.filter_changed_attributes(update)
         assert result == update
+
+
+class TestSyncStateAndSubscription:
+    """Tests for sync_state() and subscribe_to_device() coordinator pattern."""
+
+    @pytest.fixture
+    def mock_api(self):
+        """Provide a mock API for all tests."""
+        return MagicMock()
+
+    def test_sync_state_default_is_noop(self, mock_api):
+        """Test that default sync_state() is a no-op (base Entity does not override)."""
+        entity = TestMediaPlayer("media_player.test", "Test Player")
+        entity._api = mock_api  # noqa: SLF001
+        # Base class sync_state is a no-op — overriding it is what triggers the coordinator path
+        assert type(entity).sync_state is Entity.sync_state
+
+    @pytest.mark.asyncio
+    async def test_sync_state_noop_does_not_push(self, mock_api):
+        """Test that calling the default no-op sync_state() makes no API calls."""
+        entity = TestMediaPlayer("media_player.test", "Test Player")
+        entity._api = mock_api  # noqa: SLF001
+        await entity.sync_state()
+        mock_api.configured_entities.update_attributes.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_subscribe_to_device_wires_sync_state(self, mock_api):
+        """Test subscribe_to_device wires UPDATE event to sync_state."""
+        class SyncingMediaPlayer(media_player.MediaPlayer, Entity):
+            def __init__(self):
+                super().__init__(
+                    "media_player.test",
+                    "Test Player",
+                    features=[media_player.Features.ON_OFF],
+                    attributes={media_player.Attributes.STATE: media_player.States.UNKNOWN},
+                )
+                self.sync_state_called = 0
+
+            async def sync_state(self):
+                self.sync_state_called += 1
+
+        from ucapi_framework.device import DeviceEvents
+
+        entity = SyncingMediaPlayer()
+        entity._api = mock_api  # noqa: SLF001
+
+        mock_device = MagicMock()
+        entity.subscribe_to_device(mock_device)
+
+        # Verify events.on was called with UPDATE event
+        mock_device.events.on.assert_called_once_with(
+            DeviceEvents.UPDATE, entity._handle_device_update  # noqa: SLF001
+        )
+
+    @pytest.mark.asyncio
+    async def test_handle_device_update_calls_sync_state(self, mock_api):
+        """Test _handle_device_update dispatches to sync_state."""
+        sync_state_mock = AsyncMock()
+
+        entity = TestMediaPlayer("media_player.test", "Test Player")
+        entity._api = mock_api  # noqa: SLF001
+        entity.sync_state = sync_state_mock  # type: ignore[method-assign]
+
+        await entity._handle_device_update("device_id", {"state": "ON"})  # noqa: SLF001
+
+        sync_state_mock.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_device_update_ignores_args(self, mock_api):
+        """Test _handle_device_update accepts any args/kwargs without error."""
+        entity = TestMediaPlayer("media_player.test", "Test Player")
+        entity._api = mock_api  # noqa: SLF001
+
+        # Should not raise regardless of args passed by the event emitter
+        await entity._handle_device_update()  # noqa: SLF001
+        await entity._handle_device_update("device_id", {"key": "value"}, extra="kwarg")  # noqa: SLF001
+
+    def test_sync_state_overridden_detected(self):
+        """Test that overriding sync_state is detectable for driver short-circuit."""
+        class OverridingEntity(media_player.MediaPlayer, Entity):
+            def __init__(self):
+                super().__init__(
+                    "media_player.test",
+                    "Test",
+                    features=[],
+                    attributes={},
+                )
+
+            async def sync_state(self):
+                pass
+
+        base_entity = TestMediaPlayer("media_player.test", "Test Player")
+        overriding_entity = OverridingEntity()
+
+        # Base entity uses Entity.sync_state (no-op) — not overridden
+        assert type(base_entity).sync_state is Entity.sync_state
+
+        # Overriding entity has its own sync_state — driver should short-circuit
+        assert type(overriding_entity).sync_state is not Entity.sync_state

@@ -206,7 +206,7 @@ async def find_orphaned_entities(
     try:
         async with aiohttp.ClientSession() as session:
             # Step 1: Get all activities
-            activities_url = f"{remote_url}/api/activities"
+            activities_url = f"{remote_url}/api/activities?limit=100"
             async with session.get(
                 activities_url,
                 headers=headers,

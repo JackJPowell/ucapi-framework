@@ -1985,6 +1985,58 @@ class TestRefreshEntityState:
         # Should have called API update_attributes directly
         driver.api.configured_entities.update_attributes.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_refresh_entity_state_calls_sync_state_when_overridden(self):
+        """Test refresh_entity_state short-circuits to sync_state when overridden."""
+        from ucapi_framework import Entity as FrameworkEntity
+
+        class SyncingMediaPlayer(media_player.MediaPlayer, FrameworkEntity):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.sync_state_called = 0
+
+            async def sync_state(self):
+                self.sync_state_called += 1
+
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        entity = SyncingMediaPlayer(
+            "media_player.dev1",
+            "Test",
+            features=[],
+            attributes={media_player.Attributes.STATE: media_player.States.UNKNOWN},
+        )
+        entity._api = driver.api  # noqa: SLF001
+        driver.api.configured_entities.get = MagicMock(return_value=entity)
+
+        await driver.refresh_entity_state("media_player.dev1")
+
+        # sync_state should have been called, not the match-block fallback
+        assert entity.sync_state_called == 1
+        driver.api.configured_entities.update_attributes.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_refresh_entity_state_no_shortcircuit_without_sync_state_override(self):
+        """Test refresh_entity_state uses match block when sync_state is NOT overridden."""
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+        device = driver._device_instances["dev1"]
+        await device.connect()
+        device._state = "playing"
+
+        # Plain MagicMock entity (not a FrameworkEntity — no sync_state override)
+        mock_entity = MagicMock()
+        mock_entity.entity_type = EntityTypes.MEDIA_PLAYER
+        driver.api.configured_entities.get = MagicMock(return_value=mock_entity)
+
+        await driver.refresh_entity_state("media_player.dev1")
+
+        # Falls through to match block — should call update_attributes
+        driver.api.configured_entities.update_attributes.assert_called()
+
 
 class TestOnSubscribeEntitiesEdgeCases:
     """Tests for on_subscribe_entities edge cases."""
@@ -2381,6 +2433,67 @@ class TestOnDeviceUpdateEntityTypes:
         await driver.on_device_update("dev1", None)
 
         assert "Received None update" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_calls_sync_state_when_overridden(self):
+        """Test on_device_update short-circuits to sync_state when overridden."""
+        from ucapi_framework import Entity as FrameworkEntity
+
+        class SyncingMediaPlayer(media_player.MediaPlayer, FrameworkEntity):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.sync_state_called = 0
+
+            async def sync_state(self):
+                self.sync_state_called += 1
+
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        entity = SyncingMediaPlayer(
+            "media_player.dev1",
+            "Test",
+            features=[],
+            attributes={media_player.Attributes.STATE: media_player.States.UNKNOWN},
+        )
+        entity._api = driver.api  # noqa: SLF001
+        driver.api.configured_entities.get = MagicMock(return_value=entity)
+        driver.api.configured_entities.contains = MagicMock(return_value=True)
+
+        await driver.on_device_update("media_player.dev1", {"state": "playing"})
+
+        # Driver skips sync_state entities — entity's own subscription handles it.
+        # The driver must NOT call sync_state here to avoid double execution.
+        assert entity.sync_state_called == 0
+        driver.api.configured_entities.update_attributes.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_on_device_update_no_shortcircuit_without_sync_state_override(self):
+        """Test on_device_update uses attribute routing when sync_state is NOT overridden."""
+        from ucapi_framework import Entity as FrameworkEntity
+
+        class PlainMediaPlayer(media_player.MediaPlayer, FrameworkEntity):
+            pass  # No sync_state override
+
+        driver = self._create_driver()
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver.add_configured_device(config, connect=False)
+
+        entity = PlainMediaPlayer(
+            "media_player.dev1",
+            "Test",
+            features=[],
+            attributes={media_player.Attributes.STATE: media_player.States.UNKNOWN},
+        )
+        entity._api = driver.api  # noqa: SLF001
+        driver.api.configured_entities.get = MagicMock(return_value=entity)
+        driver.api.configured_entities.contains = MagicMock(return_value=True)
+
+        await driver.on_device_update("media_player.dev1", {"state": "playing"})
+
+        # Falls through to attribute routing — should call update_attributes
+        driver.api.configured_entities.update_attributes.assert_called()
 
 
 class TestDriverCoverageGaps:
