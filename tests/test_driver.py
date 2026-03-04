@@ -2018,7 +2018,9 @@ class TestRefreshEntityState:
         driver.api.configured_entities.update_attributes.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_refresh_entity_state_no_shortcircuit_without_sync_state_override(self):
+    async def test_refresh_entity_state_no_shortcircuit_without_sync_state_override(
+        self,
+    ):
         """Test refresh_entity_state uses match block when sync_state is NOT overridden."""
         driver = self._create_driver()
         config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")

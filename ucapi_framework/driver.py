@@ -596,7 +596,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         # Short-circuit: if entity has overridden sync_state(), delegate entirely to it.
         # This is the coordinator pattern — the entity knows how to read its own device.
-        if framework_entity and type(framework_entity).sync_state is not FrameworkEntity.sync_state:
+        if (
+            framework_entity
+            and type(framework_entity).sync_state is not FrameworkEntity.sync_state
+        ):
             await framework_entity.sync_state()
             return
 
@@ -1449,7 +1452,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         # Short-circuit: if entity has overridden sync_state(), it manages its own state
         # via subscribe_to_device(). Skip attribute routing to avoid double execution.
-        if framework_entity and type(framework_entity).sync_state is not FrameworkEntity.sync_state:
+        if (
+            framework_entity
+            and type(framework_entity).sync_state is not FrameworkEntity.sync_state
+        ):
             return
 
         attributes: dict[str, Any] = {}

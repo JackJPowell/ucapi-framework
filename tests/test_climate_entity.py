@@ -156,7 +156,9 @@ class TestClimateEntity:
 
     def test_set_attributes_ignores_none_values(self, entity, mock_api):
         """Test set_attributes() ignores None values."""
-        entity.set_attributes(state=climate.States.HEAT, current_temperature=None, update=True)
+        entity.set_attributes(
+            state=climate.States.HEAT, current_temperature=None, update=True
+        )
 
         assert entity.state == climate.States.HEAT
         assert entity.current_temperature is None

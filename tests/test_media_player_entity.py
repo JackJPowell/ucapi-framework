@@ -146,7 +146,9 @@ class TestMediaPlayerEntity:
 
     def test_set_attributes_ignores_none_values(self, entity, mock_api):
         """Test set_attributes() ignores None values."""
-        entity.set_attributes(state=media_player.States.PLAYING, volume=None, update=True)
+        entity.set_attributes(
+            state=media_player.States.PLAYING, volume=None, update=True
+        )
 
         # Only state should be in internal storage
         assert entity.state == media_player.States.PLAYING

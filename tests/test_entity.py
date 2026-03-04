@@ -564,13 +564,16 @@ class TestSyncStateAndSubscription:
     @pytest.mark.asyncio
     async def test_subscribe_to_device_wires_sync_state(self, mock_api):
         """Test subscribe_to_device wires UPDATE event to sync_state."""
+
         class SyncingMediaPlayer(media_player.MediaPlayer, Entity):
             def __init__(self):
                 super().__init__(
                     "media_player.test",
                     "Test Player",
                     features=[media_player.Features.ON_OFF],
-                    attributes={media_player.Attributes.STATE: media_player.States.UNKNOWN},
+                    attributes={
+                        media_player.Attributes.STATE: media_player.States.UNKNOWN
+                    },
                 )
                 self.sync_state_called = 0
 
@@ -587,7 +590,8 @@ class TestSyncStateAndSubscription:
 
         # Verify events.on was called with UPDATE event
         mock_device.events.on.assert_called_once_with(
-            DeviceEvents.UPDATE, entity._handle_device_update  # noqa: SLF001
+            DeviceEvents.UPDATE,
+            entity._handle_device_update,  # noqa: SLF001
         )
 
     @pytest.mark.asyncio
@@ -615,6 +619,7 @@ class TestSyncStateAndSubscription:
 
     def test_sync_state_overridden_detected(self):
         """Test that overriding sync_state is detectable for driver short-circuit."""
+
         class OverridingEntity(media_player.MediaPlayer, Entity):
             def __init__(self):
                 super().__init__(
