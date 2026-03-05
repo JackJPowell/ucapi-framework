@@ -173,6 +173,10 @@ class Entity(ABC):
         :param update: dictionary containing the updated properties.
         :param force: if True, update attributes even if they haven't changed.
         """
+        # Skip entirely if this entity is not configured on the Remote.
+        if not self._api.configured_entities.contains(self._framework_entity_id):
+            return
+
         # Strip None values - they represent attributes that have never been set
         # and should not be sent to the Remote. Empty strings and False are valid.
         update = {k: v for k, v in update.items() if v is not None}
@@ -289,8 +293,9 @@ class Entity(ABC):
             def on_device_disconnected(self):
                 self.set_unavailable()
         """
-        self.attributes[media_player.Attributes.STATE] = media_player.States.UNAVAILABLE  # type: ignore[attr-defined]
-        self.update(self.attributes)  # type: ignore[no-member]
+        # All ucapi States enums share the same UNAVAILABLE string value,
+        # so media_player.States.UNAVAILABLE works as a proxy for all entity types.
+        self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
 
     def subscribe_to_device(self, device: "BaseDeviceInterface") -> None:
         """
@@ -317,11 +322,10 @@ class Entity(ABC):
                     self.subscribe_to_device(device)
 
                 async def sync_state(self) -> None:
-                    self.attributes[light.Attributes.STATE] = self.map_entity_states(
-                        self._device.state
-                    )
-                    self.attributes[light.Attributes.BRIGHTNESS] = self._device.brightness
-                    self.update(self.attributes)
+                    self.update({
+                        light.Attributes.STATE: self.map_entity_states(self._device.state),
+                        light.Attributes.BRIGHTNESS: self._device.brightness,
+                    })
         """
         from .device import DeviceEvents  # local import to avoid circular dependency
 
@@ -335,9 +339,9 @@ class Entity(ABC):
         """
         Sync entity state from device to Remote.
 
-        Override this method to read current values from ``self._device``,
-        write them into ``self.attributes``, and call ``self.update(self.attributes)``
-        to push the state to the Remote.
+        Override this method to read current values from ``self._device`` and call
+        ``self.update()`` with a **fresh dict or dataclass** — do not mutate
+        ``self.attributes`` directly, as that would defeat change-filtering.
 
         The framework calls this method automatically in two situations:
 
@@ -351,14 +355,21 @@ class Entity(ABC):
         manages its own state (i.e. the developer is not using the driver's
         default ``on_device_update`` attribute-routing logic).
 
-        Example::
+        Example with dict::
 
             async def sync_state(self) -> None:
-                self.attributes[light.Attributes.STATE] = self.map_entity_states(
-                    self._device.state
-                )
-                self.attributes[light.Attributes.BRIGHTNESS] = self._device.brightness
-                self.update(self.attributes)
+                self.update({
+                    light.Attributes.STATE: self.map_entity_states(self._device.state),
+                    light.Attributes.BRIGHTNESS: self._device.brightness,
+                })
+
+        Example with dataclass (recommended)::
+
+            async def sync_state(self) -> None:
+                self.update(LightAttributes(
+                    STATE=self.map_entity_states(self._device.state),
+                    BRIGHTNESS=self._device.brightness,
+                ))
         """
         # No-op by default. Subclasses override to pull from device and push to Remote.
 

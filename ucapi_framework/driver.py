@@ -594,8 +594,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             cast(FrameworkEntity, configured_entity) if has_update else None
         )
 
-        # Short-circuit: if entity has overridden sync_state(), delegate entirely to it.
-        # This is the coordinator pattern — the entity knows how to read its own device.
+        # Coordinator pattern: entity owns its state via sync_state() + subscribe_to_device().
+        # Call sync_state() directly and skip all legacy attribute-routing paths.
         if (
             framework_entity
             and type(framework_entity).sync_state is not FrameworkEntity.sync_state
@@ -1216,9 +1216,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device connection.
 
-        Sets integration device state to CONNECTED and refreshes all entity states
-        for this device. This ensures entity states are updated after the device
-        has connected and populated its attributes via get_device_attributes().
+        Sets integration device state to CONNECTED and refreshes state for legacy-pattern
+        entities. Coordinator-pattern entities (those with ``sync_state()`` overridden)
+        are skipped here — they receive state via ``push_update()`` emitted by the
+        device's own ``connect()`` implementation, avoiding a redundant double-sync.
 
         :param device_id: Device identifier
         """
@@ -1230,8 +1231,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-        # Refresh entity states now that device is connected and has populated attributes
         for entity_id in self.get_entity_ids_for_device(device_id):
+            configured_entity = self.api.configured_entities.get(entity_id)
+            if isinstance(configured_entity, FrameworkEntity) and (
+                type(configured_entity).sync_state is not FrameworkEntity.sync_state
+            ):
+                # Coordinator pattern: entity syncs via push_update() from device.connect()
+                continue
             await self.refresh_entity_state(entity_id)
 
     async def on_device_disconnected(self, device_id: str) -> None:
