@@ -2,7 +2,7 @@
 
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from ucapi import media_player
 from ucapi_framework import MediaPlayerEntity
 from ucapi_framework.device import BaseDeviceInterface, DeviceEvents
