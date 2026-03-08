@@ -12,7 +12,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar, TypeAlias, cast
 
 import ucapi
 import ucapi.api as uc
@@ -39,6 +39,9 @@ from .entity import Entity as FrameworkEntity, map_state_to_media_player
 # Type variables for generic device and entity types
 DeviceT = TypeVar("DeviceT", bound=BaseDeviceInterface)  # Device interface type
 ConfigT = TypeVar("ConfigT")  # Device configuration type (any object with attributes)
+
+# Factory function signature: receives (config, device) and returns one or more entities
+EntityFactory: TypeAlias = Callable[[Any, Any], Entity | list[Entity]]
 
 _LOG = logging.getLogger(__name__)
 
@@ -134,10 +137,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     def __init__(
         self,
         device_class: type[DeviceT],
-        entity_classes: list[
-            type[Entity] | Callable[[ConfigT, DeviceT], Entity | list[Entity]]
-        ]
-        | type[Entity],
+        entity_classes: list[type[Entity] | EntityFactory] | type[Entity],
         require_connection_before_registry: bool = False,
         loop: asyncio.AbstractEventLoop | None = None,
         driver_id: str | None = None,
