@@ -1,6 +1,6 @@
 [![Tests](https://github.com/jackjpowell/ucapi-framework/actions/workflows/test.yml/badge.svg)](https://github.com/jackjpowell/ucapi-framework/actions/workflows/test.yml)
 [![Discord](https://badgen.net/discord/online-members/zGVYf58)](https://discord.gg/zGVYf58)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee&nbsp;☕-FFDD00?logo=buy-me-a-coffee&logoColor=white&labelColor=grey)](https://buymeacoffee.com/jackpowell)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?logo=buy-me-a-coffee&logoColor=white&labelColor=grey)](https://buymeacoffee.com/jackpowell)
 
 # UCAPI Framework
 
@@ -76,12 +76,12 @@ The driver coordinates everything - device lifecycle, entity management, and Rem
 
 The framework provides sensible defaults for:
 
-- **`create_entities()`** - Creates one entity per entity type automatically
-- **`map_device_state()`** - Maps common state strings (ON, OFF, PLAYING, etc.)
-- **`device_from_entity_id()`** - Parses standard entity ID format
+- **`create_entities()`** - Instantiates entities from the `entity_classes` list passed to the constructor; each item can be a class or a factory lambda `(config, device) -> Entity | list[Entity]`
+- **`map_device_state()`** - Maps common state strings (ON, OFF, PLAYING, etc.) to `media_player.States`
+- **`device_from_entity_id()`** - Parses the standard `entity_type.device_id` format
 - **`get_entity_ids_for_device()`** - Queries and filters entities by device
 
-**Override only what you need**: Custom state enums? Override `map_device_state()`. Conditional entity creation? Override `create_entities()`. Custom entity ID format? Override `device_from_entity_id()` too.
+**Override only what you need**: Custom state enums? Override `map_device_state()`. Logic that can't fit in a lambda? Override `create_entities()`. Custom entity ID format? Override `device_from_entity_id()`.
 
 Everything else is automatic. The framework handles Remote connection events (connect, disconnect, standby), entity subscriptions, device lifecycle management, and state synchronization.
 
@@ -109,13 +109,13 @@ All discovery classes handle the protocol details, timeouts, and error handling.
 
 The driver base class automatically wires up Remote events (connect, disconnect, standby, subscribe/unsubscribe) with sensible defaults. You can override any of them, but the defaults handle most cases.
 
-Device events (state changes, errors) automatically propagate to entity state updates. You just emit events from your device and the framework keeps the Remote in sync.
+State flows from device to Remote via the coordinator pattern: the device stores raw state properties and calls `push_update()` when anything changes. Every entity subscribed via `subscribe_to_device()` has its `sync_state()` method called automatically, which reads from the device and calls `self.update({...})` with a fresh dict. The framework diffs against the last-pushed state and sends only changed attributes to the Remote.
 
 ## How It Works
 
 You inherit from base classes and override only what you need:
 
-**Driver** - Usually works with defaults! Override only if you need custom state mapping or conditional entity creation.
+**Driver** - Usually works with defaults. Pass `entity_classes` to the constructor. Override only if you need custom state mapping or conditional entity creation.
 
 **Device** - Implement your connection pattern (verify, poll, handle messages, etc.).
 
@@ -166,34 +166,22 @@ Optional discovery implementations for common protocols:
 
 Lazy imports mean you only need the dependencies if you use them.
 
-## Real-World Example
-
-See the PSN integration in this repository:
-
-- `intg-psn/driver.py` - 90 lines (was 300)
-- `intg-psn/psn.py` - 140 lines (was 240)
-- `intg-psn/setup_flow.py` - 50 lines (was 250)
-- `intg-psn/config.py` - 15 lines (was 95)
-
-Total: ~295 lines of integration code vs ~885 lines previously. And the new code is type-safe, testable, and maintainable.
 
 ## Migration
 
-If you have an existing integration, see [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for step-by-step instructions with before/after examples.
-
-For upgrading from a previous version of ucapi-framework:
-- **[Upgrading to 1.6.0](https://jackjpowell.github.io/ucapi-framework/upgrade-to-1.6.0/)** - New dynamic entity management features
+If you have an existing integration, see [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for step-by-step instructions with before/after examples covering the coordinator pattern, `subscribe_to_device`, `sync_state`, and `push_update`.
 
 ## Requirements
 
 - Python 3.11+
 - ucapi
 - pyee
+- aiohttp (required; used by HTTP and WebSocket device base classes)
 
-Optional (only if you use them):
-- aiohttp (for HTTP devices)
-- websockets (for WebSocket devices)
+Optional (only if you use the corresponding discovery classes):
+
 - ssdpy (for SSDP discovery)
+- sddp-discovery-protocol (for SDDP discovery)
 - zeroconf (for mDNS discovery)
 
 ## Documentation
@@ -221,9 +209,14 @@ Visit <http://127.0.0.1:8000> to view the docs.
 uv sync --group dev
 ```
 
-Git hooks are automatically active from the `git-hooks/` directory:
+A `pre-commit` hook is available in the `git-hooks/` directory. To activate it:
 
-- **pre-commit**: Runs `ruff check --fix` and `ruff format` via `uv run`
+```bash
+cp git-hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+The hook runs `ruff check --fix` and `ruff format` before every commit.
 
 All development tools run through `uv` and are configured in `pyproject.toml`.
 
