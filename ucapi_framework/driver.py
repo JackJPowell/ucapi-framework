@@ -12,7 +12,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import is_dataclass
 from enum import Enum
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar, TypeAlias, cast
 
 import ucapi
 import ucapi.api as uc
@@ -39,6 +39,9 @@ from .entity import Entity as FrameworkEntity, map_state_to_media_player
 # Type variables for generic device and entity types
 DeviceT = TypeVar("DeviceT", bound=BaseDeviceInterface)  # Device interface type
 ConfigT = TypeVar("ConfigT")  # Device configuration type (any object with attributes)
+
+# Factory function signature: receives (config, device) and returns one or more entities
+EntityFactory: TypeAlias = Callable[[Any, Any], Entity | list[Entity]]
 
 _LOG = logging.getLogger(__name__)
 
@@ -134,10 +137,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     def __init__(
         self,
         device_class: type[DeviceT],
-        entity_classes: list[
-            type[Entity] | Callable[[ConfigT, DeviceT], Entity | list[Entity]]
-        ]
-        | type[Entity],
+        entity_classes: list[type[Entity] | EntityFactory] | type[Entity],
         require_connection_before_registry: bool = False,
         loop: asyncio.AbstractEventLoop | None = None,
         driver_id: str | None = None,
@@ -594,6 +594,15 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             cast(FrameworkEntity, configured_entity) if has_update else None
         )
 
+        # Coordinator pattern: entity owns its state via sync_state() + subscribe_to_device().
+        # Call sync_state() directly and skip all legacy attribute-routing paths.
+        if (
+            framework_entity
+            and type(framework_entity).sync_state is not FrameworkEntity.sync_state
+        ):
+            await framework_entity.sync_state()
+            return
+
         # Try to get attributes from device
         device_attrs = None
         if hasattr(device, "get_device_attributes"):
@@ -1021,34 +1030,65 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         return filtered_entities
 
     def get_entity_by_id(
-        self, entity_id: str, source: EntitySource | str = EntitySource.ALL
+        self,
+        entity_id: str | None = None,
+        source: EntitySource | str = EntitySource.ALL,
+        *,
+        entity_type: EntityTypes | str | None = None,
+        device_id: str | None = None,
+        sub_device_id: str | None = None,
     ) -> Entity | None:
         """
-        Get a specific entity by its ID.
+        Get a specific entity by its full ID or by its component parts.
 
-        Searches for the entity in available entities, configured entities, or both.
+        Accepts either a full ``entity_id`` string **or** the keyword components
+        ``entity_type``, ``device_id``, and ``sub_device_id``, which are passed
+        directly to the module-level :func:`create_entity_id` to construct the
+        lookup key. All three components are required when ``entity_id`` is omitted.
 
-        Example usage:
-            # Get an entity from any source
+        Example usage::
+
+            # Full entity ID (original form — unchanged)
             entity = driver.get_entity_by_id("light.living_room.main")
 
-            # Get only from configured entities
+            # Component parts — avoids a separate create_entity_id call
             entity = driver.get_entity_by_id(
-                "sensor.bedroom.temp",
-                source=EntitySource.CONFIGURED
+                entity_type=EntityTypes.LIGHT,
+                device_id="living_room",
+                sub_device_id="main",
             )
 
-            if entity:
-                print(f"Found entity: {entity.name}")
+            # No sub-device
+            entity = driver.get_entity_by_id(
+                entity_type=EntityTypes.MEDIA_PLAYER,
+                device_id="receiver_abc",
+            )
 
-        :param entity_id: Entity identifier to search for
-        :param source: Which collection(s) to search (EntitySource enum or string):
-                      EntitySource.ALL or "all" (default) - both available and configured
-                      EntitySource.AVAILABLE or "available" - only available entities
-                      EntitySource.CONFIGURED or "configured" - only configured entities
-        :return: Entity object if found, None otherwise
-        :raises ValueError: If source is not valid
+            # Restrict search scope
+            entity = driver.get_entity_by_id(
+                "sensor.bedroom.temp",
+                source=EntitySource.CONFIGURED,
+            )
+
+        :param entity_id: Full entity identifier string. When provided, the
+                         component kwargs are ignored.
+        :param source: Which collection(s) to search (``EntitySource`` enum or string):
+                      ``ALL`` (default), ``AVAILABLE``, or ``CONFIGURED``.
+        :param entity_type: Entity type. Required when ``entity_id`` is ``None``.
+        :param device_id: Device identifier. Required when ``entity_id`` is ``None``.
+        :param sub_device_id: Optional sub-device identifier.
+        :return: Entity object if found, ``None`` otherwise.
+        :raises ValueError: If ``source`` is invalid, or if ``entity_type`` or
+                            ``device_id`` are missing when ``entity_id`` is not provided.
         """
+        # Build entity_id from components when not supplied directly
+        if entity_id is None:
+            if entity_type is None or device_id is None:
+                raise ValueError(
+                    "entity_type and device_id are both required when entity_id is not provided."
+                )
+            entity_id = create_entity_id(entity_type, device_id, sub_device_id)
+
         # Normalize source to string
         source_str = source.value if isinstance(source, EntitySource) else source
 
@@ -1176,9 +1216,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device connection.
 
-        Sets integration device state to CONNECTED and refreshes all entity states
-        for this device. This ensures entity states are updated after the device
-        has connected and populated its attributes via get_device_attributes().
+        Sets integration device state to CONNECTED and refreshes state for legacy-pattern
+        entities. Coordinator-pattern entities (those with ``sync_state()`` overridden)
+        are skipped here — they receive state via ``push_update()`` emitted by the
+        device's own ``connect()`` implementation, avoiding a redundant double-sync.
 
         :param device_id: Device identifier
         """
@@ -1190,8 +1231,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-        # Refresh entity states now that device is connected and has populated attributes
         for entity_id in self.get_entity_ids_for_device(device_id):
+            configured_entity = self.api.configured_entities.get(entity_id)
+            if isinstance(configured_entity, FrameworkEntity) and (
+                type(configured_entity).sync_state is not FrameworkEntity.sync_state
+            ):
+                # Coordinator pattern: entity syncs via push_update() from device.connect()
+                continue
             await self.refresh_entity_state(entity_id)
 
     async def on_device_disconnected(self, device_id: str) -> None:
@@ -1351,21 +1397,40 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
     async def on_device_update(
         self,
-        entity_id: str,
-        update: dict[str, Any] | None,
+        entity_id: str | None = None,
+        update: dict[str, Any] | None = None,
         clear_media_when_off: bool = True,
     ) -> None:
         """
         Handle device state updates.
 
-        Default implementation extracts entity-type-specific attributes from the
-        update dict and updates configured/available entities accordingly.
-        Override this method to customize update handling or add state mapping.
+        This handler is wired to ``DeviceEvents.UPDATE`` and supports two patterns:
 
-        :param device_id: Device identifier
-        :param update: Dictionary containing updated properties
-        :param clear_media_when_off: If True, clears all media player attributes when state is OFF
+        **Coordinator pattern** (recommended):
+        Entities that override ``sync_state()`` and call ``subscribe_to_device()``
+        manage their own state. The device simply emits ``DeviceEvents.UPDATE`` with
+        no arguments — ``entity_id`` and ``update`` are ignored, and this handler
+        returns immediately without doing any work.
+
+        **Legacy / attribute-routing pattern**:
+        The device emits ``DeviceEvents.UPDATE`` with an ``entity_id`` and an
+        ``update`` dict of raw attribute values. This handler extracts the
+        entity-type-specific attributes and pushes them to the Remote. Override
+        this method to customise the attribute routing or state mapping.
+
+        :param entity_id: Entity identifier. Required for the legacy pattern; omit
+                          (or pass ``None``) when using the coordinator pattern.
+        :param update: Dictionary of raw attribute values to apply. Required for the
+                       legacy pattern; omit (or pass ``None``) when using the
+                       coordinator pattern.
+        :param clear_media_when_off: Legacy pattern only. If ``True``, clears all
+                                     media player attributes when the state transitions
+                                     to ``OFF``. Has no effect in the coordinator pattern.
         """
+        if entity_id is None:
+            # Coordinator pattern: entities handle their own updates via sync_state().
+            return
+
         if update is None:
             _LOG.warning("[%s] Received None update, skipping", entity_id)
             return
@@ -1390,6 +1455,14 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         framework_entity = (
             cast(FrameworkEntity, configured_entity) if has_custom_behavior else None
         )
+
+        # Short-circuit: if entity has overridden sync_state(), it manages its own state
+        # via subscribe_to_device(). Skip attribute routing to avoid double execution.
+        if (
+            framework_entity
+            and type(framework_entity).sync_state is not FrameworkEntity.sync_state
+        ):
+            return
 
         attributes: dict[str, Any] = {}
 

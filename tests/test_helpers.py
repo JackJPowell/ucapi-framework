@@ -119,7 +119,9 @@ async def test_find_orphaned_entities_with_pin(
             return response
 
         def mock_get(url, **_kwargs):
-            if url.endswith("/api/activities"):
+            if "/api/activities" in url and url.split("?")[0].endswith(
+                "/api/activities"
+            ):
                 return create_response(mock_activities_list)
             else:
                 # Extract activity ID from URL
@@ -169,7 +171,7 @@ async def test_find_orphaned_entities_with_api_key():
             response.__aexit__ = AsyncMock(return_value=None)
             return response
 
-        def mock_get(_url, **kwargs):
+        def mock_get(url, **kwargs):
             # Verify API key is in headers
             assert "Authorization" in kwargs.get("headers", {})
             assert kwargs["headers"]["Authorization"] == "Bearer test-api-key"
@@ -293,7 +295,9 @@ async def test_find_orphaned_entities_activity_fetch_failure():
             return response
 
         def mock_get(url, **_kwargs):
-            if url.endswith("/api/activities"):
+            if "/api/activities" in url and url.split("?")[0].endswith(
+                "/api/activities"
+            ):
                 return create_response(activities)
             else:
                 # Fail on individual activity fetch
@@ -332,7 +336,9 @@ async def test_find_orphaned_entities_no_included_entities():
             return response
 
         def mock_get(url, **_kwargs):
-            if url.endswith("/api/activities"):
+            if "/api/activities" in url and url.split("?")[0].endswith(
+                "/api/activities"
+            ):
                 return create_response([{"entity_id": "activity.empty"}])
             else:
                 return create_response(activity_no_entities)
@@ -381,7 +387,9 @@ async def test_find_orphaned_entities_preserves_entity_data():
             return response
 
         def mock_get(url, **_kwargs):
-            if url.endswith("/api/activities"):
+            if "/api/activities" in url and url.split("?")[0].endswith(
+                "/api/activities"
+            ):
                 return create_response([{"entity_id": "activity.test"}])
             else:
                 return create_response(activity)

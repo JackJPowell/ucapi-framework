@@ -7,7 +7,7 @@ Common entity interface for UC API integrations.
 
 from abc import ABC
 from dataclasses import asdict, is_dataclass
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from ucapi import (
     IntegrationAPI,
     button,
@@ -23,6 +23,9 @@ from ucapi import (
     voice_assistant,
 )
 from .helpers import EntityAttributes
+
+if TYPE_CHECKING:
+    from .device import BaseDeviceInterface
 
 # Mapping from ucapi entity classes to their Attributes enums
 _ENTITY_ATTRIBUTES_MAP = {
@@ -170,6 +173,14 @@ class Entity(ABC):
         :param update: dictionary containing the updated properties.
         :param force: if True, update attributes even if they haven't changed.
         """
+        # Skip entirely if this entity is not configured on the Remote.
+        if not self._api.configured_entities.contains(self._framework_entity_id):
+            return
+
+        # Strip None values - they represent attributes that have never been set
+        # and should not be sent to the Remote. Empty strings and False are valid.
+        update = {k: v for k, v in update.items() if v is not None}
+
         if force:
             attributes = update
             # Even with force=True, skip if update is empty
@@ -268,6 +279,99 @@ class Entity(ABC):
             attrs = attrs_dict
 
         self.update_attributes(attrs, force=force)
+
+    def set_unavailable(self) -> None:
+        """
+        Mark this entity as unavailable on the Remote.
+
+        Sets ``Attributes.STATE`` to ``States.UNAVAILABLE`` for the entity type
+        and pushes the update immediately. Works for all ucapi entity types
+        (button, climate, cover, light, media_player, remote, select, etc.).
+
+        Example::
+
+            def on_device_disconnected(self):
+                self.set_unavailable()
+        """
+        # All ucapi States enums share the same UNAVAILABLE string value,
+        # so media_player.States.UNAVAILABLE works as a proxy for all entity types.
+        self.update({media_player.Attributes.STATE: media_player.States.UNAVAILABLE})
+
+    def subscribe_to_device(self, device: "BaseDeviceInterface") -> None:
+        """
+        Subscribe to device UPDATE events.
+
+        Registers ``sync_state()`` as a listener on the device's UPDATE event.
+        Call this in ``__init__`` to wire the entity to its device — after that,
+        every ``DeviceEvents.UPDATE`` emission will automatically invoke
+        ``sync_state()`` on this entity.
+
+        The framework also calls ``sync_state()`` directly during
+        ``on_device_connected`` and ``refresh_entity_state``, so subscription
+        handles the push-notification path while the driver handles the
+        poll/reconnect path.
+
+        :param device: Device instance to subscribe to.
+
+        Example::
+
+            class MyLight(LightEntity):
+                def __init__(self, config, device):
+                    super().__init__(...)
+                    self._device = device
+                    self.subscribe_to_device(device)
+
+                async def sync_state(self) -> None:
+                    self.update({
+                        light.Attributes.STATE: self.map_entity_states(self._device.state),
+                        light.Attributes.BRIGHTNESS: self._device.brightness,
+                    })
+        """
+        from .device import DeviceEvents  # local import to avoid circular dependency
+
+        device.events.on(DeviceEvents.UPDATE, self._handle_device_update)
+
+    async def _handle_device_update(self, *_args: Any, **_kwargs: Any) -> None:
+        """Internal handler wired to DeviceEvents.UPDATE by subscribe_to_device."""
+        await self.sync_state()
+
+    async def sync_state(self) -> None:
+        """
+        Sync entity state from device to Remote.
+
+        Override this method to read current values from ``self._device`` and call
+        ``self.update()`` with a **fresh dict or dataclass** — do not mutate
+        ``self.attributes`` directly, as that would defeat change-filtering.
+
+        The framework calls this method automatically in two situations:
+
+        - **Device reconnect** — after ``on_device_connected``, the driver calls
+          ``sync_state()`` on each configured entity for the device.
+        - **Device UPDATE event** — if the entity has subscribed via
+          ``subscribe_to_device()``, ``sync_state()`` is called on every
+          ``DeviceEvents.UPDATE`` emission.
+
+        The default implementation is a no-op. Override it when the entity
+        manages its own state (i.e. the developer is not using the driver's
+        default ``on_device_update`` attribute-routing logic).
+
+        Example with dict::
+
+            async def sync_state(self) -> None:
+                self.update({
+                    light.Attributes.STATE: self.map_entity_states(self._device.state),
+                    light.Attributes.BRIGHTNESS: self._device.brightness,
+                })
+
+        Example with dataclass (recommended)::
+
+            async def sync_state(self) -> None:
+                self.update(LightAttributes(
+                    STATE=self.map_entity_states(self._device.state),
+                    BRIGHTNESS=self._device.brightness,
+                ))
+        """
+        # No-op by default. Subclasses override to pull from device and push to Remote.
 
     def filter_changed_attributes(self, update: dict[str, Any]) -> dict[str, Any]:
         """

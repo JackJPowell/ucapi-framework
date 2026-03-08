@@ -119,6 +119,26 @@ class BaseDeviceInterface(ABC):
         """
         return self._driver
 
+    def push_update(self) -> None:
+        """
+        Notify the framework that this device's state has changed.
+
+        Emits ``DeviceEvents.UPDATE`` with no payload. Any entity that has called
+        ``subscribe_to_device()`` will have its ``sync_state()`` method invoked
+        automatically in response.
+
+        This is the recommended way to trigger state propagation when using the
+        coordinator pattern::
+
+            async def _poll(self):
+                self.volume = await self._fetch_volume()
+                self.push_update()
+
+        For the legacy attribute-routing pattern, emit ``DeviceEvents.UPDATE``
+        directly with ``entity_id`` and an ``update`` dict instead.
+        """
+        self.events.emit(DeviceEvents.UPDATE)
+
     def update_config(self, **kwargs) -> bool:
         """
         Update device configuration attributes and persist changes.

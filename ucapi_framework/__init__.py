@@ -61,6 +61,19 @@ from .helpers import (
     SwitchAttributes,
     VoiceAssistantAttributes,
 )
+from .entities import (
+    MediaPlayerEntity,
+    LightEntity,
+    CoverEntity,
+    ButtonEntity,
+    ClimateEntity,
+    IREmitterEntity,
+    RemoteEntity,
+    SelectEntity,
+    SensorEntity,
+    SwitchEntity,
+    VoiceAssistantEntity,
+)
 
 __all__ = [
     "BaseIntegrationDriver",
@@ -102,6 +115,17 @@ __all__ = [
     "SensorAttributes",
     "SwitchAttributes",
     "VoiceAssistantAttributes",
+    "MediaPlayerEntity",
+    "LightEntity",
+    "CoverEntity",
+    "ButtonEntity",
+    "ClimateEntity",
+    "IREmitterEntity",
+    "RemoteEntity",
+    "SelectEntity",
+    "SensorEntity",
+    "SwitchEntity",
+    "VoiceAssistantEntity",
 ]
 
-__version__ = "1.8.4"
+__version__ = "1.9.0"
