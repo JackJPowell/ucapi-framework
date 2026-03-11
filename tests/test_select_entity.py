@@ -40,7 +40,9 @@ class TestSelectEntity:
         """Test initial state from constructor attributes."""
         assert entity.state == select.States.ON
         assert entity.current_option == "HDMI 1"
-        assert entity.options == ["HDMI 1", "HDMI 2", "HDMI 3"]
+        assert entity.select_options == ["HDMI 1", "HDMI 2", "HDMI 3"]
+        # entity.options returns None — it is reserved for the ucapi config dict slot
+        assert entity.options is None
 
     def test_initial_state_minimal(self, mock_api):
         """Test initial state when only required args are passed."""
@@ -48,6 +50,7 @@ class TestSelectEntity:
         entity._api = mock_api  # noqa: SLF001
         assert entity.state is None
         assert entity.current_option is None
+        assert entity.select_options is None
         assert entity.options is None
 
     def test_set_state_with_update(self, entity, mock_api):
@@ -89,7 +92,7 @@ class TestSelectEntity:
         new_options = ["Input 1", "Input 2"]
         entity.set_options(new_options, update=True)
 
-        assert entity.options == new_options
+        assert entity.select_options == new_options
         assert mock_api.configured_entities.update_attributes.called
 
     def test_set_options_without_update(self, entity, mock_api):
@@ -97,7 +100,7 @@ class TestSelectEntity:
         new_options = ["Input 1", "Input 2"]
         entity.set_options(new_options, update=False)
 
-        assert entity.options == new_options
+        assert entity.select_options == new_options
         assert not mock_api.configured_entities.update_attributes.called
 
     def test_set_attributes_bulk_update(self, entity, mock_api):
@@ -111,7 +114,7 @@ class TestSelectEntity:
 
         assert entity.state == select.States.ON
         assert entity.current_option == "HDMI 2"
-        assert entity.options == ["HDMI 1", "HDMI 2"]
+        assert entity.select_options == ["HDMI 1", "HDMI 2"]
 
         # Verify update was called only once
         assert mock_api.configured_entities.update_attributes.call_count == 1
@@ -163,8 +166,9 @@ class TestSelectEntity:
         with pytest.raises(AttributeError):
             entity.current_option = "HDMI 2"  # type: ignore[misc]
 
-        # Note: entity.options has a setter (required to avoid clash with ucapi Entity.options)
-        # so direct assignment is allowed but has no effect on the select options list
+        # Note: entity.options always returns None (reserved for ucapi's config dict slot).
+        # The select options list is accessed via entity.select_options.
+        # The options setter silently discards assignments from ucapi's Entity.__init__.
 
 
 class TestSelectEntityInheritance:
