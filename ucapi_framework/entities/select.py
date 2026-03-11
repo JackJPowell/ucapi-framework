@@ -83,9 +83,13 @@ class SelectEntity(select.Select, Entity):
         return self.attributes.get(select.Attributes.CURRENT_OPTION)
 
     @property
-    def options(self) -> list[str] | None:
-        """Get the list of available options."""
-        return self.attributes.get(select.Attributes.OPTIONS)
+    def options(self) -> None:
+        """
+        Return None so ucapi's get_all() does not include the select options list
+        in the entity-level 'options' config field (which expects a dict, not a list).
+        The select options list lives in self.attributes and is sent via entity_change events.
+        """
+        return None
 
     @options.setter
     def options(self, _value: object) -> None:
@@ -94,6 +98,11 @@ class SelectEntity(select.Select, Entity):
         (which stores config/options dicts, not the select options list).
         The select options list is managed via ``self.attributes`` and ``set_options()``.
         """
+
+    @property
+    def select_options(self) -> list[str] | None:
+        """Get the list of available select options from attributes."""
+        return self.attributes.get(select.Attributes.OPTIONS)
 
     # ========================================================================
     # Setter Methods (with optional auto-update, overridable)
