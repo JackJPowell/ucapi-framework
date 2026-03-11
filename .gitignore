@@ -83,3 +83,4 @@ cython_debug/
 # MkDocs
 site/
 .cache/
+uv.lock
