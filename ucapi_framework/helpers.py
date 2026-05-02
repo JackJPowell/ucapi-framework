@@ -294,3 +294,166 @@ async def find_orphaned_entities(
     except Exception as err:  # pylint: disable=broad-except
         _LOG.error("Unexpected error while scanning for orphaned entities: %s", err)
         return orphaned_entities
+
+
+def _extract_used_entity_ids(activity: dict[str, Any]) -> set[str]:
+    """
+    Extract all entity IDs that are actively used in an activity's sequences,
+    button_mapping, and user_interface.
+
+    :param activity: Full activity dict from GET /api/activities/{id}
+    :return: Set of entity_id strings that are referenced
+    """
+    used: set[str] = set()
+    options = activity.get("options", {})
+
+    # sequences: on/off lists of steps; each step may have command.entity_id
+    sequences = options.get("sequences", {})
+    for steps in sequences.values():
+        if not isinstance(steps, list):
+            continue
+        for step in steps:
+            cmd = step.get("command", {})
+            if isinstance(cmd, dict) and cmd.get("entity_id"):
+                used.add(cmd["entity_id"])
+
+    # button_mapping: list of {short_press, long_press} each with entity_id
+    for mapping in options.get("button_mapping", []):
+        for press_key in ("short_press", "long_press"):
+            press = mapping.get(press_key, {})
+            if isinstance(press, dict) and press.get("entity_id"):
+                used.add(press["entity_id"])
+
+    # user_interface: pages → items; entity IDs hide in several fields
+    ui = options.get("user_interface", {})
+    for page in ui.get("pages", []):
+        for item in page.get("items", []):
+            # Direct command entity
+            cmd = item.get("command", {})
+            if isinstance(cmd, dict) and cmd.get("entity_id"):
+                used.add(cmd["entity_id"])
+            # media_player_id
+            if item.get("media_player_id"):
+                used.add(item["media_player_id"])
+            # sensor_id
+            sensor = item.get("sensor", {})
+            if isinstance(sensor, dict) and sensor.get("sensor_id"):
+                used.add(sensor["sensor_id"])
+            # select_id
+            select = item.get("select", {})
+            if isinstance(select, dict) and select.get("select_id"):
+                used.add(select["select_id"])
+
+    return used
+
+
+async def find_unused_activity_entities(
+    remote_url: str,
+    pin: str | None = None,
+    api_key: str | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Find entities included in activities that are never actually used.
+
+    An entity is "unused" when it appears in ``included_entities`` but has no
+    reference in sequences, button_mapping, or user_interface (commands, media
+    player widgets, sensor widgets, or select widgets).
+
+    Authentication can be done via PIN (Basic Auth) or API key (Bearer token).
+    One of ``pin`` or ``api_key`` must be provided.
+
+    :param remote_url: The Remote's base URL (e.g., "http://192.168.1.100")
+    :param pin: Remote's web-configurator PIN for Basic Auth
+    :param api_key: Remote's API key for Bearer token authentication
+    :return: List of dicts with activity context and the unused entity info
+    :raises ValueError: If neither pin nor api_key is provided
+    """
+    if not pin and not api_key:
+        raise ValueError("Either pin or api_key must be provided for authentication")
+
+    _LOG.info("Scanning for unused activity entities on Remote at %s", remote_url)
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    auth = None
+    if pin and not api_key:
+        auth = aiohttp.BasicAuth(login="web-configurator", password=pin)
+
+    unused: list[dict[str, Any]] = []
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            activities_url = f"{remote_url}/api/activities?limit=100"
+            async with session.get(
+                activities_url,
+                headers=headers,
+                auth=auth,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status != 200:
+                    _LOG.error("Failed to fetch activities: HTTP %d", resp.status)
+                    return unused
+                activities_list = await resp.json()
+                _LOG.info(
+                    "Found %d activities to scan for unused entities",
+                    len(activities_list),
+                )
+
+            for activity_summary in activities_list:
+                activity_id = activity_summary.get("entity_id")
+                if not activity_id:
+                    continue
+
+                activity_url = f"{remote_url}/api/activities/{activity_id}"
+                async with session.get(
+                    activity_url,
+                    headers=headers,
+                    auth=auth,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as resp:
+                    if resp.status != 200:
+                        _LOG.warning(
+                            "Failed to fetch activity %s: HTTP %d",
+                            activity_id,
+                            resp.status,
+                        )
+                        continue
+                    activity = await resp.json()
+
+                activity_name = activity_summary.get("name") or activity.get("name", {})
+                options = activity.get("options", {})
+                included_entities = options.get("included_entities", [])
+
+                if not included_entities:
+                    continue
+
+                included_ids = {
+                    e["entity_id"] for e in included_entities if e.get("entity_id")
+                }
+                used_ids = _extract_used_entity_ids(activity)
+                truly_unused = included_ids - used_ids
+
+                for entity in included_entities:
+                    eid = entity.get("entity_id")
+                    if eid in truly_unused:
+                        record = {
+                            k: v
+                            for k, v in entity.items()
+                            if k not in ("entity_commands", "simple_commands")
+                        }
+                        record["activity_id"] = activity_id
+                        record["activity_name"] = activity_name
+                        unused.append(record)
+                        _LOG.debug("Unused entity %s in activity %s", eid, activity_id)
+
+        _LOG.info("Found %d unused activity entities", len(unused))
+        return unused
+
+    except aiohttp.ClientError as err:
+        _LOG.error("Network error while scanning for unused entities: %s", err)
+        return unused
+    except Exception as err:  # pylint: disable=broad-except
+        _LOG.error("Unexpected error while scanning for unused entities: %s", err)
+        return unused

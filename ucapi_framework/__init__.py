@@ -48,6 +48,7 @@ from .migration import (
 )
 from .helpers import (
     find_orphaned_entities,
+    find_unused_activity_entities,
     EntityAttributes,
     ButtonAttributes,
     ClimateAttributes,
@@ -126,6 +127,7 @@ __all__ = [
     "SensorEntity",
     "SwitchEntity",
     "VoiceAssistantEntity",
+    "find_unused_activity_entities",
 ]
 
 __version__ = "1.9.1"
