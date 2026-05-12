@@ -34,6 +34,7 @@ for integrations that don't use them. Install only what you need:
 :license: Mozilla Public License Version 2.0, see LICENSE for more details.
 """
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -356,40 +357,44 @@ class MDNSDiscovery(BaseDiscovery):
 
         try:
             try:
-                from zeroconf import ServiceBrowser, ServiceListener, Zeroconf  # type: ignore[import-not-found]
+                from zeroconf import ServiceListener  # type: ignore[import-not-found]
+                from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
             except ImportError as err:
                 raise ImportError(
                     "zeroconf package is required for mDNS discovery. "
                     "Install it with: pip install zeroconf"
                 ) from err
 
-            import asyncio
-
-            zeroconf = Zeroconf()
-            discovered = []
+            discovered_names: list[tuple[str, str]] = []
 
             class Listener(ServiceListener):
-                def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-                    info = zc.get_service_info(type_, name)
-                    if info:
-                        discovered.append(info)
+                """Listener for mDNS service discovery events."""
 
-                def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+                def add_service(self, zc, type_: str, name: str) -> None:
+                    discovered_names.append((type_, name))
+
+                def remove_service(self, zc, type_: str, name: str) -> None:
                     pass
 
-                def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+                def update_service(self, zc, type_: str, name: str) -> None:
                     pass
 
-            browser = ServiceBrowser(zeroconf, self.service_type, Listener())
-
-            # Wait for discovery timeout
-            await asyncio.sleep(self.timeout)
-
-            browser.cancel()
-            zeroconf.close()
+            aiozc = AsyncZeroconf()
+            try:
+                browser = AsyncServiceBrowser(
+                    aiozc.zeroconf, self.service_type, Listener()
+                )
+                await asyncio.sleep(self.timeout)
+                await browser.async_cancel()
+                discovered = [
+                    info
+                    for type_, name in discovered_names
+                    if (info := await aiozc.async_get_service_info(type_, name))
+                ]
+            finally:
+                await aiozc.async_close()
 
             self._discovered_devices.clear()
-
             for service_info in discovered:
                 device = self.parse_mdns_service(service_info)
                 if device:
@@ -399,10 +404,8 @@ class MDNSDiscovery(BaseDiscovery):
                 "mDNS discovery complete: found %d device(s)",
                 len(self._discovered_devices),
             )
-
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOG.error("mDNS discovery error: %s", err)
-
         return self._discovered_devices
 
     @abstractmethod

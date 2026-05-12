@@ -451,28 +451,87 @@ class TestMDNSDiscovery:
 
     @pytest.mark.asyncio
     async def test_discover_with_zeroconf(self):
-        """Test mDNS discovery with mocked zeroconf."""
+        """Test mDNS discovery with mocked zeroconf async classes."""
         mock_service_info = Mock()
         mock_service_info.name = "test-device._test._tcp.local."
         mock_service_info.server = "Test Device"
         mock_service_info.addresses = [b"\xc0\xa8\x01\x64"]  # 192.168.1.100 as bytes
         mock_service_info.port = 8080
 
-        mock_zeroconf = Mock()
-        mock_service_browser = Mock()
+        # ServiceListener must be a real class so Listener can inherit from it
+        class MockServiceListener:
+            pass
+
+        # Track the Listener instance created inside discover()
+        captured_listener: dict = {}
+
+        # Mock AsyncZeroconf
+        mock_aiozc = AsyncMock()
+        mock_aiozc.zeroconf = Mock()
+        mock_aiozc.async_get_service_info = AsyncMock(return_value=mock_service_info)
+        mock_aiozc.async_close = AsyncMock()
+
+        # Mock AsyncServiceBrowser – capture the listener so we can call add_service
+        def mock_browser_init(zc, service_type, listener):
+            captured_listener["obj"] = listener
+            browser = Mock()
+            browser.async_cancel = AsyncMock()
+            return browser
 
         mock_zeroconf_module = Mock()
-        mock_zeroconf_module.Zeroconf.return_value = mock_zeroconf
-        mock_zeroconf_module.ServiceBrowser.return_value = mock_service_browser
+        mock_zeroconf_module.ServiceListener = MockServiceListener
 
-        with patch.dict("sys.modules", {"zeroconf": mock_zeroconf_module}):
+        mock_asyncio_module = Mock()
+        mock_asyncio_module.AsyncZeroconf = Mock(return_value=mock_aiozc)
+        mock_asyncio_module.AsyncServiceBrowser = Mock(side_effect=mock_browser_init)
+
+        with (
+            patch.dict(
+                "sys.modules",
+                {
+                    "zeroconf": mock_zeroconf_module,
+                    "zeroconf.asyncio": mock_asyncio_module,
+                },
+            ),
+            patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+
+            async def trigger_discovery(*args, **kwargs):
+                listener = captured_listener.get("obj")
+                if listener:
+                    listener.add_service(
+                        mock_aiozc.zeroconf,
+                        "_test._tcp.local.",
+                        "test-device._test._tcp.local.",
+                    )
+
+            mock_sleep.side_effect = trigger_discovery
+
             discovery = ConcreteMDNSDiscovery(
                 service_type="_test._tcp.local.", timeout=1
             )
             devices = await discovery.discover()
 
-            # Due to asyncio sleep and mocking complexity, this is more of a structure test
-            assert isinstance(devices, list)
+            assert len(devices) == 1
+            assert devices[0].identifier == "test-device._test._tcp.local."
+            assert devices[0].name == "Test Device"
+            mock_aiozc.async_get_service_info.assert_called_once_with(
+                "_test._tcp.local.", "test-device._test._tcp.local."
+            )
+
+    @pytest.mark.asyncio
+    async def test_discover_handles_import_error(self):
+        """Test that discover handles missing zeroconf gracefully."""
+        discovery = ConcreteMDNSDiscovery(service_type="_test._tcp.local.", timeout=1)
+
+        def mock_import(name, *args, **kwargs):
+            if name in ("zeroconf", "zeroconf.asyncio"):
+                raise ImportError(f"No module named '{name}'")
+            return __import__(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            devices = await discovery.discover()
+            assert devices == []
 
 
 class TestNetworkScanDiscovery:
