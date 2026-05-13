@@ -116,6 +116,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self._setup_step = SetupSteps.INIT
         self._add_mode = False
         self._pending_device_config: ConfigT | None = None  # For multi-screen flows
+        self._pending_remove_id: str | None = (
+            None  # ID of config entry to remove on successful update
+        )
         self._pre_discovery_data: dict[
             str, Any
         ] = {}  # Store data from pre-discovery screens
@@ -193,6 +196,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         elif isinstance(msg, AbortDriverSetup):
             _LOG.info("Setup was aborted with code: %s", msg.error)
             self._setup_step = SetupSteps.INIT
+            self._pending_remove_id = None
             return SetupError()
         else:
             return SetupError()
@@ -411,9 +415,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
             case "update":
                 choice = msg.input_values["choice"]
-                if not self.config.remove(choice):
+                if not self.config.contains(choice):
                     _LOG.warning("Could not update device: %s", choice)
                     return SetupError(error_type=IntegrationSetupError.OTHER)
+                self._pending_remove_id = choice
 
                 self._pre_discovery_data = {}
 
@@ -542,6 +547,12 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             return additional_screen
 
         # No additional screens, save and complete
+        if self._pending_remove_id is not None:
+            _LOG.debug(
+                "Removing old config entry before update: %s", self._pending_remove_id
+            )
+            self.config.remove(self._pending_remove_id)
+            self._pending_remove_id = None
         self.config.add_or_update(self._pending_device_config)
         self._pending_device_config = None
 
@@ -661,6 +672,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             # If it returns SetupError, cleanup and return it
             if isinstance(result, SetupError):
                 self._pending_device_config = None
+                self._pending_remove_id = None
                 return result
 
             # If it returns a device config (ConfigT), replace pending and save
@@ -703,6 +715,13 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             )
 
             # Save the device and complete
+            if self._pending_remove_id is not None:
+                _LOG.debug(
+                    "Removing old config entry before update: %s",
+                    self._pending_remove_id,
+                )
+                self.config.remove(self._pending_remove_id)
+                self._pending_remove_id = None
             self.config.add_or_update(self._pending_device_config)
             device_name = self.get_device_name(self._pending_device_config)
             self._pending_device_config = None
@@ -723,6 +742,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     repr(self._pending_device_config)[:200],
                 )
             self._pending_device_config = None
+            self._pending_remove_id = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
 
     def _has_migration_support(self) -> bool:
