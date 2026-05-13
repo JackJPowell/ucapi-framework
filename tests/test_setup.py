@@ -619,7 +619,7 @@ class TestBaseSetupFlow:
 
         # Device should still be present (not removed until new config is saved)
         assert config_manager.contains("dev1")
-        assert setup_flow._pending_remove_id == "dev1"
+        assert setup_flow._selected_config_id == "dev1"
 
         # Should show restore prompt or discovery
         assert isinstance(result, RequestUserInput)
