@@ -530,6 +530,32 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         # No devices found, show manual entry
         return await self._handle_manual_entry()
 
+    async def _await_setup_completion(self) -> None:
+        """
+        Wait for entity registration to complete before returning SetupComplete.
+
+        When require_connection_before_registry=True, on_device_added() fires a
+        background task (async_add_configured_device) that connects and registers
+        entities. This helper awaits that task so the Remote doesn't receive
+        SetupComplete before entities are available.
+
+        Falls back to a 1-second sleep when no task is pending (e.g. when
+        require_connection_before_registry=False).
+        """
+        task = getattr(self.driver, "_pending_setup_task", None)
+        if task is not None:
+            _LOG.debug(
+                "Waiting for device connection and entity registration to complete"
+            )
+            try:
+                await task
+            except Exception as err:  # pylint: disable=broad-except
+                _LOG.warning("Device setup task raised an exception: %s", err)
+            finally:
+                self.driver._pending_setup_task = None
+        else:
+            await asyncio.sleep(1)
+
     async def _finalize_device_setup(
         self, device_config: ConfigT, input_values: dict[str, Any]
     ) -> SetupComplete | SetupError | RequestUserInput:
@@ -568,7 +594,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self.config.add_or_update(self._pending_device_config)
         self._pending_device_config = None
 
-        await asyncio.sleep(1)
+        await self._await_setup_completion()
         _LOG.info("Setup completed for %s", self.get_device_name(device_config))
         return SetupComplete()
 
@@ -738,7 +764,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             device_name = self.get_device_name(self._pending_device_config)
             self._pending_device_config = None
 
-            await asyncio.sleep(1)
+            await self._await_setup_completion()
             _LOG.info("Setup completed for %s", device_name)
             return SetupComplete()
 

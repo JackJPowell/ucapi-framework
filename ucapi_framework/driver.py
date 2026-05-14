@@ -171,6 +171,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         self._device_instances: dict[str, DeviceT] = {}
         self._config_manager = None  # Set via config_manager property
         self.entity_id_separator = "."  # Default separator for entity IDs
+        self._pending_setup_task: asyncio.Task | None = (
+            None  # Task handle for entity registration during setup
+        )
         self._setup_event_handlers()
 
     @property
@@ -2164,9 +2167,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         _LOG.debug("Device added: %s", self.get_device_id(device_config))
 
         if self._require_connection_before_registry:
-            # Schedule async device addition as a background task
-            self._loop.create_task(self.async_add_configured_device(device_config))
+            # Schedule async device addition and expose the task so the setup flow
+            # can await it before returning SetupComplete.
+            self._pending_setup_task = self._loop.create_task(
+                self.async_add_configured_device(device_config)
+            )
         else:
+            self._pending_setup_task = None
             self.add_configured_device(device_config, connect=False)
 
     def on_device_removed(self, device_config: ConfigT | None) -> None:
