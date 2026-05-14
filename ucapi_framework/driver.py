@@ -2125,6 +2125,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             _LOG.info("Removing device %s", device_id)
             device = self._device_instances.pop(device_id)
             device.events.remove_all_listeners()
+            self._loop.create_task(device.disconnect())
 
             # Remove all associated entities
             for entity_id in self.get_entity_ids_for_device(device_id):
@@ -2138,6 +2139,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         _LOG.info("Clearing all configured devices")
         for device in self._device_instances.values():
             device.events.remove_all_listeners()
+            self._loop.create_task(device.disconnect())
         self._device_instances.clear()
         self.api.configured_entities.clear()
         self.api.available_entities.clear()
