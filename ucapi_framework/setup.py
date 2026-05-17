@@ -116,6 +116,9 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self._setup_step = SetupSteps.INIT
         self._add_mode = False
         self._pending_device_config: ConfigT | None = None  # For multi-screen flows
+        self._selected_config_id: str | None = (
+            None  # ID of config entry to remove on successful update
+        )
         self._pre_discovery_data: dict[
             str, Any
         ] = {}  # Store data from pre-discovery screens
@@ -125,6 +128,18 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         self._previous_version: str | None = (
             None  # Previous version for migration check
         )
+
+    @property
+    def selected_config_id(self) -> str | None:
+        """Get the currently selected config ID (for updates)."""
+        return self._selected_config_id
+
+    @property
+    def selected_config_entry(self) -> ConfigT | None:
+        """Get the currently selected config entry (for updates)."""
+        if self._selected_config_id is None:
+            return None
+        return self.config.get(self._selected_config_id)
 
     @classmethod
     def create_handler(
@@ -193,6 +208,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         elif isinstance(msg, AbortDriverSetup):
             _LOG.info("Setup was aborted with code: %s", msg.error)
             self._setup_step = SetupSteps.INIT
+            self._selected_config_id = None
             return SetupError()
         else:
             return SetupError()
@@ -411,9 +427,10 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
 
             case "update":
                 choice = msg.input_values["choice"]
-                if not self.config.remove(choice):
+                if not self.config.contains(choice):
                     _LOG.warning("Could not update device: %s", choice)
                     return SetupError(error_type=IntegrationSetupError.OTHER)
+                self._selected_config_id = choice
 
                 self._pre_discovery_data = {}
 
@@ -513,6 +530,32 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
         # No devices found, show manual entry
         return await self._handle_manual_entry()
 
+    async def _await_setup_completion(self) -> None:
+        """
+        Wait for entity registration to complete before returning SetupComplete.
+
+        When require_connection_before_registry=True, on_device_added() fires a
+        background task (async_add_configured_device) that connects and registers
+        entities. This helper awaits that task so the Remote doesn't receive
+        SetupComplete before entities are available.
+
+        Falls back to a 1-second sleep when no task is pending (e.g. when
+        require_connection_before_registry=False).
+        """
+        task = getattr(self.driver, "_pending_setup_task", None)
+        if task is not None:
+            _LOG.debug(
+                "Waiting for device connection and entity registration to complete"
+            )
+            try:
+                await task
+            except Exception as err:  # pylint: disable=broad-except
+                _LOG.warning("Device setup task raised an exception: %s", err)
+            finally:
+                self.driver._pending_setup_task = None
+        else:
+            await asyncio.sleep(1)
+
     async def _finalize_device_setup(
         self, device_config: ConfigT, input_values: dict[str, Any]
     ) -> SetupComplete | SetupError | RequestUserInput:
@@ -542,10 +585,16 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             return additional_screen
 
         # No additional screens, save and complete
+        if self._selected_config_id is not None:
+            _LOG.debug(
+                "Removing old config entry before update: %s", self._selected_config_id
+            )
+            self.config.remove(self._selected_config_id)
+            self._selected_config_id = None
         self.config.add_or_update(self._pending_device_config)
         self._pending_device_config = None
 
-        await asyncio.sleep(1)
+        await self._await_setup_completion()
         _LOG.info("Setup completed for %s", self.get_device_name(device_config))
         return SetupComplete()
 
@@ -661,6 +710,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             # If it returns SetupError, cleanup and return it
             if isinstance(result, SetupError):
                 self._pending_device_config = None
+                self._selected_config_id = None
                 return result
 
             # If it returns a device config (ConfigT), replace pending and save
@@ -703,11 +753,18 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
             )
 
             # Save the device and complete
+            if self._selected_config_id is not None:
+                _LOG.debug(
+                    "Removing old config entry before update: %s",
+                    self._selected_config_id,
+                )
+                self.config.remove(self._selected_config_id)
+                self._selected_config_id = None
             self.config.add_or_update(self._pending_device_config)
             device_name = self.get_device_name(self._pending_device_config)
             self._pending_device_config = None
 
-            await asyncio.sleep(1)
+            await self._await_setup_completion()
             _LOG.info("Setup completed for %s", device_name)
             return SetupComplete()
 
@@ -723,6 +780,7 @@ class BaseSetupFlow(ABC, Generic[ConfigT]):
                     repr(self._pending_device_config)[:200],
                 )
             self._pending_device_config = None
+            self._selected_config_id = None
             return SetupError(error_type=IntegrationSetupError.OTHER)
 
     def _has_migration_support(self) -> bool:

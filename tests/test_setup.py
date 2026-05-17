@@ -603,7 +603,7 @@ class TestBaseSetupFlow:
 
     @pytest.mark.asyncio
     async def test_update_device_mode(self, setup_flow, config_manager):
-        """Test update mode (remove then re-add)."""
+        """Test update mode (remove old entry only on successful completion)."""
         # Add device
         device = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
         config_manager.add_or_update(device)
@@ -617,8 +617,9 @@ class TestBaseSetupFlow:
         )
         result = await setup_flow.handle_driver_setup(user_response)
 
-        # Device should be removed
-        assert not config_manager.contains("dev1")
+        # Device should still be present (not removed until new config is saved)
+        assert config_manager.contains("dev1")
+        assert setup_flow._selected_config_id == "dev1"
 
         # Should show restore prompt or discovery
         assert isinstance(result, RequestUserInput)
