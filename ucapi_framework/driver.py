@@ -395,6 +395,25 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     await self.async_register_available_entities(
                         self.get_device_config(device_id), device
                     )
+                elif (
+                    device
+                    and device.is_connected
+                    and self.api.configured_entities.get(entity_id) is None
+                ):
+                    # PATCHED: the device was already connected (e.g. by the
+                    # generic CONNECT handler on Remote restart) before this
+                    # SUBSCRIBE_ENTITIES call arrived, so the transition-only
+                    # registration above never ran. Register now so the
+                    # entity doesn't silently stay unconfigured.
+                    _LOG.info(
+                        "Device %s already connected but entity %s not configured "
+                        "- registering now (post-restart fix)",
+                        device_id,
+                        entity_id,
+                    )
+                    await self.async_register_available_entities(
+                        self.get_device_config(device_id), device
+                    )
 
         # Path 2: Standard integrations - add devices for entities that aren't configured yet
         else:
