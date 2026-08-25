@@ -1443,6 +1443,34 @@ class TestHubBasedIntegration:
         assert device.is_connected is True
 
     @pytest.mark.asyncio
+    async def test_on_subscribe_entities_hub_based_existing_connected_unconfigured_entity(
+        self,
+    ):
+        """Test subscribing registers hub entities when the device already connected."""
+        loop = asyncio.get_event_loop()
+        driver = ConcreteDriver(
+            DeviceForTests,
+            [media_player.MediaPlayer],
+            require_connection_before_registry=True,
+            loop=loop,
+        )
+        driver.api = MagicMock()
+        driver.api.configured_entities = MockEntityCollection()
+        driver.api.available_entities = MockEntityCollection()
+        driver.api.set_device_state = AsyncMock()
+
+        config = DeviceConfigForTests("dev1", "Device 1", "192.168.1.1")
+        driver._add_device_instance(config)
+        device = driver._device_instances["dev1"]
+        await device.connect()
+        assert device.is_connected is True
+        assert driver.api.configured_entities.get("media_player.dev1") is None
+
+        await driver.on_subscribe_entities(["media_player.dev1"])
+
+        assert driver.api.available_entities.contains("media_player.dev1")
+
+    @pytest.mark.asyncio
     async def test_on_subscribe_entities_hub_based_no_config(self):
         """Test subscribe entities with hub-based when device config not found."""
         loop = asyncio.get_event_loop()
