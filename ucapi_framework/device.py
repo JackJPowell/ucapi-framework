@@ -572,15 +572,6 @@ class WebSocketDevice(BaseDeviceInterface):
         _LOG.debug("[%s] Disconnecting WebSocket", self.log_id)
         self._stop_ws.set()
 
-        # Stop ping task
-        if self._ping_task and not self._ping_task.done():
-            self._ping_task.cancel()
-            try:
-                await self._ping_task
-            except asyncio.CancelledError:
-                pass
-        self._ping_task = None
-
         # Stop connection task
         if self._ws_task and not self._ws_task.done():
             self._ws_task.cancel()
@@ -589,17 +580,31 @@ class WebSocketDevice(BaseDeviceInterface):
             except asyncio.CancelledError:
                 pass
 
-        # Close WebSocket
+        await self._cleanup_websocket()
+        self._ws_task = None
+        self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+
+    async def _cleanup_websocket(self) -> None:
+        """Release the ping task and socket after any connection outcome."""
+        self._is_connected = False
+
+        if self._ping_task:
+            ping_task = self._ping_task
+            self._ping_task = None
+            if not ping_task.done():
+                ping_task.cancel()
+            try:
+                await ping_task
+            except asyncio.CancelledError:
+                pass
+
         if self._ws:
             try:
                 await self.close_websocket()
             except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOG.debug("[%s] Error closing WebSocket: %s", self.log_id, err)
-            self._ws = None
-
-        self._ws_task = None
-        self._is_connected = False
-        self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+            finally:
+                self._ws = None
 
     async def _single_connect(self) -> None:
         """Single connection attempt without reconnection."""
@@ -624,13 +629,7 @@ class WebSocketDevice(BaseDeviceInterface):
             _LOG.error("[%s] WebSocket connection error: %s", self.log_id, err)
             self.events.emit(DeviceEvents.ERROR, self.identifier, str(err))
         finally:
-            self._is_connected = False
-            if self._ws:
-                try:
-                    await self.close_websocket()
-                except Exception:  # pylint: disable=broad-exception-caught
-                    pass
-                self._ws = None
+            await self._cleanup_websocket()
 
     async def _connection_loop(self) -> None:
         """
@@ -668,40 +667,25 @@ class WebSocketDevice(BaseDeviceInterface):
             except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOG.warning("[%s] WebSocket connection error: %s", self.log_id, err)
                 self.events.emit(DeviceEvents.ERROR, self.identifier, str(err))
-                self._is_connected = False
+            finally:
+                await self._cleanup_websocket()
 
-                # Clean up
-                if self._ping_task and not self._ping_task.done():
-                    self._ping_task.cancel()
-                    try:
-                        await self._ping_task
-                    except asyncio.CancelledError:
-                        pass
-                    self._ping_task = None
-
-                if self._ws:
-                    try:
-                        await self.close_websocket()
-                    except Exception:  # pylint: disable=broad-exception-caught
-                        pass
-                    self._ws = None
-
-                # Exponential backoff for reconnection
-                if not self._stop_ws.is_set():
-                    _LOG.debug(
-                        "[%s] Reconnecting in %d seconds",
-                        self.log_id,
-                        self._backoff_current,
+            # A normal close also needs cleanup and a paced reconnect.
+            if not self._stop_ws.is_set():
+                _LOG.debug(
+                    "[%s] Reconnecting in %s seconds",
+                    self.log_id,
+                    self._backoff_current,
+                )
+                try:
+                    await asyncio.wait_for(
+                        self._stop_ws.wait(), timeout=self._backoff_current
                     )
-                    try:
-                        await asyncio.wait_for(
-                            self._stop_ws.wait(), timeout=self._backoff_current
-                        )
-                    except asyncio.TimeoutError:
-                        pass
-                    self._backoff_current = min(
-                        self._backoff_current * 2, self._reconnect_max
-                    )
+                except asyncio.TimeoutError:
+                    pass
+                self._backoff_current = min(
+                    self._backoff_current * 2, self._reconnect_max
+                )
 
     async def _message_loop(self) -> None:
         """Main message loop for receiving WebSocket messages."""

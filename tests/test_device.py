@@ -772,6 +772,63 @@ class TestWebSocketDevice:
         await device.disconnect()
 
     @pytest.mark.asyncio
+    async def test_normal_close_cleans_up_before_reconnect(
+        self, mock_device_config, event_loop
+    ):
+        """A clean close must not leak the old socket or reconnect in a tight loop."""
+
+        class ClosingWebSocketDevice(ConcreteWebSocketDevice):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.attempt_times = []
+                self.closed_count = 0
+                self.second_attempt = asyncio.Event()
+
+            async def create_websocket(self):
+                self.attempt_times.append(event_loop.time())
+                if len(self.attempt_times) == 2:
+                    self.second_attempt.set()
+                return Mock()
+
+            async def receive_message(self):
+                return None
+
+            async def close_websocket(self):
+                self.closed_count += 1
+
+        device = ClosingWebSocketDevice(
+            mock_device_config,
+            loop=event_loop,
+            reconnect_interval=0.05,
+            ping_interval=30,
+        )
+
+        await device.connect()
+        await asyncio.wait_for(device.second_attempt.wait(), timeout=1)
+
+        assert device.closed_count >= 1
+        assert device.attempt_times[1] - device.attempt_times[0] >= 0.04
+        await device.disconnect()
+        assert device._ping_task is None
+        assert device._ws is None
+
+    @pytest.mark.asyncio
+    async def test_single_connection_stops_ping_on_normal_close(
+        self, mock_device_config, event_loop
+    ):
+        """A one-shot connection releases its ping task when the peer closes."""
+        device = ConcreteWebSocketDevice(
+            mock_device_config, loop=event_loop, reconnect=False
+        )
+
+        await device.connect()
+        await asyncio.wait_for(device._ws_task, timeout=1)
+
+        assert device.ws_closed is True
+        assert device._ping_task is None
+        assert device._ws is None
+
+    @pytest.mark.asyncio
     async def test_websocket_connection_error_no_reconnect(
         self, mock_device_config, event_loop
     ):
