@@ -9,7 +9,7 @@ Provides common event handlers and device lifecycle management.
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import is_dataclass
 from enum import Enum
 from typing import Any, Generic, TypeVar, TypeAlias, cast
@@ -169,6 +169,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             self._entity_classes = entity_classes
 
         self._device_instances: dict[str, DeviceT] = {}
+        # Keep subscription intent until entities are discovered. None identifies
+        # direct calls to on_subscribe_entities() without a WebSocket client.
+        self._entity_subscriptions: dict[str, set[Any]] = {}
+        self._subscription_refresh_tasks: dict[str, asyncio.Task[None]] = {}
         self._config_manager = None  # Set via config_manager property
         self.entity_id_separator = "."  # Default separator for entity IDs
         self._pending_setup_task: asyncio.Task | None = (
@@ -255,10 +259,117 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         self.api.listens_to(ucapi.Events.DISCONNECT)(self.on_r2_disconnect_cmd)
         self.api.listens_to(ucapi.Events.ENTER_STANDBY)(self.on_r2_enter_standby)
         self.api.listens_to(ucapi.Events.EXIT_STANDBY)(self.on_r2_exit_standby)
-        self.api.listens_to(ucapi.Events.SUBSCRIBE_ENTITIES)(self.on_subscribe_entities)
-        self.api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)(
-            self.on_unsubscribe_entities
+        self.api.listens_to(ucapi.Events.SUBSCRIBE_ENTITIES)(
+            self._on_subscribe_entities
         )
+        self.api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)(
+            self._on_unsubscribe_entities
+        )
+        self.api.listens_to(ucapi.Events.CLIENT_DISCONNECTED)(
+            self._on_subscription_client_disconnected
+        )
+
+    def _on_subscribe_entities(
+        self, entity_ids: list[str], websocket: Any = None
+    ) -> Coroutine[Any, Any, None]:
+        """Record intent synchronously, before async connection work is scheduled."""
+        for entity_id in entity_ids:
+            self._entity_subscriptions.setdefault(entity_id, set()).add(websocket)
+
+        async def subscribe() -> None:
+            # A later unsubscribe or client disconnect may have arrived before
+            # this callback got a chance to run.
+            requested = [
+                entity_id
+                for entity_id in entity_ids
+                if websocket in self._entity_subscriptions.get(entity_id, set())
+            ]
+            if requested:
+                await self.on_subscribe_entities(requested)
+                # Also support overrides which register directly with ucapi.
+                self._complete_pending_subscriptions()
+
+        return subscribe()
+
+    def _on_unsubscribe_entities(
+        self, entity_ids: list[str], websocket: Any = None
+    ) -> Coroutine[Any, Any, None]:
+        """Withdraw intent before an in-flight connection can register entities."""
+        for entity_id in entity_ids:
+            clients = self._entity_subscriptions.get(entity_id)
+            if clients is not None:
+                clients.discard(websocket)
+            if not clients:
+                self._forget_entity_subscription(entity_id)
+            else:
+                # ucapi removes from its shared configured collection before
+                # emitting this event. Retain requests from other live clients.
+                self._complete_entity_subscription(entity_id)
+
+        async def unsubscribe() -> None:
+            withdrawn = [
+                entity_id
+                for entity_id in entity_ids
+                if entity_id not in self._entity_subscriptions
+            ]
+            if withdrawn:
+                await self.on_unsubscribe_entities(withdrawn)
+
+        return unsubscribe()
+
+    def _on_subscription_client_disconnected(self, websocket: Any = None) -> None:
+        """Discard pending intent belonging to a closed client session."""
+        for entity_id, clients in list(self._entity_subscriptions.items()):
+            clients.discard(websocket)
+            if not clients:
+                self._forget_entity_subscription(entity_id)
+
+    def _forget_entity_subscription(self, entity_id: str) -> None:
+        self._entity_subscriptions.pop(entity_id, None)
+        task = self._subscription_refresh_tasks.pop(entity_id, None)
+        if task is not None:
+            task.cancel()
+
+    def _complete_pending_subscriptions(self) -> None:
+        for entity_id in self._entity_subscriptions:
+            self._complete_entity_subscription(entity_id)
+
+    def _complete_entity_subscription(self, entity_id: str) -> None:
+        """Configure an available, requested entity and publish its current state."""
+        if entity_id not in self._entity_subscriptions:
+            return
+        if self.api.configured_entities.contains(entity_id):
+            return
+        entity = self.api.available_entities.get(entity_id)
+        if entity is None:
+            return
+
+        self.api.configured_entities.add(entity)
+        _LOG.debug("Completed subscription for newly available entity %s", entity_id)
+
+        previous_refresh = self._subscription_refresh_tasks.pop(entity_id, None)
+        if previous_refresh is not None:
+            previous_refresh.cancel()
+
+        async def refresh() -> None:
+            if (
+                entity_id in self._entity_subscriptions
+                and self.api.configured_entities.get(entity_id) is entity
+            ):
+                await self.refresh_entity_state(entity_id)
+
+        task = self._loop.create_task(refresh())
+        self._subscription_refresh_tasks[entity_id] = task
+
+        def finished(task: asyncio.Task[None]) -> None:
+            if self._subscription_refresh_tasks.get(entity_id) is task:
+                self._subscription_refresh_tasks.pop(entity_id)
+            if not task.cancelled() and (error := task.exception()) is not None:
+                _LOG.error(
+                    "Failed to refresh subscribed entity %s", entity_id, exc_info=error
+                )
+
+        task.add_done_callback(finished)
 
     # ========================================================================
     # Remote Two Event Handlers (can be overridden)
@@ -342,6 +453,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         if not entity_ids:
             return
 
+        # Direct callers use the same lifecycle as API events. Event dispatch has
+        # already recorded its client, so avoid adding an anonymous owner there.
+        for entity_id in entity_ids:
+            self._entity_subscriptions.setdefault(entity_id, {None})
+
         # Track which devices existed before this subscribe event
         # Used later to skip state refresh for newly added devices
         devices_before_subscribe = set(self._device_instances.keys())
@@ -352,6 +468,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             processed_devices = set()
 
             for entity_id in entity_ids:
+                if entity_id not in self._entity_subscriptions:
+                    continue
                 device_id = self.device_from_entity_id(entity_id)
                 if device_id is None:
                     _LOG.warning(
@@ -391,6 +509,19 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         )
                         continue
 
+                    # Connection work can finish after unsubscription/removal.
+                    if self._device_instances.get(device_id) is not device:
+                        await device.disconnect()
+                        continue
+
+                    # Some device classes only start a background connection;
+                    # those will register when DeviceEvents.CONNECTED arrives.
+                    if not device.is_connected or not any(
+                        self.device_from_entity_id(eid) == device_id
+                        for eid in self._entity_subscriptions
+                    ):
+                        continue
+
                     # After successful connection, register entities from the hub (async)
                     await self.async_register_available_entities(
                         self.get_device_config(device_id), device
@@ -398,19 +529,14 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 elif (
                     device
                     and device.is_connected
-                    and self.api.configured_entities.get(entity_id) is None
-                ):
-                    # PATCHED: the device was already connected (e.g. by the
-                    # generic CONNECT handler on Remote restart) before this
-                    # SUBSCRIBE_ENTITIES call arrived, so the transition-only
-                    # registration above never ran. Register now so the
-                    # entity doesn't silently stay unconfigured.
-                    _LOG.info(
-                        "Device %s already connected but entity %s not configured "
-                        "- registering now (post-restart fix)",
-                        device_id,
-                        entity_id,
+                    and any(
+                        self.device_from_entity_id(eid) == device_id
+                        and not self.api.available_entities.contains(eid)
+                        for eid in self._entity_subscriptions
                     )
+                ):
+                    # Inspect all requested entities for this hub, including
+                    # missing siblings when the first entity already exists.
                     await self.async_register_available_entities(
                         self.get_device_config(device_id), device
                     )
@@ -421,6 +547,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             processed_devices = set()
 
             for entity_id in entity_ids:
+                if entity_id not in self._entity_subscriptions:
+                    continue
                 eid_device_id = self.device_from_entity_id(entity_id)
                 if eid_device_id is None:
                     continue
@@ -452,10 +580,18 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                     )
 
-        # Refresh entity state only for devices that already existed and are connected
+        self._complete_pending_subscriptions()
+
+        # Newly completed subscriptions have their own initial refresh task.
+        # Refresh other entities only for devices that already existed and are connected
         # Newly added devices will get their state refreshed in on_device_connected()
         # after the device has finished connecting and populated its attributes
         for entity_id in entity_ids:
+            if (
+                entity_id not in self._entity_subscriptions
+                or entity_id in self._subscription_refresh_tasks
+            ):
+                continue
             device_id = self.device_from_entity_id(entity_id)
             if device_id and device_id in devices_before_subscribe:
                 device = self._device_instances.get(device_id)
@@ -479,6 +615,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Unsubscribe entities event: %s", entity_ids)
 
+        for entity_id in entity_ids:
+            self._forget_entity_subscription(entity_id)
+
         # Track which devices need to be checked
         devices_to_check = set()
 
@@ -494,8 +633,12 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 self.api.configured_entities.get(entity_id) is not None
                 for entity_id in device_entities
             )
+            any_entity_requested = any(
+                self.device_from_entity_id(entity_id) == device_id
+                for entity_id in self._entity_subscriptions
+            )
 
-            if not any_entity_configured:
+            if not any_entity_configured and not any_entity_requested:
                 # No entities are configured anymore, disconnect and cleanup
                 device = self._device_instances.get(device_id)
                 if device:
@@ -504,6 +647,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         device_id,
                     )
                     await device.disconnect()
+                    if self._device_instances.get(device_id) is not device or any(
+                        self.device_from_entity_id(entity_id) == device_id
+                        for entity_id in self._entity_subscriptions
+                    ):
+                        continue
                     device.events.remove_all_listeners()
                     self._device_instances.pop(device_id, None)
 
@@ -890,6 +1038,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         # Add to available entities
         self.api.available_entities.add(entity)
+        self._complete_entity_subscription(entity.id)
         _LOG.info("Dynamically added entity: %s", entity.id)
 
     def add_entities(
@@ -1156,6 +1305,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             if self.api.available_entities.contains(entity.id):
                 self.api.available_entities.remove(entity.id)
             self.api.available_entities.add(entity)
+            self._complete_entity_subscription(entity.id)
 
     async def async_register_available_entities(
         self, device_config: ConfigT, device: DeviceT
@@ -1247,13 +1397,32 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         _LOG.debug("Device connected: %s", device_id)
 
-        if device_id not in self._device_instances:
+        device = self._device_instances.get(device_id)
+        if device is None:
             _LOG.warning("Device %s is not configured", device_id)
             return
 
         await self.api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
+        if self._device_instances.get(device_id) is not device:
+            return
+        if (
+            device.is_connected
+            and self._require_connection_before_registry
+            and any(
+                self.device_from_entity_id(entity_id) == device_id
+                and not self.api.available_entities.contains(entity_id)
+                for entity_id in self._entity_subscriptions
+            )
+        ):
+            await self.async_register_available_entities(device.device_config, device)
+            if self._device_instances.get(device_id) is not device:
+                return
+        self._complete_pending_subscriptions()
+
         for entity_id in self.get_entity_ids_for_device(device_id):
+            if entity_id in self._subscription_refresh_tasks:
+                continue
             configured_entity = self.api.configured_entities.get(entity_id)
             if isinstance(configured_entity, FrameworkEntity) and (
                 type(configured_entity).sync_state is not FrameworkEntity.sync_state
@@ -2143,6 +2312,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         :param device_id: Device identifier
         """
+        for entity_id in list(self._entity_subscriptions):
+            if self.device_from_entity_id(entity_id) == device_id:
+                self._forget_entity_subscription(entity_id)
+
         if device_id in self._device_instances:
             _LOG.info("Removing device %s", device_id)
             device = self._device_instances.pop(device_id)
@@ -2159,6 +2332,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
     def clear_devices(self) -> None:
         """Remove all configured devices."""
         _LOG.info("Clearing all configured devices")
+        for entity_id in list(self._entity_subscriptions):
+            self._forget_entity_subscription(entity_id)
         for device in self._device_instances.values():
             device.events.remove_all_listeners()
             self._loop.create_task(device.disconnect())
