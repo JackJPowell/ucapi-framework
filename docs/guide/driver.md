@@ -77,6 +77,17 @@ When `require_connection_before_registry=True`:
 3. The framework calls the factory lambdas to create entity instances
 4. Entities are registered with the Remote
 
+The Remote can subscribe before connection or discovery has finished. The framework
+remembers these requests and completes each subscription when the entity is registered,
+then refreshes its current state. Requests remain pending until registration,
+unsubscription, client disconnection, or device removal; there is no polling timeout.
+Only entities requested by the Remote are added to `configured_entities`.
+
+Use `add_entity()` or `add_entities()` for later discovery so pending subscriptions are
+completed automatically. If `connect()` starts a background task instead of waiting for
+the hardware, emit `DeviceEvents.CONNECTED` when the connection and discovery data are
+ready. The framework then registers missing entities for the hub.
+
 Each lambda receives `(device_config, device)` and returns a single entity or a list. The return type is `Entity | list[Entity]`.
 
 ## Overridable Methods
