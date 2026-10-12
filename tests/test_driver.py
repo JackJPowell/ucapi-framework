@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import ucapi
+import ucapi.api as uc
+from ucapi.api_definitions import EventCategory
 from ucapi import media_player
 
 from ucapi_framework.device import BaseDeviceInterface, DeviceEvents
@@ -1469,6 +1471,7 @@ class TestHubBasedIntegration:
         await driver.on_subscribe_entities(["media_player.dev1"])
 
         assert driver.api.available_entities.contains("media_player.dev1")
+        assert driver.api.configured_entities.contains("media_player.dev1")
 
     @pytest.mark.asyncio
     async def test_on_subscribe_entities_hub_based_no_config(self):
@@ -3548,3 +3551,491 @@ class TestFilterEntitiesByType:
         # Should only get one instance
         assert len(players) == 1
         assert players[0].id == "media_player.dev1"
+
+
+class TestSubscriptionLifecycle:
+    """Exercise subscription ordering with ucapi's real API and entity stores."""
+
+    @pytest.fixture
+    async def subscription_driver(self):
+        driver = ConcreteDriver(
+            DeviceForTests,
+            [media_player.MediaPlayer],
+            require_connection_before_registry=True,
+            loop=asyncio.get_running_loop(),
+        )
+        driver.api.set_device_state = AsyncMock()
+        driver.api._broadcast_ws_event = AsyncMock()
+        driver.api.configured_entities.add_listener(
+            ucapi.Events.ENTITY_ATTRIBUTES_UPDATED,
+            driver.api._on_entity_attributes_updated,
+        )
+        driver.config_manager = MagicMock()
+        driver.config_manager.get.return_value = DeviceConfigForTests(
+            "dev1", "Device 1", "192.168.1.1"
+        )
+        return driver
+
+    async def drain(self, driver):
+        await driver.api._events.wait_for_complete()
+        for device in list(driver._device_instances.values()):
+            await device.events.wait_for_complete()
+        tasks = getattr(driver, "_subscription_refresh_tasks", {})
+        if tasks:
+            await asyncio.gather(*list(tasks.values()))
+        await driver.api.configured_entities._events.wait_for_complete()
+
+    @pytest.mark.parametrize("already_connected", [False, True])
+    async def test_subscribe_before_registration(
+        self, subscription_driver, already_connected
+    ):
+        driver = subscription_driver
+        config = driver.config_manager.get.return_value
+        device = driver._add_device_instance(config)
+        device.state = "on"
+        if already_connected:
+            await device.connect()
+            await device.events.wait_for_complete()
+
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+
+        entity = driver.api.configured_entities.get("media_player.dev1")
+        assert entity is driver.api.available_entities.get("media_player.dev1")
+        assert entity is not None
+        assert (
+            entity.attributes[media_player.Attributes.STATE] == media_player.States.ON
+        )
+        driver.api._broadcast_ws_event.assert_any_await(
+            uc.WsMsgEvents.ENTITY_CHANGE,
+            {
+                "entity_id": entity.id,
+                "entity_type": entity.entity_type,
+                "attributes": {media_player.Attributes.STATE: media_player.States.ON},
+            },
+            EventCategory.ENTITY,
+        )
+
+        entity.command = AsyncMock(return_value=ucapi.StatusCodes.OK)
+        driver.api.acknowledge_command = AsyncMock()
+        await driver.api._entity_command(
+            None, 1, {"entity_id": entity.id, "cmd_id": media_player.Commands.ON}
+        )
+        entity.command.assert_awaited_once()
+        driver.api.acknowledge_command.assert_awaited_once_with(
+            None, 1, ucapi.StatusCodes.OK
+        )
+
+    async def test_dynamic_discovery_completes_only_requested_entities(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+
+        requested = media_player.MediaPlayer("media_player.dev1", "Requested", [], {})
+        other = media_player.MediaPlayer("media_player.dev1.other", "Other", [], {})
+        driver.add_entities([requested, other])
+        await self.drain(driver)
+
+        assert driver.api.configured_entities.get(requested.id) is requested
+        assert not driver.api.configured_entities.contains(other.id)
+
+    async def test_unsubscribe_before_discovery(self, subscription_driver):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        await driver.api._unsubscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+
+        entity = media_player.MediaPlayer("media_player.dev1", "Late", [], {})
+        driver.add_entity(entity)
+        await self.drain(driver)
+        assert not driver.api.configured_entities.contains(entity.id)
+
+    async def test_closed_client_cannot_complete_pending_subscription(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        driver.api._events.emit(ucapi.Events.CLIENT_DISCONNECTED, websocket=client)
+        await self.drain(driver)
+
+        entity = media_player.MediaPlayer("media_player.dev1", "Late", [], {})
+        driver.add_entity(entity)
+        await self.drain(driver)
+        assert not driver.api.configured_entities.contains(entity.id)
+
+    async def test_subscription_with_lazily_created_standard_device(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        driver._require_connection_before_registry = False
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        assert driver.api.configured_entities.contains("media_player.dev1")
+
+    async def test_unsubscribe_before_callback_starts(self, subscription_driver):
+        driver = subscription_driver
+        client = object()
+        driver.on_subscribe_entities = AsyncMock(wraps=driver.on_subscribe_entities)
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await driver.api._unsubscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        driver.on_subscribe_entities.assert_not_awaited()
+        assert not driver._device_instances
+
+    @pytest.mark.parametrize(
+        "withdraw", ["unsubscribe", "disconnect", "remove", "clear"]
+    )
+    async def test_withdraw_during_connection(self, subscription_driver, withdraw):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        started, release = asyncio.Event(), asyncio.Event()
+        connect = device.connect
+
+        async def delayed_connect():
+            started.set()
+            await release.wait()
+            return await connect()
+
+        device.connect = delayed_connect
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await asyncio.wait_for(started.wait(), timeout=1)
+        if withdraw == "unsubscribe":
+            disconnected = asyncio.Event()
+            disconnect = device.disconnect
+
+            async def disconnect_and_signal():
+                await disconnect()
+                disconnected.set()
+
+            device.disconnect = disconnect_and_signal
+            await driver.api._unsubscribe_events(
+                client, {"entity_ids": ["media_player.dev1"]}
+            )
+            await asyncio.wait_for(disconnected.wait(), timeout=1)
+        elif withdraw == "disconnect":
+            driver.api._events.emit(ucapi.Events.CLIENT_DISCONNECTED, websocket=client)
+        elif withdraw == "remove":
+            driver.remove_device("dev1")
+        else:
+            driver.clear_devices()
+        release.set()
+        await self.drain(driver)
+        await device.events.wait_for_complete()
+
+        assert not driver.api.configured_entities.contains("media_player.dev1")
+        assert "media_player.dev1" not in driver._entity_subscriptions
+        if withdraw != "disconnect":
+            assert not device.is_connected
+
+    async def test_background_connection_registers_when_ready(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        connect = device.connect
+        device.connect = AsyncMock(return_value=True)
+        driver.create_entities = Mock(wraps=driver.create_entities)
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        driver.create_entities.assert_not_called()
+
+        device.state = "on"
+        await connect()
+        await self.drain(driver)
+        assert driver.api.configured_entities.contains("media_player.dev1")
+        driver.create_entities.assert_called_once()
+
+    async def test_failed_connection_can_complete_after_recovery(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        driver._ensure_device_connected = AsyncMock(return_value=False)
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        assert not driver.api.configured_entities.contains("media_player.dev1")
+
+        await device.connect()
+        await self.drain(driver)
+        assert driver.api.configured_entities.contains("media_player.dev1")
+
+    async def test_missing_sibling_is_registered(self, subscription_driver):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        await device.connect()
+        await device.events.wait_for_complete()
+        first = media_player.MediaPlayer("media_player.dev1", "First", [], {})
+        second = media_player.MediaPlayer("media_player.dev1.zone2", "Second", [], {})
+        driver.add_entity(first)
+        driver.create_entities = Mock(return_value=[first, second])
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": [first.id, second.id]}
+        )
+        await self.drain(driver)
+        assert driver.api.configured_entities.get(first.id) is first
+        assert driver.api.configured_entities.get(second.id) is second
+
+    async def test_unsubscribe_keeps_device_with_pending_sibling(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1", "media_player.dev1.zone2"]}
+        )
+        await self.drain(driver)
+        await driver.api._unsubscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        assert driver._device_instances["dev1"].is_connected
+
+        second = media_player.MediaPlayer("media_player.dev1.zone2", "Second", [], {})
+        driver.add_entity(second)
+        await self.drain(driver)
+        assert driver.api.configured_entities.get(second.id) is second
+
+    @pytest.mark.parametrize("withdraw", ["unsubscribe", "disconnect"])
+    async def test_other_client_keeps_pending_request(
+        self, subscription_driver, withdraw
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        first, second = object(), object()
+        for client in [first, second]:
+            await driver.api._subscribe_events(
+                client, {"entity_ids": ["media_player.dev1"]}
+            )
+            await self.drain(driver)
+        if withdraw == "unsubscribe":
+            await driver.api._unsubscribe_events(
+                first, {"entity_ids": ["media_player.dev1"]}
+            )
+        else:
+            driver.api._events.emit(ucapi.Events.CLIENT_DISCONNECTED, websocket=first)
+        await self.drain(driver)
+
+        entity = media_player.MediaPlayer("media_player.dev1", "Late", [], {})
+        driver.add_entity(entity)
+        await self.drain(driver)
+        assert driver.api.configured_entities.get(entity.id) is entity
+
+    async def test_resubscribe_after_unsubscribe(self, subscription_driver):
+        driver = subscription_driver
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        await driver.api._unsubscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        assert not driver.api.configured_entities.contains("media_player.dev1")
+
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        assert driver.api.configured_entities.contains("media_player.dev1")
+        assert driver._device_instances["dev1"].is_connected
+
+    async def test_override_can_register_directly_with_ucapi(self, subscription_driver):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        entity = media_player.MediaPlayer("media_player.dev1", "Override", [], {})
+
+        async def subscribe(entity_ids):
+            await device.connect()
+            driver.api.available_entities.add(entity)
+
+        driver.on_subscribe_entities = AsyncMock(side_effect=subscribe)
+        await driver.api._subscribe_events(object(), {"entity_ids": [entity.id]})
+        await self.drain(driver)
+        driver.on_subscribe_entities.assert_awaited_once_with([entity.id])
+        assert driver.api.configured_entities.get(entity.id) is entity
+
+    async def test_cancel_refresh_on_unsubscribe(self, subscription_driver):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        client = object()
+        await driver.api._subscribe_events(
+            client, {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        started, cancelled = asyncio.Event(), asyncio.Event()
+
+        async def refresh(entity_id):
+            started.set()
+            try:
+                await asyncio.Future()
+            finally:
+                cancelled.set()
+
+        driver.refresh_entity_state = AsyncMock(side_effect=refresh)
+        entity = media_player.MediaPlayer("media_player.dev1", "Late", [], {})
+        driver.add_entity(entity)
+        await asyncio.wait_for(started.wait(), timeout=1)
+        await driver.api._unsubscribe_events(client, {"entity_ids": [entity.id]})
+        await asyncio.wait_for(cancelled.wait(), timeout=1)
+        await self.drain(driver)
+        assert not driver._subscription_refresh_tasks
+
+    async def test_coordinator_refreshes_state_missed_before_discovery(
+        self, subscription_driver
+    ):
+        from ucapi_framework.entity import Entity as FrameworkEntity
+
+        class Player(media_player.MediaPlayer, FrameworkEntity):
+            async def sync_state(self):
+                self.update({media_player.Attributes.VOLUME: self._device.volume})
+
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        device = driver._device_instances["dev1"]
+        device.volume = 42
+        device.push_update()  # No entity existed when this update was emitted.
+        await device.events.wait_for_complete()
+
+        entity = Player("media_player.dev1", "Player", [], {})
+        entity._device = device
+        entity.subscribe_to_device(device)
+        driver.add_entity(entity)
+        await self.drain(driver)
+        assert (
+            driver.api.configured_entities.get(entity.id).attributes[
+                media_player.Attributes.VOLUME
+            ]
+            == 42
+        )
+
+        device.volume = 43
+        device.push_update()
+        await self.drain(driver)
+        assert entity.attributes[media_player.Attributes.VOLUME] == 43
+
+    async def test_subscribe_and_connect_messages_can_overlap(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        device = driver._add_device_instance(driver.config_manager.get.return_value)
+        started, both_started, release = (
+            asyncio.Event(),
+            asyncio.Event(),
+            asyncio.Event(),
+        )
+        connect = device.connect
+        calls = 0
+
+        async def delayed_connect():
+            nonlocal calls
+            calls += 1
+            started.set()
+            if calls == 2:
+                both_started.set()
+            await release.wait()
+            return await connect()
+
+        device.connect = delayed_connect
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await asyncio.wait_for(started.wait(), timeout=1)
+        await driver.api._handle_ws_event_msg(None, uc.WsMsgEvents.CONNECT, None)
+        await asyncio.wait_for(both_started.wait(), timeout=1)
+        release.set()
+        await self.drain(driver)
+
+        assert len(driver.api.configured_entities.get_all()) == 1
+        assert driver.api.configured_entities.contains("media_player.dev1")
+
+    async def test_shared_subscription_replaces_in_flight_refresh(
+        self, subscription_driver
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        first, second = object(), object()
+        for client in [first, second]:
+            await driver.api._subscribe_events(
+                client, {"entity_ids": ["media_player.dev1"]}
+            )
+            await self.drain(driver)
+
+        started, cancelled = asyncio.Event(), asyncio.Event()
+
+        async def refresh(entity_id):
+            started.set()
+            try:
+                await asyncio.Future()
+            finally:
+                cancelled.set()
+
+        driver.refresh_entity_state = AsyncMock(side_effect=refresh)
+        entity = media_player.MediaPlayer("media_player.dev1", "Late", [], {})
+        driver.add_entity(entity)
+        await asyncio.wait_for(started.wait(), timeout=1)
+
+        # ucapi removes the shared configured entry, but the second client still
+        # needs it. The replacement refresh must not leave the old task running.
+        driver.refresh_entity_state = AsyncMock()
+        await driver.api._unsubscribe_events(first, {"entity_ids": [entity.id]})
+        await asyncio.wait_for(cancelled.wait(), timeout=1)
+        await self.drain(driver)
+        assert driver.api.configured_entities.get(entity.id) is entity
+        assert not driver._subscription_refresh_tasks
+
+    async def test_refresh_failure_is_logged_and_task_cleaned_up(
+        self, subscription_driver, caplog
+    ):
+        driver = subscription_driver
+        driver.create_entities = Mock(return_value=[])
+        await driver.api._subscribe_events(
+            object(), {"entity_ids": ["media_player.dev1"]}
+        )
+        await self.drain(driver)
+        driver.refresh_entity_state = AsyncMock(
+            side_effect=RuntimeError("refresh failed")
+        )
+        driver.add_entity(media_player.MediaPlayer("media_player.dev1", "Late", [], {}))
+        tasks = list(driver._subscription_refresh_tasks.values())
+        await asyncio.gather(*tasks, return_exceptions=True)
+        assert not driver._subscription_refresh_tasks
+        assert "Failed to refresh subscribed entity media_player.dev1" in caplog.text
+        assert driver.api.configured_entities.contains("media_player.dev1")
