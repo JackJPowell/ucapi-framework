@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -1314,7 +1314,7 @@ wheels = [
 
 [[package]]
 name = "ucapi-framework"
-version = "1.9.7"
+version = "1.9.8"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },

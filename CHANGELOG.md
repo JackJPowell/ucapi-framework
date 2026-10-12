@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.8 - 2026-10-12
+
+### Fixed
+
+- Complete subscriptions that arrive before device connection or entity discovery,
+  and refresh state when the requested entity becomes available.
+- Discard pending subscriptions on unsubscribe, client disconnection, or device removal.
+- Register missing hub entities when a background connection becomes ready.
+
 ## 1.9.7 - 2026-09-24
 
 ### Fixed
