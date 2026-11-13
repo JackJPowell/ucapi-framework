@@ -1117,6 +1117,13 @@ class ExternalClientDevice(BaseDeviceInterface):
                 self._watchdog_task = asyncio.create_task(self._watchdog_loop())
             return True
 
+        # First connect failed (e.g. network not up yet at boot): let the
+        # watchdog keep retrying instead of giving up for good.
+        if self._enable_watchdog and self._max_reconnect_attempts is not None:
+            _LOG.info("[%s] Initial connect failed, watchdog will retry", self.log_id)
+            self._stop_watchdog.clear()
+            self._watchdog_task = asyncio.create_task(self._watchdog_loop())
+
         return False
 
     async def _connect_client_internal(self) -> bool:

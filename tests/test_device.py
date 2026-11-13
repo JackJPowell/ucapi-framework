@@ -1903,3 +1903,130 @@ class TestExternalClientDevice:
         assert device.connect_client_called == initial_connect_calls
 
         await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_failed_initial_connect_keeps_retrying_until_the_device_is_reachable(self):
+        """Test that a first connect that fails (e.g. network not up at boot) is retried by the watchdog."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-17"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.1,
+            reconnect_delay=0.05,
+            max_reconnect_attempts=0,
+        )
+        connected_events = []
+        device.events.on(
+            DeviceEvents.CONNECTED, lambda *args: connected_events.append(args)
+        )
+
+        device.connect_client_should_fail = True
+        assert await device.connect() is False
+        assert device._is_connected is False
+
+        await asyncio.sleep(0.2)
+        device.connect_client_should_fail = False
+        await asyncio.sleep(0.4)
+
+        assert device._is_connected is True
+        assert connected_events == [(device_config.identifier,)]
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_failed_initial_connect_respects_the_reconnect_attempt_limit(self):
+        """Test that retries after a failed first connect stop at max_reconnect_attempts."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-18"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.05,
+            reconnect_delay=0.01,
+            max_reconnect_attempts=2,
+        )
+        errors = []
+        device.events.on(DeviceEvents.ERROR, lambda *args: errors.append(args))
+
+        device.connect_client_should_fail = True
+        await device.connect()
+        await asyncio.sleep(0.3)
+
+        assert device.connect_client_called >= 3
+        assert any("Max reconnection attempts reached" in str(e) for e in errors)
+
+        await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_failed_initial_connect_does_not_retry_when_reconnection_is_disabled(self):
+        """Test that max_reconnect_attempts=None still means no retries after a failed first connect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-19"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.05,
+            reconnect_delay=0.01,
+            max_reconnect_attempts=None,
+        )
+
+        device.connect_client_should_fail = True
+        await device.connect()
+        device.connect_client_should_fail = False
+        await asyncio.sleep(0.3)
+
+        assert device.connect_client_called == 1
+        assert device._is_connected is False
+        assert device._watchdog_task is None
+
+    @pytest.mark.asyncio
+    async def test_failed_initial_connect_does_not_retry_when_the_watchdog_is_disabled(self):
+        """Test that enable_watchdog=False still means no retries after a failed first connect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-20"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config, enable_watchdog=False, reconnect_delay=0.01
+        )
+
+        device.connect_client_should_fail = True
+        await device.connect()
+        device.connect_client_should_fail = False
+        await asyncio.sleep(0.2)
+
+        assert device.connect_client_called == 1
+        assert device._is_connected is False
+        assert device._watchdog_task is None
+
+    @pytest.mark.asyncio
+    async def test_disconnect_stops_retries_after_a_failed_initial_connect(self):
+        """Test that disconnect() stops the retrying started by a failed first connect."""
+        device_config = Mock()
+        device_config.identifier = "test-ext-21"
+        device_config.name = "Test External Device"
+        device_config.address = "192.168.1.100"
+
+        device = ConcreteExternalClientDevice(
+            device_config,
+            watchdog_interval=0.05,
+            reconnect_delay=0.01,
+            max_reconnect_attempts=0,
+        )
+
+        device.connect_client_should_fail = True
+        await device.connect()
+        await device.disconnect()
+        calls_after_disconnect = device.connect_client_called
+        await asyncio.sleep(0.2)
+
+        assert device.connect_client_called == calls_after_disconnect
+        assert device._watchdog_task is None
