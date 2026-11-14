@@ -1105,7 +1105,7 @@ class ExternalClientDevice(BaseDeviceInterface):
 
         if self._watchdog_task and not self._watchdog_task.done():
             _LOG.debug("[%s] Watchdog already running, skipping", self.log_id)
-            return True
+            return False
 
         _LOG.debug("[%s] Connecting via external client", self.log_id)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -1116,6 +1116,13 @@ class ExternalClientDevice(BaseDeviceInterface):
                 self._stop_watchdog.clear()
                 self._watchdog_task = asyncio.create_task(self._watchdog_loop())
             return True
+
+        # First connect failed (e.g. network not up yet at boot): let the
+        # watchdog keep retrying instead of giving up for good.
+        if self._enable_watchdog and self._max_reconnect_attempts is not None:
+            _LOG.info("[%s] Initial connect failed, watchdog will retry", self.log_id)
+            self._stop_watchdog.clear()
+            self._watchdog_task = asyncio.create_task(self._watchdog_loop())
 
         return False
 
@@ -1243,6 +1250,8 @@ class ExternalClientDevice(BaseDeviceInterface):
                     self.log_id,
                     self._max_reconnect_attempts,
                 )
+                # Stop monitoring so the next watchdog tick cannot reset the limit.
+                self._stop_watchdog.set()
                 self.events.emit(
                     DeviceEvents.ERROR,
                     self.identifier,
