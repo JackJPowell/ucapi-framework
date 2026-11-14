@@ -1933,7 +1933,9 @@ class TestExternalClientDevice:
         await device.disconnect()
 
     @pytest.mark.asyncio
-    async def test_failed_initial_connect_keeps_retrying_until_the_device_is_reachable(self):
+    async def test_failed_initial_connect_keeps_retrying_until_the_device_is_reachable(
+        self,
+    ):
         """Test that a first connect that fails (e.g. network not up at boot) is retried by the watchdog."""
         device_config = Mock()
         device_config.identifier = "test-ext-17"
@@ -2005,7 +2007,9 @@ class TestExternalClientDevice:
             await device.disconnect()
 
     @pytest.mark.asyncio
-    async def test_failed_initial_connect_does_not_retry_when_reconnection_is_disabled(self):
+    async def test_failed_initial_connect_does_not_retry_when_reconnection_is_disabled(
+        self,
+    ):
         """Test that max_reconnect_attempts=None still means no retries after a failed first connect."""
         device_config = Mock()
         device_config.identifier = "test-ext-19"
@@ -2029,7 +2033,9 @@ class TestExternalClientDevice:
         assert device._watchdog_task is None
 
     @pytest.mark.asyncio
-    async def test_failed_initial_connect_does_not_retry_when_the_watchdog_is_disabled(self):
+    async def test_failed_initial_connect_does_not_retry_when_the_watchdog_is_disabled(
+        self,
+    ):
         """Test that enable_watchdog=False still means no retries after a failed first connect."""
         device_config = Mock()
         device_config.identifier = "test-ext-20"
