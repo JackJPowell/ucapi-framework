@@ -1583,6 +1583,27 @@ class TestExternalClientDevice:
         await device.disconnect()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("initially_connected", [False, True])
+    async def test_connect_returns_false_while_watchdog_waits_to_reconnect(
+        self, mock_device_config, initially_connected
+    ):
+        """A running watchdog must not imply a successful connection."""
+        device = ConcreteExternalClientDevice(mock_device_config, watchdog_interval=60)
+        device.connect_client_should_fail = not initially_connected
+
+        try:
+            assert await device.connect() is initially_connected
+            watchdog_task = device._watchdog_task
+            device._mock_client_connected = False
+
+            assert await device.connect() is False
+            assert device.is_connected is False
+            assert device.connect_client_called == 1
+            assert device._watchdog_task is watchdog_task
+        finally:
+            await device.disconnect()
+
+    @pytest.mark.asyncio
     async def test_connect_error_emits_error_event(self):
         """Test that connection errors emit ERROR event."""
         device_config = Mock()
@@ -1735,13 +1756,20 @@ class TestExternalClientDevice:
         errors = []
         device.events.on(DeviceEvents.ERROR, lambda *args: errors.append(args))
 
-        # Wait for watchdog and reconnect attempts
-        await asyncio.sleep(0.6)
+        try:
+            # The watchdog must exit rather than start another retry batch.
+            await asyncio.wait_for(device._watchdog_task, timeout=1)
+            await asyncio.sleep(0.2)
 
-        # Should have max attempts error
-        assert any("Max reconnection attempts reached" in str(e) for e in errors)
-
-        await device.disconnect()
+            assert device.connect_client_called == 3
+            assert (
+                errors.count(
+                    (device_config.identifier, "Max reconnection attempts reached")
+                )
+                == 1
+            )
+        finally:
+            await device.disconnect()
 
     @pytest.mark.asyncio
     async def test_reconnect_infinite_attempts(self):
@@ -1955,12 +1983,26 @@ class TestExternalClientDevice:
 
         device.connect_client_should_fail = True
         await device.connect()
-        await asyncio.sleep(0.3)
+        try:
+            await asyncio.wait_for(device._watchdog_task, timeout=1)
+            await asyncio.sleep(0.1)
 
-        assert device.connect_client_called >= 3
-        assert any("Max reconnection attempts reached" in str(e) for e in errors)
+            assert device.connect_client_called == 3
+            assert (
+                errors.count(
+                    (device_config.identifier, "Max reconnection attempts reached")
+                )
+                == 1
+            )
 
-        await device.disconnect()
+            # An explicit connect can start a new connection after giving up.
+            device.connect_client_should_fail = False
+            assert await device.connect() is True
+            assert device.is_connected is True
+            assert device.connect_client_called == 4
+            assert not device._watchdog_task.done()
+        finally:
+            await device.disconnect()
 
     @pytest.mark.asyncio
     async def test_failed_initial_connect_does_not_retry_when_reconnection_is_disabled(self):
