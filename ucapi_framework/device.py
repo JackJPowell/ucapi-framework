@@ -1105,7 +1105,7 @@ class ExternalClientDevice(BaseDeviceInterface):
 
         if self._watchdog_task and not self._watchdog_task.done():
             _LOG.debug("[%s] Watchdog already running, skipping", self.log_id)
-            return True
+            return False
 
         _LOG.debug("[%s] Connecting via external client", self.log_id)
         self.events.emit(DeviceEvents.CONNECTING, self.identifier)
@@ -1250,6 +1250,8 @@ class ExternalClientDevice(BaseDeviceInterface):
                     self.log_id,
                     self._max_reconnect_attempts,
                 )
+                # Stop monitoring so the next watchdog tick cannot reset the limit.
+                self._stop_watchdog.set()
                 self.events.emit(
                     DeviceEvents.ERROR,
                     self.identifier,
