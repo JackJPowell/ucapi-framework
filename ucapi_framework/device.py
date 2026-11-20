@@ -1101,6 +1101,14 @@ class ExternalClientDevice(BaseDeviceInterface):
         # Check if external client is already connected
         if self.check_client_connected():
             _LOG.debug("[%s] External client already connected, skipping", self.log_id)
+            if not self._is_connected:
+                self._is_connected = True
+                self.events.emit(DeviceEvents.CONNECTED, self.identifier)
+            if self._enable_watchdog and (
+                self._watchdog_task is None or self._watchdog_task.done()
+            ):
+                self._stop_watchdog.clear()
+                self._watchdog_task = asyncio.create_task(self._watchdog_loop())
             return True
 
         if self._watchdog_task and not self._watchdog_task.done():
