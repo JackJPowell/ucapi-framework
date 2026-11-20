@@ -4039,3 +4039,61 @@ class TestSubscriptionLifecycle:
         assert not driver._subscription_refresh_tasks
         assert "Failed to refresh subscribed entity media_player.dev1" in caplog.text
         assert driver.api.configured_entities.contains("media_player.dev1")
+
+
+class TestNumberDriver:
+    """Exercise number routing and connection lifecycle with real entity stores."""
+
+    @pytest.fixture
+    async def number_driver(self):
+        from ucapi import number
+        from ucapi_framework import NumberEntity
+
+        driver = ConcreteDriver(
+            DeviceForTests, [NumberEntity], loop=asyncio.get_running_loop()
+        )
+        driver.api = MagicMock()
+        driver.api.available_entities = ucapi.Entities(
+            "available", asyncio.get_running_loop()
+        )
+        driver.api.configured_entities = ucapi.Entities(
+            "configured", asyncio.get_running_loop()
+        )
+        driver.api.set_device_state = AsyncMock()
+        driver.add_configured_device(
+            DeviceConfigForTests("dev1", "Test", "localhost"), connect=False
+        )
+        entity = NumberEntity("number.dev1", "Test", [], {number.Attributes.VALUE: 5})
+        entity._api = driver.api
+        driver.api.configured_entities.add(entity)
+        return driver, entity
+
+    async def test_value_updates_and_null(self, number_driver):
+        driver, entity = number_driver
+        await driver.on_device_update(entity.id, {"state": "on", "value": 0})
+        assert entity.state == "ON"
+        assert entity.value == 0
+        await driver.on_device_update(entity.id, {"value": None})
+        assert entity.value is None
+
+    @pytest.mark.parametrize("connected", [False, True])
+    async def test_refresh(self, number_driver, connected):
+        driver, entity = number_driver
+        device = driver._device_instances["dev1"]
+        device._connected = connected
+        device._state = "on" if connected else None
+        await driver.refresh_entity_state(entity.id)
+        assert entity.state == ("ON" if connected else "UNAVAILABLE")
+        assert entity.value == 5
+
+    @pytest.mark.parametrize(
+        "event", ["on_device_disconnected", "on_device_connection_error"]
+    )
+    async def test_connection_failure(self, number_driver, event):
+        driver, entity = number_driver
+        args = (
+            ("dev1", "Failed") if event == "on_device_connection_error" else ("dev1",)
+        )
+        await getattr(driver, event)(*args)
+        assert entity.state == "UNAVAILABLE"
+        assert entity.value == 5

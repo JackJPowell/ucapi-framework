@@ -20,6 +20,7 @@ from ucapi import (
     ir_emitter,
     light,
     media_player,
+    number,
     remote,
     select,
     sensor,
@@ -116,6 +117,14 @@ class MediaPlayerAttributes(EntityAttributes):
 
 
 @dataclass
+class NumberAttributes(EntityAttributes):
+    """Number attributes. None fields are omitted; use a dict to send value=None."""
+
+    STATE: number.States | None = None
+    VALUE: float | int | None = None
+
+
+@dataclass
 class RemoteAttributes(EntityAttributes):
     """Attribute container for Remote entities."""
 
@@ -136,7 +145,7 @@ class SensorAttributes(EntityAttributes):
     """Attribute container for Sensor entities."""
 
     STATE: sensor.States | None = None
-    VALUE: float | str | None = None
+    VALUE: float | int | str | None = None
     UNIT: str | None = None
 
 

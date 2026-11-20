@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Native ucapi number support with `NumberEntity`, `NumberAttributes`, driver
+  state routing, and explicit null value updates.
+- Support and examples for sensor date, timestamp and duration device classes
+  and the `custom_label` option through the standard ucapi constructor.
+
+### Changed
+
+- Require ucapi 0.7.1 or newer. Release is pending the upstream package.
+
+### Fixed
+
+- Continue to the default state refresh when a device returns an empty attribute
+  dictionary.
+
 ## 1.9.9 - 2026-11-14
 
 ### Fixed
