@@ -2078,3 +2078,86 @@ class TestExternalClientDevice:
 
         assert device.connect_client_called == calls_after_disconnect
         assert device._watchdog_task is None
+
+    @pytest.mark.asyncio
+    async def test_connect_marks_the_device_connected_when_the_client_already_is(
+        self, mock_device_config
+    ):
+        """An early return on an already connected client must leave the device connected."""
+        device = ConcreteExternalClientDevice(mock_device_config, watchdog_interval=60)
+        connected = []
+        device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+        device._mock_client_connected = True
+
+        try:
+            assert await device.connect() is True
+
+            assert device.is_connected is True
+            assert connected == [(mock_device_config.identifier,)]
+            assert device._watchdog_task is not None
+            assert not device._watchdog_task.done()
+        finally:
+            await device.disconnect()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("enable_watchdog", [True, False])
+    async def test_repeated_connect_emits_connected_once_and_preserves_watchdog(
+        self, mock_device_config, enable_watchdog
+    ):
+        """Repeated connects must not duplicate events or start another watchdog."""
+        device = ConcreteExternalClientDevice(
+            mock_device_config, enable_watchdog=enable_watchdog, watchdog_interval=60
+        )
+        connected = []
+        device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+        device._mock_client_connected = True
+
+        try:
+            assert await device.connect() is True
+            watchdog_task = device._watchdog_task
+            if enable_watchdog:
+                assert watchdog_task is not None
+                assert not watchdog_task.done()
+            else:
+                assert watchdog_task is None
+
+            assert await device.connect() is True
+
+            assert device.is_connected is True
+            assert connected == [(mock_device_config.identifier,)]
+            assert device._watchdog_task is watchdog_task
+            assert device.create_client_called == 0
+            assert device.connect_client_called == 0
+        finally:
+            await device.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_a_client_left_connected_by_a_failed_connect_does_not_strand_the_device(
+        self, mock_device_config
+    ):
+        """connect_client can fail after the client itself connected; the next connect must recover."""
+
+        class PartlyConnectingDevice(ConcreteExternalClientDevice):
+            async def connect_client(self) -> None:
+                self.connect_client_called += 1
+                self._mock_client_connected = True
+                if self.connect_client_should_fail:
+                    raise ConnectionError("Server disconnected")
+
+        device = PartlyConnectingDevice(
+            mock_device_config,
+            watchdog_interval=0.05,
+            reconnect_delay=0.01,
+            max_reconnect_attempts=0,
+        )
+        device.connect_client_should_fail = True
+
+        try:
+            assert await device.connect() is False
+            assert device.is_connected is False
+
+            device.connect_client_should_fail = False
+            assert await device.connect() is True
+            assert device.is_connected is True
+        finally:
+            await device.disconnect()
