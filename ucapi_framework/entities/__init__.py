@@ -20,6 +20,7 @@ from .select import SelectEntity
 from .sensor import SensorEntity
 from .switch import SwitchEntity
 from .voice_assistant import VoiceAssistantEntity
+from .webview import WebViewEntity
 
 __all__ = [
     "MediaPlayerEntity",
@@ -34,4 +35,5 @@ __all__ = [
     "SensorEntity",
     "SwitchEntity",
     "VoiceAssistantEntity",
+    "WebViewEntity",
 ]

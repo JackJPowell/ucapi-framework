@@ -4,6 +4,9 @@
 
 ### Added
 
+- Web view support with `WebViewEntity`, `WebViewAttributes`, optional state
+  routing and constructor options passed through to ucapi. Web view availability
+  remains independent of the driver connection; commands run on the Remote UI.
 - Native ucapi number support with `NumberEntity`, `NumberAttributes`, driver
   state routing, and explicit null value updates.
 - Support and examples for sensor date, timestamp and duration device classes
@@ -12,6 +15,7 @@
 ### Changed
 
 - Require ucapi 0.7.1 or newer. Release is pending the upstream package.
+- Web view support requires the upcoming ucapi release containing `ucapi.webview`.
 
 ### Fixed
 

@@ -308,6 +308,18 @@ All MediaPlayer attributes are supported:
 - `sound_mode` - Current sound mode
 - `sound_mode_list` - Available sound modes (list)
 
+## Web View State
+
+`WebViewEntity` and `WebViewAttributes` support the optional `state` attribute
+(`ON`, `UNAVAILABLE`, `UNKNOWN`). Omit it to let Core determine availability.
+The driver does not infer web view state from its connection, since the Remote
+loads the page directly. Commands run on the Remote UI and require no integration
+command handler. URL, authentication and presentation settings are definition
+options rather than state attributes.
+
+See the [web view example](../../ucapi_framework/entities/README.md#webviewentity)
+for constructor options, factory registration and firmware compatibility.
+
 ## Next Steps
 
 This pattern will be extended to other entity types:

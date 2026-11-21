@@ -22,6 +22,7 @@ from ucapi import (
     sensor,
     switch,
     voice_assistant,
+    webview,
 )
 from .helpers import EntityAttributes
 
@@ -42,7 +43,16 @@ _ENTITY_ATTRIBUTES_MAP = {
     sensor.Sensor: sensor.Attributes,
     switch.Switch: switch.Attributes,
     voice_assistant.VoiceAssistant: voice_assistant.Attributes,
+    webview.WebView: webview.Attributes,
 }
+
+
+def map_state_to_webview(device_state: Any) -> webview.States:
+    """Map only supported web view states; other values become UNKNOWN."""
+    try:
+        return webview.States(str(device_state).upper())
+    except ValueError:
+        return webview.States.UNKNOWN
 
 
 def map_state_to_media_player(device_state: Any) -> media_player.States:

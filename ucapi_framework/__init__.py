@@ -62,6 +62,7 @@ from .helpers import (
     SensorAttributes,
     SwitchAttributes,
     VoiceAssistantAttributes,
+    WebViewAttributes,
 )
 from .entities import (
     MediaPlayerEntity,
@@ -76,6 +77,7 @@ from .entities import (
     SensorEntity,
     SwitchEntity,
     VoiceAssistantEntity,
+    WebViewEntity,
 )
 
 __all__ = [
@@ -119,6 +121,7 @@ __all__ = [
     "SensorAttributes",
     "SwitchAttributes",
     "VoiceAssistantAttributes",
+    "WebViewAttributes",
     "MediaPlayerEntity",
     "LightEntity",
     "CoverEntity",
@@ -131,6 +134,7 @@ __all__ = [
     "SensorEntity",
     "SwitchEntity",
     "VoiceAssistantEntity",
+    "WebViewEntity",
     "find_unused_activity_entities",
 ]
 

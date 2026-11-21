@@ -26,6 +26,7 @@ from ucapi import (
     sensor,
     switch,
     voice_assistant,
+    webview,
 )
 
 _LOG = logging.getLogger(__name__)
@@ -161,6 +162,13 @@ class VoiceAssistantAttributes(EntityAttributes):
     """Attribute container for VoiceAssistant entities."""
 
     STATE: voice_assistant.States | None = None
+
+
+@dataclass
+class WebViewAttributes(EntityAttributes):
+    """Optional web view state; omit to let Core determine availability."""
+
+    STATE: webview.States | None = None
 
 
 # Helper Functions

@@ -15,6 +15,64 @@ This provides a more natural separation of concerns where:
 
 ## Available Entity Classes
 
+### WebViewEntity
+
+Requires the ucapi release containing webview support and Remote firmware 2.14.0
+or newer. Import protocol definitions from `ucapi.webview`:
+
+```python
+from ucapi import webview
+from ucapi_framework import WebViewEntity, WebViewAttributes
+
+dashboard = WebViewEntity(
+    "webview.home.energy",
+    "Energy dashboard",
+    options={
+        webview.Options.URL: "https://dashboard.example.com/energy",
+        webview.Options.USER_AGENT: webview.UserAgent.DESKTOP,
+        webview.Options.ZOOM: 70,
+        webview.Options.RELOAD_INTERVAL: 60,
+    },
+)
+# After the framework registers the entity and assigns its API:
+dashboard.set_state(webview.States.UNAVAILABLE, update=True)
+dashboard.update(WebViewAttributes(STATE=webview.States.ON))
+```
+
+Use a factory in `entity_classes` to construct a web view for each device:
+
+```python
+entity_classes=[
+    lambda cfg, dev: WebViewEntity(
+        f"webview.{cfg.identifier}.dashboard",
+        "Dashboard",
+        options={webview.Options.URL: f"https://{cfg.address}/dashboard"},
+    ),
+]
+```
+
+State is optional and omitted by default, allowing Core to determine availability.
+`WebViewAttributes()` sends no state. Setters default to local updates
+(`update=False`). Driver disconnection and connection errors don't automatically
+mark web views unavailable, because the Remote loads their pages directly. Report
+`UNAVAILABLE` explicitly if your integration knows the web server is unreachable.
+Only `ON`, `UNKNOWN` and `UNAVAILABLE` are valid web view states.
+
+Options are passed through to ucapi and validated by Core. They include the required
+absolute HTTP(S) `url`, authentication, TLS exceptions, cookies, user agent, zoom,
+background color, navigation controls, reload interval and physical button mappings.
+Put credentials in `auth` or `cookies`, rather than the URL. These options belong
+to the entity definition; `update()` and `WebViewAttributes` only update state.
+To change options, publish the complete updated entity definition using the
+Integration API's `entity_available` event.
+
+Web views have no features or device classes and need no command handler.
+`open`, `reload`, `clear_cache` and `clear_data` execute on the Remote UI. The ucapi
+capability check only includes web views in `available_entities` when the Remote
+explicitly reports support, including when capability discovery fails. Keep this
+check when customizing entity advertisement, because older firmware rejects the
+entire response if it contains a web view.
+
 ### NumberEntity
 
 Requires ucapi 0.7.1. Import the protocol definitions from `ucapi.number` and

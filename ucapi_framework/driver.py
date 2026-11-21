@@ -31,11 +31,16 @@ from ucapi import (
     sensor,
     switch,
     voice_assistant,
+    webview,
 )
 
 from ucapi_framework.config import BaseConfigManager
 from .device import BaseDeviceInterface, DeviceEvents
-from .entity import Entity as FrameworkEntity, map_state_to_media_player
+from .entity import (
+    Entity as FrameworkEntity,
+    map_state_to_media_player,
+    map_state_to_webview,
+)
 
 # Type variables for generic device and entity types
 DeviceT = TypeVar("DeviceT", bound=BaseDeviceInterface)  # Device interface type
@@ -817,6 +822,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         # Update the appropriate STATE attribute based on entity type
         match configured_entity.entity_type:
+            case EntityTypes.WEBVIEW:
+                # Availability is independent of the driver connection.
+                # Only explicit entity/device updates should override Core's state.
+                return
             case EntityTypes.BUTTON:
                 # Button: Can safely infer AVAILABLE when connected
                 state = (
@@ -1440,7 +1449,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device disconnection.
 
-        Sets all entity states to UNAVAILABLE when device disconnects.
+        Sets device-dependent entity states to UNAVAILABLE when device disconnects.
+        Web views remain available independently of the driver connection.
 
         :param device_id: Device identifier
         """
@@ -1522,7 +1532,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         """
         Handle device connection error.
 
-        Sets all entity states to UNAVAILABLE when device connection fails.
+        Sets device-dependent entity states to UNAVAILABLE when connection fails.
+        Web views remain available independently of the driver connection.
 
         :param device_id: Device identifier
         :param message: Error message
@@ -1874,6 +1885,13 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     else:
                         state = self.map_device_state(state_value)
                     attributes[voice_assistant.Attributes.STATE] = state
+
+            case EntityTypes.WEBVIEW:
+                value = update.get(webview.Attributes.STATE)
+                if value is not None:
+                    if framework_entity:
+                        value = framework_entity.map_entity_states(value)
+                    attributes[webview.Attributes.STATE] = map_state_to_webview(value)
 
             case _:
                 # Unknown entity type - log warning
