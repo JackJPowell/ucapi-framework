@@ -18,7 +18,8 @@ This provides a more natural separation of concerns where:
 ### WebViewEntity
 
 Requires the ucapi release containing webview support and Remote firmware 2.14.0
-or newer. Import protocol definitions from `ucapi.webview`:
+or newer (Integration-API 0.18.0). `WebViewEntity` extends upstream's
+`ucapi.webview.Webview`. Import protocol definitions from `ucapi.webview`:
 
 ```python
 from ucapi import webview
@@ -32,6 +33,7 @@ dashboard = WebViewEntity(
         webview.Options.USER_AGENT: webview.UserAgent.DESKTOP,
         webview.Options.ZOOM: 70,
         webview.Options.RELOAD_INTERVAL: 60,
+        webview.Options.DEVICE_API: True,
     },
 )
 # After the framework registers the entity and assigns its API:
@@ -60,18 +62,27 @@ Only `ON`, `UNKNOWN` and `UNAVAILABLE` are valid web view states.
 
 Options are passed through to ucapi and validated by Core. They include the required
 absolute HTTP(S) `url`, authentication, TLS exceptions, cookies, user agent, zoom,
-background color, navigation controls, reload interval and physical button mappings.
+background color, navigation controls, reload interval, physical button mappings
+and `device_api` (exposing Remote device state to the page). Upstream provides
+`WebviewEntityOptions` and nested TypedDicts, as well as `Button`,
+`ButtonFunction`, `ButtonKey` and `ButtonActionType` enums. The constructor accepts
+options as the third positional argument or by keyword and checks for a non-empty
+URL string; Core performs the remaining option validation.
 Put credentials in `auth` or `cookies`, rather than the URL. These options belong
 to the entity definition; `update()` and `WebViewAttributes` only update state.
-To change options, publish the complete updated entity definition using the
-Integration API's `entity_available` event.
+To change options, publish the complete updated entity definition with
+`api.available_entities.update(updated_dashboard)`. Upstream defaults to
+`notify=True` on this method, emitting `entity_available` to capable Remotes and
+syncing configured definitions while preserving live attributes. This is separate
+from `dashboard.update(...)`, which updates attributes only.
 
 Web views have no features or device classes and need no command handler.
-`open`, `reload`, `clear_cache` and `clear_data` execute on the Remote UI. The ucapi
-capability check only includes web views in `available_entities` when the Remote
-explicitly reports support, including when capability discovery fails. Keep this
-check when customizing entity advertisement, because older firmware rejects the
-entire response if it contains a web view.
+`open`, `reload`, `clear_cache` and `clear_data` execute on the Remote UI. Upstream
+filters `available_entities` using each client's reported supported types.
+However, the current draft of upstream PR #77 returns all entities when capability
+discovery fails or returns an empty result. This needs an upstream fix before
+release: older firmware rejects the entire response if it contains a web view.
+Regression tests track both cases as expected failures against that draft.
 
 ### NumberEntity
 

@@ -7,10 +7,10 @@ from ucapi import webview
 from ucapi_framework.entity import Entity, map_state_to_webview
 
 
-class WebViewEntity(webview.WebView, Entity):
+class WebViewEntity(webview.Webview, Entity):
     """Web page rendered by the Remote UI, with optional driver state updates.
 
-    Accepts the same constructor arguments as ``ucapi.webview.WebView``,
+    Accepts the same constructor arguments as ``ucapi.webview.Webview``,
     including required ``options`` with an HTTP(S) ``url``. Options are passed
     through to ucapi and validated by Core. There are no features, device
     classes or driver command handlers. Omit state to let Core manage availability.

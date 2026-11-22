@@ -19,6 +19,9 @@
 
 ### Fixed
 
+- Align web view inheritance and attribute mapping with upstream's `Webview`
+  class, and update capability tests for per-client contexts. Track the upstream
+  unknown-capability filtering regression as expected failures.
 - Continue to the default state refresh when a device returns an empty attribute
   dictionary.
 

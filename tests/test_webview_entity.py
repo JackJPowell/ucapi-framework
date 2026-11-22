@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from ucapi import Entities, EntityTypes, IntegrationAPI, webview
 from ucapi.api_definitions import Events
+from ucapi.api import _WsContext
 
 from ucapi_framework import WebViewAttributes, WebViewEntity
 from ucapi_framework.entities import WebViewEntity as ExportedWebViewEntity
@@ -29,7 +30,17 @@ async def entity():
             "background_color": "#112233",
             "show_navigation": True,
             "reload_interval": 60,
-            "buttons": {"CHANNEL_UP": {"action": "function", "function": "reload"}},
+            "buttons": {
+                webview.Button.CHANNEL_UP: {
+                    "action": webview.ButtonActionType.FUNCTION,
+                    "function": webview.ButtonFunction.RELOAD,
+                },
+                webview.Button.DPAD_MIDDLE: {
+                    "action": webview.ButtonActionType.KEY,
+                    "key": webview.ButtonKey.ENTER,
+                },
+            },
+            webview.Options.DEVICE_API: True,
         },
         icon="uc:globe",
         description={"en": "Energy usage"},
@@ -118,7 +129,7 @@ async def test_driver_state_routing(webview_driver, entity, raw_entity):
     driver = webview_driver
     if raw_entity:
         driver.api.configured_entities.remove(entity.id)
-        entity = webview.WebView(entity.id, "Dashboard", options=entity.options)
+        entity = webview.Webview(entity.id, "Dashboard", options=entity.options)
         driver.api.configured_entities.add(entity)
     await driver.on_device_update(entity.id, {"state": "on", "url": "ignored"})
     assert entity.attributes == {"state": "ON"}
@@ -148,14 +159,61 @@ async def test_connection_does_not_infer_state(webview_driver, entity, connected
     assert entity.state == webview.States.ON
 
 
-@pytest.mark.parametrize("supported", [["webview"], ["sensor"], [], None])
+@pytest.mark.parametrize(
+    "supported",
+    [
+        {"webview"},
+        {"sensor"},
+        pytest.param(
+            set(),
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="Upstream PR #77 returns webviews when capability discovery is empty",
+            ),
+        ),
+        pytest.param(
+            None,
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="Upstream PR #77 returns webviews when capability discovery fails",
+            ),
+        ),
+    ],
+)
 async def test_ucapi_filters_unsupported_firmware(entity, supported):
     api = IntegrationAPI(asyncio.get_running_loop())
     api.available_entities.add(entity)
     socket = MagicMock()
-    api._supported_entity_types[socket] = supported
-    api._update_supported_entity_types = AsyncMock()
+    api._clients.add(socket)
+    api._ws_contexts[socket] = _WsContext(
+        incoming=asyncio.Queue(),
+        outgoing=asyncio.Queue(),
+        pending={},
+        supported_entity_types=supported,
+    )
+    api.get_supported_entity_types = AsyncMock(return_value=[])
     api._send_ws_response = AsyncMock()
     await api._get_available_entities(socket, 1)
     definitions = api._send_ws_response.call_args.args[3]["available_entities"]
-    assert bool(definitions) == (supported == ["webview"])
+    assert bool(definitions) == (supported == {"webview"})
+
+
+def test_upstream_constructor_contract():
+    options: webview.WebviewEntityOptions = {
+        "url": "https://example.com",
+        "device_api": True,
+    }
+    entity = WebViewEntity("webview.test", "Test", options)
+    assert isinstance(entity, webview.Webview)
+    assert entity.options == options
+
+
+@pytest.mark.parametrize("options", [{}, {"url": ""}, {"url": "   "}, {"url": 1}])
+def test_upstream_url_validation(options):
+    with pytest.raises(ValueError, match="non-empty 'url'"):
+        WebViewEntity("webview.test", "Test", options=options)
+
+
+def test_upstream_options_type_validation():
+    with pytest.raises(TypeError, match="options must be dict"):
+        WebViewEntity("webview.test", "Test", options=None)

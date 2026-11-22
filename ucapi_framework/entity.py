@@ -43,7 +43,7 @@ _ENTITY_ATTRIBUTES_MAP = {
     sensor.Sensor: sensor.Attributes,
     switch.Switch: switch.Attributes,
     voice_assistant.VoiceAssistant: voice_assistant.Attributes,
-    webview.WebView: webview.Attributes,
+    webview.Webview: webview.Attributes,
 }
 
 
