@@ -4,6 +4,10 @@
 
 ### Added
 
+- Explicit `update_entity()` for replacing existing definitions, including web
+  view authentication and option changes, without adding missing entities.
+- Runtime entity lifecycle notifications for additions, definition updates and
+  removals, with `notify` controls and a `remove_entity()` driver helper.
 - Web view support with `WebViewEntity`, `WebViewAttributes`, optional state
   routing and constructor options passed through to ucapi. Web view availability
   remains independent of the driver connection; commands run on the Remote UI.
@@ -19,9 +23,11 @@
 
 ### Fixed
 
+- Preserve configured runtime attributes during definition replacement, including
+  silent registration, and refresh pending subscriptions with the latest entity.
 - Align web view inheritance and attribute mapping with upstream's `Webview`
-  class, and update capability tests for per-client contexts. Track the upstream
-  unknown-capability filtering regression as expected failures.
+  class, and update capability tests for per-client contexts and the intentional
+  return-all fallback when supported entity types are unknown.
 - Continue to the default state refresh when a device returns an empty attribute
   dictionary.
 

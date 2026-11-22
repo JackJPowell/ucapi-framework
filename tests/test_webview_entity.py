@@ -160,27 +160,18 @@ async def test_connection_does_not_infer_state(webview_driver, entity, connected
 
 
 @pytest.mark.parametrize(
-    "supported",
+    ("supported", "discovery_fails", "includes_webview"),
     [
-        {"webview"},
-        {"sensor"},
-        pytest.param(
-            set(),
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="Upstream PR #77 returns webviews when capability discovery is empty",
-            ),
-        ),
-        pytest.param(
-            None,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="Upstream PR #77 returns webviews when capability discovery fails",
-            ),
-        ),
+        ({"webview"}, False, True),
+        ({"sensor"}, False, False),
+        (set(), False, True),
+        (None, False, True),
+        (None, True, True),
     ],
 )
-async def test_ucapi_filters_unsupported_firmware(entity, supported):
+async def test_ucapi_capability_filtering_and_unknown_fallback(
+    entity, supported, discovery_fails, includes_webview
+):
     api = IntegrationAPI(asyncio.get_running_loop())
     api.available_entities.add(entity)
     socket = MagicMock()
@@ -191,11 +182,18 @@ async def test_ucapi_filters_unsupported_firmware(entity, supported):
         pending={},
         supported_entity_types=supported,
     )
-    api.get_supported_entity_types = AsyncMock(return_value=[])
+    api.get_supported_entity_types = AsyncMock(
+        return_value=[],
+        side_effect=asyncio.TimeoutError() if discovery_fails else None,
+    )
     api._send_ws_response = AsyncMock()
     await api._get_available_entities(socket, 1)
     definitions = api._send_ws_response.call_args.args[3]["available_entities"]
-    assert bool(definitions) == (supported == {"webview"})
+    assert bool(definitions) == includes_webview
+    if supported is None:
+        api.get_supported_entity_types.assert_awaited_once()
+    else:
+        api.get_supported_entity_types.assert_not_awaited()
 
 
 def test_upstream_constructor_contract():

@@ -146,10 +146,19 @@ class MockEntityCollection:
     def __init__(self):
         self._entities = []
 
-    def add(self, entity):
+    def add(self, entity, *, notify=False):
         self._entities.append(entity)
 
-    def remove(self, entity_id):
+    def update(self, entity, *, notify=True):
+        if not self.contains(entity.id):
+            return False
+        self._entities = [entity if e.id == entity.id else e for e in self._entities]
+        return True
+
+    def get_ids(self):
+        return [entity.id for entity in self._entities]
+
+    def remove(self, entity_id, *, notify=False):
         self._entities = [e for e in self._entities if e.id != entity_id]
 
     def contains(self, entity_id):

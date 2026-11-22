@@ -71,18 +71,26 @@ URL string; Core performs the remaining option validation.
 Put credentials in `auth` or `cookies`, rather than the URL. These options belong
 to the entity definition; `update()` and `WebViewAttributes` only update state.
 To change options, publish the complete updated entity definition with
-`api.available_entities.update(updated_dashboard)`. Upstream defaults to
-`notify=True` on this method, emitting `entity_available` to capable Remotes and
-syncing configured definitions while preserving live attributes. This is separate
+`driver.update_entity(updated_dashboard)`. It returns `False` if the identifier
+isn't available; otherwise it preserves configured state, sets the framework API
+reference and defaults to `notify=True`, emitting `entity_available` to capable
+Remotes. Pass the complete definition, including all options, rather than an
+options patch. This wraps upstream's `available_entities.update()` and is separate
 from `dashboard.update(...)`, which updates attributes only.
 
 Web views have no features or device classes and need no command handler.
 `open`, `reload`, `clear_cache` and `clear_data` execute on the Remote UI. Upstream
 filters `available_entities` using each client's reported supported types.
-However, the current draft of upstream PR #77 returns all entities when capability
-discovery fails or returns an empty result. This needs an upstream fix before
-release: older firmware rejects the entire response if it contains a web view.
-Regression tests track both cases as expected failures against that draft.
+When capability discovery fails or returns an empty result, ucapi intentionally
+logs a warning and returns all available entities, matching the Node library.
+The framework follows this policy without overriding discovery. Lifecycle
+notifications still require explicit capability support.
+
+Unknown capabilities do not guarantee compatibility: the Core web view spec warns
+that older firmware rejects the entire available-entities response if it contains
+a web view. Integrations offering web views should document the firmware 2.14.0
+requirement; strict support for older firmware requires an explicit integration
+policy to avoid offering web views when support is unknown.
 
 ### NumberEntity
 

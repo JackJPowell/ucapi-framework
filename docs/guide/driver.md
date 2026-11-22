@@ -30,6 +30,56 @@ push_update()  →    sync_state()  →         update_attributes()
 
 The driver wires the device and entities together at subscription time. You don't need to manage this manually.
 
+## Runtime Entity Definitions
+
+`add_entity()` and `add_entities()` notify capable Remotes when entities are
+discovered at runtime. Replacing an existing entity updates its complete
+definition, including options, while preserving its configured runtime attributes:
+
+```python
+# New entity: emit entity_available.
+driver.add_entity(dashboard)
+
+# Replace an existing definition, for example after rotating credentials.
+updated = driver.update_entity(updated_dashboard)
+
+# Silent local setup is also available.
+driver.add_entities(initial_entities, notify=False)
+
+# Remove an entity and emit entity_removed.
+driver.remove_entity("webview.home.dashboard")
+```
+
+`add_entities()` skips existing identifiers by default. Use `skip_existing=False`
+to add or replace a batch of definitions. `update_entity()` only replaces an
+existing available entity and returns `False` if its identifier isn't registered;
+it never adds a missing entity. Pass the complete entity definition with the same
+identifier, including all options. This supports both a replacement instance and
+an existing instance whose options have changed. Its return value confirms a local
+update, not receipt by a Remote.
+
+The add, update and remove methods accept
+`notify=False` to suppress lifecycle events. Regular device registration is silent
+while no Remote clients are connected; registration after connection publishes
+new and updated definitions.
+
+Definition updates retain live state even during silent registration. To change
+state, use the entity's `update()` or setter methods separately. Framework entities
+receive their API reference automatically. Pending subscriptions are completed
+when an entity appears, and pending refreshes follow replacement definitions.
+
+`remove_entity()` removes the entity from local available and configured stores
+and cancels its subscriptions and pending refresh. The Remote retains its own
+configured entity as unavailable. For temporary device or server outages, keep
+the entity registered and report an unavailable state instead. `remove_device()`
+and `clear_devices()` send individual removal notifications for available entities.
+
+These events require the ucapi release containing entity lifecycle support.
+ucapi filters notifications per client: only Remotes supporting Integration-API
+0.18.0 and the affected entity type receive them. Older Remotes retrieve updated
+definitions when they next request available entities. ucapi handles redaction of
+authentication and cookie secrets in protocol logs.
+
 ## Minimal Setup
 
 Most integrations work with just the constructor:

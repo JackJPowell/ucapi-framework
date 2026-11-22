@@ -352,12 +352,20 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
         self.api.configured_entities.add(entity)
         _LOG.debug("Completed subscription for newly available entity %s", entity_id)
+        self._schedule_subscription_refresh(entity)
 
+    def _schedule_subscription_refresh(self, entity: Entity) -> None:
+        """Refresh a subscription against its current entity definition."""
+        entity_id = entity.id
         previous_refresh = self._subscription_refresh_tasks.pop(entity_id, None)
         if previous_refresh is not None:
             previous_refresh.cancel()
 
         async def refresh() -> None:
+            # Coalesce synchronous registration bursts. ucapi's queued lifecycle
+            # callbacks synchronize configured definitions before their first await;
+            # let them run before resolving this subscription's current entity.
+            await asyncio.sleep(0)
             if (
                 entity_id in self._entity_subscriptions
                 and self.api.configured_entities.get(entity_id) is entity
@@ -1021,7 +1029,28 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         device.events.on(DeviceEvents.ERROR, self.on_device_connection_error)
         device.events.on(DeviceEvents.UPDATE, self.on_device_update)
 
-    def add_entity(self, entity: Entity) -> None:
+    def _register_entity(self, entity: Entity, *, notify: bool) -> None:
+        """Register a definition while retaining the configured entity's live state."""
+        if isinstance(entity, FrameworkEntity):
+            entity._api = self.api  # type: ignore[misc]
+
+        configured = self.api.configured_entities.get(entity.id)
+        if configured is not None and configured is not entity:
+            # Synchronize even when notify=False. Upstream otherwise does this
+            # asynchronously through entity_available, leaving a stale definition
+            # during synchronous registration and pending subscription refreshes.
+            entity.attributes = {**entity.attributes, **configured.attributes}
+            self.api.configured_entities.update(entity, notify=False)
+            if entity.id in self._subscription_refresh_tasks:
+                self._schedule_subscription_refresh(entity)
+
+        if self.api.available_entities.contains(entity.id):
+            self.api.available_entities.update(entity, notify=notify)
+        else:
+            self.api.available_entities.add(entity, notify=notify)
+        self._complete_entity_subscription(entity.id)
+
+    def add_entity(self, entity: Entity, *, notify: bool = True) -> None:
         """
         Add a single entity dynamically at runtime.
 
@@ -1041,25 +1070,37 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     self.driver.add_entity(new_light)
 
         :param entity: Entity instance to add
+        :param notify: Notify capable Remotes of the new or updated definition.
+                       Defaults to True; use False for silent bulk setup.
         """
-        # Set API reference for framework entities
-        if isinstance(entity, FrameworkEntity):
-            entity._api = self.api  # type: ignore[misc]
-
-        # Remove if exists (handles re-registration)
-        if self.api.available_entities.contains(entity.id):
-            self.api.available_entities.remove(entity.id)
-
-        # Add to available entities
-        self.api.available_entities.add(entity)
-        self._complete_entity_subscription(entity.id)
+        self._register_entity(entity, notify=notify)
         _LOG.info("Dynamically added entity: %s", entity.id)
+
+    def update_entity(self, entity: Entity, *, notify: bool = True) -> bool:
+        """Replace an existing available entity's complete definition.
+
+        Use this for option changes such as a web view's URL, authentication
+        headers or cookies. Pass the complete entity with the same identifier;
+        this is not a partial options patch. Configured runtime attributes and
+        pending subscriptions are preserved, and framework API references are set.
+
+        :param entity: Updated entity definition with an existing available ID.
+        :param notify: Emit entity_available to capable Remotes (default: True).
+        :return: True if updated, False if the entity is not available.
+                 A True result does not confirm receipt by a Remote.
+        """
+        if not self.api.available_entities.contains(entity.id):
+            return False
+        self._register_entity(entity, notify=notify)
+        _LOG.info("Updated entity definition: %s", entity.id)
+        return True
 
     def add_entities(
         self,
         entities: Entity | list[Entity] | Callable[[], Entity | list[Entity]],
         *,
         skip_existing: bool = True,
+        notify: bool = True,
     ) -> list[Entity]:
         """
         Add entities dynamically, optionally skipping duplicates.
@@ -1100,7 +1141,8 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         :param entities: Entity, list of Entities, or Callable that returns Entity or list of Entities
         :param skip_existing: If True (default), skip entities that already exist in
                              available_entities. If False, add all entities
-                             (removing existing ones first to avoid duplicates).
+                             (updating existing definitions in place).
+        :param notify: Notify capable Remotes of each added or updated definition.
         :return: List of entities that were actually added
         """
         # Handle callable (factory function)
@@ -1124,8 +1166,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     )
                     continue
 
-            # Add the entity (removes and re-adds if it exists)
-            self.add_entity(entity)
+            self.add_entity(entity, notify=notify)
             added_entities.append(entity)
 
         if added_entities:
@@ -1316,10 +1357,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
         entities = self.create_entities(device_config, device)
 
         for entity in entities:
-            if self.api.available_entities.contains(entity.id):
-                self.api.available_entities.remove(entity.id)
-            self.api.available_entities.add(entity)
-            self._complete_entity_subscription(entity.id)
+            # No clients are connected during startup. Later registration (e.g.
+            # hub discovery or reconnect) must publish new and changed definitions.
+            self._register_entity(entity, notify=bool(self.api.client_count))
 
     async def async_register_available_entities(
         self, device_config: ConfigT, device: DeviceT
@@ -2368,10 +2408,20 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
 
             # Remove all associated entities
             for entity_id in self.get_entity_ids_for_device(device_id):
-                self.api.configured_entities.remove(entity_id)
-                self.api.available_entities.remove(entity_id)
+                self.remove_entity(entity_id)
         else:
             _LOG.warning("Device %s not found in configured devices", device_id)
+
+    def remove_entity(self, entity_id: str, *, notify: bool = True) -> None:
+        """Remove an entity locally, cancel its subscriptions, and notify Remotes.
+
+        The Remote retains its configured entity as unavailable. Use
+        ``set_unavailable()`` for a temporary outage of an entity still offered
+        by the integration. Set ``notify=False`` for silent local cleanup.
+        """
+        self._forget_entity_subscription(entity_id)
+        self.api.available_entities.remove(entity_id, notify=notify)
+        self.api.configured_entities.remove(entity_id)
 
     def clear_devices(self) -> None:
         """Remove all configured devices."""
@@ -2382,6 +2432,9 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
             device.events.remove_all_listeners()
             self._loop.create_task(device.disconnect())
         self._device_instances.clear()
+        # clear() has no notifications: emit one removal per available entity.
+        for entity_id in self.api.available_entities.get_ids():
+            self.remove_entity(entity_id)
         self.api.configured_entities.clear()
         self.api.available_entities.clear()
 
