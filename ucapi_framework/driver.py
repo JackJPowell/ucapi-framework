@@ -25,6 +25,7 @@ from ucapi import (
     ir_emitter,
     light,
     media_player,
+    number,
     remote,
     select,
     sensor,
@@ -786,7 +787,7 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     framework_entity.update(device_attrs, force=True)
                     return
                 # If it's a dict, use update_attributes directly
-                elif isinstance(device_attrs, dict):
+                elif isinstance(device_attrs, dict) and device_attrs:
                     framework_entity.update_attributes(
                         cast(dict[str, Any], device_attrs), force=True
                     )
@@ -901,6 +902,10 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                 else:
                     state = select.States.ON
                 attributes[select.Attributes.STATE] = state
+                self.api.configured_entities.update_attributes(entity_id, attributes)
+            case EntityTypes.NUMBER:
+                state = number.States.ON if is_connected else number.States.UNAVAILABLE
+                attributes[number.Attributes.STATE] = state
                 self.api.configured_entities.update_attributes(entity_id, attributes)
             case EntityTypes.SENSOR:
                 # Sensor: Can assume ON when available/reading data
@@ -1490,6 +1495,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         entity_id,
                         {select.Attributes.STATE: media_player.States.UNAVAILABLE},
                     )
+                case EntityTypes.NUMBER:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {number.Attributes.STATE: number.States.UNAVAILABLE},
+                    )
                 case EntityTypes.SENSOR:
                     self.api.configured_entities.update_attributes(
                         entity_id,
@@ -1567,6 +1577,11 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                     self.api.configured_entities.update_attributes(
                         entity_id,
                         {select.Attributes.STATE: media_player.States.UNAVAILABLE},
+                    )
+                case EntityTypes.NUMBER:
+                    self.api.configured_entities.update_attributes(
+                        entity_id,
+                        {number.Attributes.STATE: number.States.UNAVAILABLE},
                     )
                 case EntityTypes.SENSOR:
                     self.api.configured_entities.update_attributes(
@@ -1807,6 +1822,17 @@ class BaseIntegrationDriver(Generic[DeviceT, ConfigT]):
                         # Apply state mapping for STATE attribute
                         if attr == select.Attributes.STATE:
                             if has_custom_behavior and framework_entity:
+                                value = framework_entity.map_entity_states(value)
+                            else:
+                                value = self.map_device_state(value)
+                        attributes[attr] = value
+
+            case EntityTypes.NUMBER:
+                for attr in [number.Attributes.STATE, number.Attributes.VALUE]:
+                    if attr.value in update:
+                        value = update[attr.value]
+                        if attr == number.Attributes.STATE:
+                            if framework_entity:
                                 value = framework_entity.map_entity_states(value)
                             else:
                                 value = self.map_device_state(value)

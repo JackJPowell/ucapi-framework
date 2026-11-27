@@ -21,6 +21,12 @@ class SensorEntity(sensor.Sensor, Entity):
     and management. State is stored directly in the existing ``self.attributes``
     dict that all ucapi entities have.
 
+    ``device_class`` and ``options`` are passed directly to ucapi. This includes
+    ``sensor.Options.CUSTOM_LABEL`` and the DATE, TIMESTAMP and DURATION classes:
+    send dates as ISO 8601 strings (YYYY-MM-DD), timestamps as RFC 3339 strings
+    with a UTC offset, and durations as numbers in the sensor's unit (ms, s,
+    min, h or d). The Remote formats these values for display.
+
     **State Management Pattern**:
     - Each attribute has a property getter (e.g., ``entity.value``)
     - Each attribute has a setter method (e.g., ``entity.set_value(23.5)``)
@@ -76,8 +82,8 @@ class SensorEntity(sensor.Sensor, Entity):
         return self.attributes.get(sensor.Attributes.STATE)
 
     @property
-    def value(self) -> Any:
-        """Get the current sensor measurement value."""
+    def value(self) -> float | int | str | None:
+        """Get the native measurement value, including date/timestamp strings."""
         return self.attributes.get(sensor.Attributes.VALUE)
 
     @property
@@ -100,11 +106,13 @@ class SensorEntity(sensor.Sensor, Entity):
         if update:
             self.update(self.attributes)
 
-    def set_value(self, value: Any, *, update: bool = False) -> None:
+    def set_value(
+        self, value: float | int | str | None, *, update: bool = False
+    ) -> None:
         """
         Set the sensor measurement value.
 
-        :param value: Measurement value (numeric or string)
+        :param value: Native numeric value or string; dates and timestamps stay unformatted.
         :param update: If True, call entity.update() to push changes to Remote (default: True)
         """
         self.attributes[sensor.Attributes.VALUE] = value
@@ -130,7 +138,7 @@ class SensorEntity(sensor.Sensor, Entity):
         self,
         *,
         state: sensor.States | None = None,
-        value: Any = None,
+        value: float | int | str | None = None,
         unit: str | None = None,
         update: bool = False,
     ) -> None:
