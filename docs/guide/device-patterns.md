@@ -410,7 +410,9 @@ class MyExternalDevice(ExternalClientDevice):
             device_config,
             enable_watchdog=True,
             watchdog_interval=30,
-            reconnect_delay=5,
+            reconnect_delay=0.5,
+            reconnect_max_delay=30,
+            reconnect_backoff_factor=2,
             max_reconnect_attempts=3,
             config_manager=config_manager,
         )
@@ -454,6 +456,49 @@ class MyExternalDevice(ExternalClientDevice):
         self.volume = data.get("volume", self.volume)
         self.push_update()  # Notify subscribed entities
 ```
+
+---
+
+## Retry timing and standby
+
+`ExternalClientDevice` retries an initial connection failure immediately through its
+recovery loop, without waiting for `watchdog_interval` first. The first retry is
+scheduled after `reconnect_delay` (default **0.5 seconds**). Failed retries multiply
+the delay by `reconnect_backoff_factor` (default **2**), up to
+`reconnect_max_delay` (default **30 seconds**): **0.5, 1, 2, 4, 8, 16, 30, 30…**.
+These are waits between attempts; connection and cleanup time are additional.
+For a subsequent silent connection loss, the watchdog must first detect the loss,
+which can take up to `watchdog_interval`; recovery then uses the same schedule.
+
+Existing integrations that explicitly pass `reconnect_delay=5` should change it to
+`0.5` to get this schedule. Set `reconnect_backoff_factor=1` for fixed delays.
+`max_reconnect_attempts` keeps its existing meaning: `None` disables recovery,
+`0` retries indefinitely, and a positive integer limits retries **after** the
+initial connection attempt. The default remains three retries; use a larger limit
+or `0` if recovery should continue through a longer network outage.
+`enable_watchdog=False` continues to disable external-client automatic recovery.
+
+`WebSocketDevice` already uses exponential backoff. Set `reconnect_interval=0.5`
+and `reconnect_max=30` for the same schedule. `PersistentConnectionDevice` now
+accepts `backoff_initial=0.5` alongside `backoff_max=30`. Their existing initial
+default remains two seconds, and both continue retrying until disconnected.
+WebSocket devices accept `reconnect_backoff_factor`; persistent devices accept
+`backoff_factor`. Both default to **2**, preserving their existing exponential
+schedule. Set the factor to **1** for fixed intervals, or another finite value
+above **1** for a different growth rate. Existing parameter names and positional
+constructor arguments remain supported; the new factors are keyword-only.
+Normal persistent connection closure is cleaned up and paced like an error.
+
+All three reset backoff after a successful connection and when `connect()` starts
+a new cycle after `disconnect()`. Repeated `connect()` calls during recovery keep
+the existing task and schedule. `disconnect()` cancels pending recovery. The
+default driver standby handler calls `disconnect()` and its wake handler calls
+`connect()`, so standby cancels retries and wake starts a fresh cycle. Integrations
+that override these handlers must retain those calls to get this behavior.
+
+No new retry mechanism is added to `StatelessHTTPDevice`, `PollingDevice`, or
+`WebSocketPollingDevice`. The hybrid continues to disable WebSocket automatic
+reconnection and use its existing polling behavior.
 
 ---
 

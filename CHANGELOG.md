@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.9.10 - 2026-11-26
+
+### Changed
+
+- Expose WebSocket and persistent-connection retry backoff factors as keyword-only
+  options, retaining the existing default multiplier of two.
+- Use configurable exponential backoff for external-client recovery, starting at
+  0.5 seconds and capped at 30 seconds by default. Initial failures no longer wait
+  for a watchdog tick before starting the retry schedule; retry limits are preserved.
+- Allow configuring the initial persistent-connection retry delay, reset it on a
+  new connection cycle, and pace recovery after normal connection closure.
+
+### Fixed
+
+- Serialize concurrent external-client connection requests to avoid duplicate
+  clients and connected events.
+- Mark `ExternalClientDevice` connected, emit `CONNECTED` once, and start its
+  watchdog when the external client is already connected. Thanks to
+  [@guyp2k](https://github.com/guyp2k) for
+  [PR #25](https://github.com/JackJPowell/ucapi-framework/pull/25).
+
 ## 1.9.9 - 2026-11-14
 
 ### Fixed

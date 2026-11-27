@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from abc import ABC, abstractmethod
 from asyncio import AbstractEventLoop
 from enum import StrEnum
@@ -35,6 +36,16 @@ _LOG = logging.getLogger(__name__)
 
 BACKOFF_MAX = 30
 BACKOFF_SEC = 2
+
+
+def _validate_backoff(initial: float, maximum: float, factor: float = 2) -> None:
+    """Reject retry settings that cannot produce a bounded, paced schedule."""
+    if not math.isfinite(initial) or initial <= 0:
+        raise ValueError("Initial retry delay must be finite and greater than zero")
+    if not math.isfinite(maximum) or maximum <= 0:
+        raise ValueError("Maximum retry delay must be finite and greater than zero")
+    if not math.isfinite(factor) or factor < 1:
+        raise ValueError("Retry backoff factor must be finite and at least one")
 
 
 class DeviceEvents(StrEnum):
@@ -505,12 +516,14 @@ class WebSocketDevice(BaseDeviceInterface):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         reconnect: bool = True,
-        reconnect_interval: int = BACKOFF_SEC,
-        reconnect_max: int = BACKOFF_MAX,
+        reconnect_interval: float = BACKOFF_SEC,
+        reconnect_max: float = BACKOFF_MAX,
         ping_interval: int = 30,
         ping_timeout: int = 10,
         config_manager: BaseConfigManager | None = None,
         driver: BaseIntegrationDriver | None = None,
+        *,
+        reconnect_backoff_factor: float = 2,
     ):
         """
         Initialize WebSocket device.
@@ -520,12 +533,14 @@ class WebSocketDevice(BaseDeviceInterface):
         :param reconnect: Enable automatic reconnection (default: True)
         :param reconnect_interval: Initial reconnection interval in seconds (default: 2)
         :param reconnect_max: Maximum reconnection interval in seconds (default: 30)
+        :param reconnect_backoff_factor: Retry delay multiplier (default: 2, 1 = fixed)
         :param ping_interval: Ping/keepalive interval in seconds, 0 to disable (default: 30)
         :param ping_timeout: Ping timeout in seconds (default: 10)
         :param config_manager: Optional config manager for persisting configuration updates
         :param driver: Optional reference to the integration driver
         """
         super().__init__(device_config, loop, config_manager, driver)
+        _validate_backoff(reconnect_interval, reconnect_max, reconnect_backoff_factor)
         self._ws: Any = None
         self._ws_task: asyncio.Task | None = None
         self._ping_task: asyncio.Task | None = None
@@ -533,9 +548,10 @@ class WebSocketDevice(BaseDeviceInterface):
         self._reconnect_enabled = reconnect
         self._reconnect_interval = reconnect_interval
         self._reconnect_max = reconnect_max
+        self._reconnect_backoff_factor = reconnect_backoff_factor
         self._ping_interval = ping_interval
         self._ping_timeout = ping_timeout
-        self._backoff_current = reconnect_interval
+        self._backoff_current = min(reconnect_interval, reconnect_max)
         self._is_connected = False
 
     async def connect(self) -> bool:
@@ -556,7 +572,7 @@ class WebSocketDevice(BaseDeviceInterface):
             "[%s] Starting WebSocket connection to %s", self.log_id, self.address
         )
         self._stop_ws.clear()
-        self._backoff_current = self._reconnect_interval
+        self._backoff_current = min(self._reconnect_interval, self._reconnect_max)
 
         if self._reconnect_enabled:
             # Start connection loop with automatic reconnection
@@ -648,8 +664,8 @@ class WebSocketDevice(BaseDeviceInterface):
 
                 self._ws = await self.create_websocket()
                 self._is_connected = True
-                self._backoff_current = (
-                    self._reconnect_interval
+                self._backoff_current = min(
+                    self._reconnect_interval, self._reconnect_max
                 )  # Reset backoff on success
                 self.events.emit(DeviceEvents.CONNECTED, self.identifier)
                 _LOG.info("[%s] WebSocket connected", self.log_id)
@@ -684,7 +700,8 @@ class WebSocketDevice(BaseDeviceInterface):
                 except asyncio.TimeoutError:
                     pass
                 self._backoff_current = min(
-                    self._backoff_current * 2, self._reconnect_max
+                    self._backoff_current * self._reconnect_backoff_factor,
+                    self._reconnect_max,
                 )
 
     async def _message_loop(self) -> None:
@@ -1063,11 +1080,14 @@ class ExternalClientDevice(BaseDeviceInterface):
         device_config: Any,
         loop: AbstractEventLoop | None = None,
         enable_watchdog: bool = True,
-        watchdog_interval: int = 30,
-        reconnect_delay: int = 5,
+        watchdog_interval: float = 30,
+        reconnect_delay: float = 0.5,
         max_reconnect_attempts: int | None = 3,
         config_manager: BaseConfigManager | None = None,
         driver: BaseIntegrationDriver | None = None,
+        *,
+        reconnect_max_delay: float = BACKOFF_MAX,
+        reconnect_backoff_factor: float = 2,
     ):
         """
         Initialize external client device.
@@ -1076,19 +1096,27 @@ class ExternalClientDevice(BaseDeviceInterface):
         :param loop: Event loop
         :param enable_watchdog: Enable watchdog to monitor connection state (default: True)
         :param watchdog_interval: Interval to check connection state (seconds)
-        :param reconnect_delay: Delay between reconnection attempts (seconds)
+        :param reconnect_delay: Initial retry delay in seconds (default: 0.5)
+        :param reconnect_max_delay: Maximum retry delay in seconds (default: 30)
+        :param reconnect_backoff_factor: Retry delay multiplier (default: 2, 1 = fixed)
         :param max_reconnect_attempts: Max reconnection attempts before giving up.
             None = disable reconnection, 0 = infinite, positive int = limit
         :param config_manager: Optional config manager
         :param driver: Optional reference to the integration driver
         """
         super().__init__(device_config, loop, config_manager, driver)
+        _validate_backoff(
+            reconnect_delay, reconnect_max_delay, reconnect_backoff_factor
+        )
         self._client: Any = None
         self._enable_watchdog = enable_watchdog
         self._watchdog_task: asyncio.Task | None = None
         self._stop_watchdog = asyncio.Event()
         self._watchdog_interval = watchdog_interval
-        self._reconnect_delay = reconnect_delay
+        self._reconnect_delay = min(reconnect_delay, reconnect_max_delay)
+        self._reconnect_max_delay = reconnect_max_delay
+        self._reconnect_backoff_factor = reconnect_backoff_factor
+        self._connect_lock = asyncio.Lock()
         self._max_reconnect_attempts = max_reconnect_attempts
         self._is_connected = False
 
@@ -1098,6 +1126,11 @@ class ExternalClientDevice(BaseDeviceInterface):
 
         :return: True if connection successful, False otherwise
         """
+        async with self._connect_lock:
+            return await self._connect()
+
+    async def _connect(self) -> bool:
+        """Serialize explicit connection requests to avoid duplicate clients/events."""
         # Check if external client is already connected
         if self.check_client_connected():
             _LOG.debug("[%s] External client already connected, skipping", self.log_id)
@@ -1144,8 +1177,9 @@ class ExternalClientDevice(BaseDeviceInterface):
             self._client = await self.create_client()
             await self.connect_client()
 
-            self._is_connected = True
-            self.events.emit(DeviceEvents.CONNECTED, self.identifier)
+            if not self._is_connected:
+                self._is_connected = True
+                self.events.emit(DeviceEvents.CONNECTED, self.identifier)
             _LOG.info("[%s] Connected", self.log_id)
             return True
 
@@ -1209,22 +1243,25 @@ class ExternalClientDevice(BaseDeviceInterface):
         )
 
         while not self._stop_watchdog.is_set():
+            # Initial failures enter recovery immediately, without a watchdog tick.
+            if not self.check_client_connected():
+                if self._is_connected:
+                    _LOG.warning(
+                        "[%s] Connection lost, attempting reconnect", self.log_id
+                    )
+                    self._is_connected = False
+                    self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
+                await self._reconnect()
+
+            if self._stop_watchdog.is_set():
+                break
             try:
                 await asyncio.wait_for(
-                    self._stop_watchdog.wait(),
-                    timeout=self._watchdog_interval,
+                    self._stop_watchdog.wait(), timeout=self._watchdog_interval
                 )
-                break  # Stop event was set
+                break
             except asyncio.TimeoutError:
-                pass  # Normal timeout, check connection
-
-            # Check if external client is still connected
-            if not self.check_client_connected():
-                _LOG.warning("[%s] Connection lost, attempting reconnect", self.log_id)
-                self._is_connected = False
-                self.events.emit(DeviceEvents.DISCONNECTED, self.identifier)
-
-                await self._reconnect()
+                pass
 
         _LOG.debug("[%s] Watchdog stopped", self.log_id)
 
@@ -1245,6 +1282,7 @@ class ExternalClientDevice(BaseDeviceInterface):
             return
 
         attempts = 0
+        delay = self._reconnect_delay
 
         while not self._stop_watchdog.is_set():
             attempts += 1
@@ -1276,15 +1314,26 @@ class ExternalClientDevice(BaseDeviceInterface):
                 else "",
             )
 
-            # Clean up old client
+            # Wait only the retry delay; disconnect cancels this pending recovery.
+            try:
+                await asyncio.wait_for(self._stop_watchdog.wait(), timeout=delay)
+                return
+            except asyncio.TimeoutError:
+                pass
+
+            # A library callback or explicit connect may have recovered the client.
+            if self.check_client_connected():
+                if not self._is_connected:
+                    self._is_connected = True
+                    self.events.emit(DeviceEvents.CONNECTED, self.identifier)
+                return
+
             await self._cleanup_client()
-
-            # Delay before reconnecting
-            await asyncio.sleep(self._reconnect_delay)
-
-            # Attempt to reconnect using shared logic
             if await self._connect_client_internal():
                 return
+            delay = min(
+                delay * self._reconnect_backoff_factor, self._reconnect_max_delay
+            )
 
     # ─────────────────────────────────────────────────────────────────
     # Abstract methods - subclasses must implement these
@@ -1357,9 +1406,12 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         self,
         device_config: Any,
         loop: AbstractEventLoop | None = None,
-        backoff_max: int = BACKOFF_MAX,
+        backoff_max: float = BACKOFF_MAX,
         config_manager: BaseConfigManager | None = None,
         driver: BaseIntegrationDriver | None = None,
+        *,
+        backoff_initial: float = BACKOFF_SEC,
+        backoff_factor: float = 2,
     ):
         """
         Initialize persistent connection device.
@@ -1367,14 +1419,19 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         :param device_config: Device configuration
         :param loop: Event loop
         :param backoff_max: Maximum backoff time in seconds
+        :param backoff_initial: Initial retry delay in seconds (default: 2)
+        :param backoff_factor: Retry delay multiplier (default: 2, 1 = fixed)
         :param config_manager: Optional config manager for persisting configuration updates
         """
         super().__init__(device_config, loop, config_manager, driver=driver)
+        _validate_backoff(backoff_initial, backoff_max, backoff_factor)
         self._connection: Any = None
         self._reconnect_task: asyncio.Task | None = None
         self._stop_reconnect = asyncio.Event()
         self._backoff_max = backoff_max
-        self._backoff_current = BACKOFF_SEC
+        self._backoff_factor = backoff_factor
+        self._backoff_initial = min(backoff_initial, backoff_max)
+        self._backoff_current = self._backoff_initial
 
     async def connect(self) -> bool:
         """
@@ -1383,8 +1440,9 @@ class PersistentConnectionDevice(BaseDeviceInterface):
         :return: True if connection task started successfully, False otherwise
         """
         _LOG.debug("[%s] Starting persistent connection", self.log_id)
-        self._stop_reconnect.clear()
         if self._reconnect_task is None or self._reconnect_task.done():
+            self._stop_reconnect.clear()
+            self._backoff_current = self._backoff_initial
             self._reconnect_task = asyncio.create_task(self._connection_loop())
         return True
 
@@ -1420,7 +1478,8 @@ class PersistentConnectionDevice(BaseDeviceInterface):
                 self.events.emit(DeviceEvents.CONNECTING, self.identifier)
 
                 self._connection = await self.establish_connection()
-                self._backoff_current = BACKOFF_SEC  # Reset backoff on success
+                # Reset backoff on success.
+                self._backoff_current = self._backoff_initial
                 self.events.emit(DeviceEvents.CONNECTED, self.identifier)
                 _LOG.info("[%s] Connected", self.log_id)
 
@@ -1433,27 +1492,30 @@ class PersistentConnectionDevice(BaseDeviceInterface):
                 _LOG.error("[%s] Connection error: %s", self.log_id, err)
                 self.events.emit(DeviceEvents.ERROR, self.identifier, str(err))
 
+            finally:
                 if self._connection:
-                    await self.close_connection()
-                    self._connection = None
-
-                # Exponential backoff
-                if not self._stop_reconnect.is_set():
-                    _LOG.debug(
-                        "[%s] Reconnecting in %d seconds",
-                        self.log_id,
-                        self._backoff_current,
-                    )
                     try:
-                        await asyncio.wait_for(
-                            self._stop_reconnect.wait(), timeout=self._backoff_current
-                        )
-                    except asyncio.TimeoutError:
-                        pass
+                        await self.close_connection()
+                    finally:
+                        self._connection = None
 
-                    self._backoff_current = min(
-                        self._backoff_current * 2, self._backoff_max
+            # Normal connection loss needs the same pacing as an exception.
+            if not self._stop_reconnect.is_set():
+                _LOG.debug(
+                    "[%s] Reconnecting in %s seconds",
+                    self.log_id,
+                    self._backoff_current,
+                )
+                try:
+                    await asyncio.wait_for(
+                        self._stop_reconnect.wait(), timeout=self._backoff_current
                     )
+                except asyncio.TimeoutError:
+                    pass
+
+                self._backoff_current = min(
+                    self._backoff_current * self._backoff_factor, self._backoff_max
+                )
 
     @abstractmethod
     async def establish_connection(self) -> Any:

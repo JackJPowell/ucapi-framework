@@ -2161,3 +2161,330 @@ class TestExternalClientDevice:
             assert device.is_connected is True
         finally:
             await device.disconnect()
+
+
+class RetryClock:
+    """Advance retry timeouts explicitly without waiting real backoff seconds."""
+
+    def __init__(self, monkeypatch):
+        self.delays = asyncio.Queue()
+        self.ticks = asyncio.Queue()
+        monkeypatch.setattr(asyncio, "wait_for", self.wait_for)
+
+    async def wait_for(self, awaitable, timeout):
+        awaitable.close()
+        self.delays.put_nowait(timeout)
+        await self.ticks.get()
+        raise asyncio.TimeoutError
+
+    async def next_delay(self):
+        async with asyncio.timeout(1):
+            return await self.delays.get()
+
+    def advance(self):
+        self.ticks.put_nowait(None)
+
+
+@pytest.mark.asyncio
+async def test_external_backoff_cap_recovery_and_resets(
+    mock_device_config, monkeypatch
+):
+    clock = RetryClock(monkeypatch)
+    device = ConcreteExternalClientDevice(
+        mock_device_config, watchdog_interval=60, max_reconnect_attempts=0
+    )
+    device.connect_client_should_fail = True
+    connected = []
+    device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+    try:
+        assert await device.connect() is False
+        for attempt, delay in enumerate([0.5, 1, 2, 4, 8, 16, 30, 30], 1):
+            assert await clock.next_delay() == delay
+            assert device.connect_client_called == attempt
+            # Duplicate wake/connect calls must preserve the pending retry.
+            task = device._watchdog_task
+            assert await device.connect() is False
+            assert device._watchdog_task is task
+            clock.advance()
+        assert await clock.next_delay() == 30
+        device.connect_client_should_fail = False
+        clock.advance()
+        assert await clock.next_delay() == 60  # Now monitoring a healthy connection.
+        assert device.is_connected
+        assert len(connected) == 1
+        assert await device.connect() is True
+        assert len(connected) == 1
+
+        # Subsequent connection loss starts at the initial delay again.
+        device._mock_client_connected = False
+        device.connect_client_should_fail = True
+        clock.advance()
+        assert await clock.next_delay() == 0.5
+        clock.advance()
+        assert await clock.next_delay() == 1
+        await device.disconnect()
+        attempts = device.connect_client_called
+        await asyncio.sleep(0)
+        assert device.connect_client_called == attempts
+
+        # A new wake cycle also starts at the initial delay.
+        assert await device.connect() is False
+        assert await clock.next_delay() == 0.5
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("initially_connected", [False, True])
+async def test_external_backoff_limits_each_recovery(
+    mock_device_config, monkeypatch, initially_connected
+):
+    clock = RetryClock(monkeypatch)
+    device = ConcreteExternalClientDevice(
+        mock_device_config, watchdog_interval=60, max_reconnect_attempts=2
+    )
+    errors = []
+    device.events.on(DeviceEvents.ERROR, lambda *args: errors.append(args))
+    device.connect_client_should_fail = not initially_connected
+    try:
+        assert await device.connect() is initially_connected
+        if initially_connected:
+            assert await clock.next_delay() == 60
+            device._mock_client_connected = False
+            device.connect_client_should_fail = True
+            clock.advance()
+        for delay in [0.5, 1]:
+            assert await clock.next_delay() == delay
+            clock.advance()
+        await device._watchdog_task
+        assert device.connect_client_called == 3  # Initial attempt + two retries.
+        assert device._stop_watchdog.is_set()
+        assert (
+            errors.count((device.identifier, "Max reconnection attempts reached")) == 1
+        )
+        assert clock.delays.empty()
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_external_configurable_fixed_retry_delay(mock_device_config, monkeypatch):
+    clock = RetryClock(monkeypatch)
+    device = ConcreteExternalClientDevice(
+        mock_device_config,
+        reconnect_delay=3,
+        reconnect_max_delay=2,
+        reconnect_backoff_factor=1,
+        max_reconnect_attempts=0,
+    )
+    device.connect_client_should_fail = True
+    try:
+        await device.connect()
+        for _ in range(3):
+            assert await clock.next_delay() == 2
+            clock.advance()
+        assert await clock.next_delay() == 2
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_external_concurrent_connect_events(mock_device_config):
+    device = ConcreteExternalClientDevice(mock_device_config)
+    device.connect_client = AsyncMock(side_effect=device.connect_client)
+    original_create = device.create_client
+
+    async def create():
+        await asyncio.sleep(0)
+        return await original_create()
+
+    device.create_client = create
+    connected = []
+    device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+    try:
+        assert await asyncio.gather(device.connect(), device.connect()) == [True, True]
+        assert device.create_client_called == 1
+        assert len(connected) == 1
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["websocket", "persistent"])
+@pytest.mark.parametrize(
+    "factor, delays",
+    [
+        (None, [0.5, 1, 2, 4, 8, 16, 30, 30]),
+        (1, [0.5] * 8),
+        (3, [0.5, 1.5, 4.5, 13.5, 30, 30, 30, 30]),
+    ],
+)
+async def test_connection_loop_backoff_cap_reset_and_cancel(
+    mock_device_config, monkeypatch, kind, factor, delays
+):
+    clock = RetryClock(monkeypatch)
+    if kind == "websocket":
+        device = ConcreteWebSocketDevice(
+            mock_device_config,
+            reconnect_interval=0.5,
+            reconnect_max=30,
+            ping_interval=0,
+            **({} if factor is None else {"reconnect_backoff_factor": factor}),
+        )
+        connect_name = "create_websocket"
+        maintain_name = "_message_loop"
+        task_name = "_ws_task"
+    else:
+        device = ConcretePersistentConnectionDevice(
+            mock_device_config,
+            backoff_initial=0.5,
+            backoff_max=30,
+            **({} if factor is None else {"backoff_factor": factor}),
+        )
+        connect_name = "establish_connection"
+        maintain_name = "maintain_connection"
+        task_name = "_reconnect_task"
+
+    connect = AsyncMock(side_effect=ConnectionError("Network unavailable"))
+    setattr(device, connect_name, connect)
+    # Normal closure after a successful connection must also pace recovery.
+    setattr(device, maintain_name, AsyncMock())
+    connected = []
+    device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+    try:
+        await device.connect()
+        task = getattr(device, task_name)
+        for delay in delays:
+            assert await clock.next_delay() == delay
+            await device.connect()
+            assert getattr(device, task_name) is task
+            clock.advance()
+        assert await clock.next_delay() == delays[-1]
+        connect.side_effect = None
+        connect.return_value = Mock()
+        clock.advance()
+        assert await clock.next_delay() == 0.5  # Success reset, then normal loss.
+        assert len(connected) == 1
+        connect.side_effect = ConnectionError("Lost network")
+        clock.advance()
+        assert await clock.next_delay() == 0.5 * (2 if factor is None else factor)
+        await device.disconnect()  # Cancels a pending backoff wait.
+        attempts = connect.call_count
+        await asyncio.sleep(0)
+        assert connect.call_count == attempts
+        assert getattr(device, task_name) is None
+
+        await device.connect()  # New wake cycle resets even without prior success.
+        assert await clock.next_delay() == 0.5
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["external", "websocket", "persistent"])
+async def test_standby_cancels_pending_recovery(mock_device_config, monkeypatch, kind):
+    from ucapi_framework.driver import BaseIntegrationDriver
+
+    clock = RetryClock(monkeypatch)
+    if kind == "external":
+        device = ConcreteExternalClientDevice(mock_device_config)
+        device.connect_client_should_fail = True
+        task_name = "_watchdog_task"
+
+        def attempts():
+            return device.connect_client_called
+    elif kind == "websocket":
+        device = ConcreteWebSocketDevice(
+            mock_device_config, reconnect_interval=0.5, ping_interval=0
+        )
+        device.create_websocket = AsyncMock(side_effect=ConnectionError("Offline"))
+        task_name = "_ws_task"
+
+        def attempts():
+            return device.create_websocket.call_count
+    else:
+        device = ConcretePersistentConnectionDevice(
+            mock_device_config, backoff_initial=0.5
+        )
+        device.establish_connection = AsyncMock(side_effect=ConnectionError("Offline"))
+        task_name = "_reconnect_task"
+
+        def attempts():
+            return device.establish_connection.call_count
+
+    driver = Mock(_device_instances={device.identifier: device})
+    try:
+        await device.connect()
+        assert await clock.next_delay() == 0.5
+        task = getattr(device, task_name)
+        before = attempts()
+        await BaseIntegrationDriver.on_r2_enter_standby(driver)
+        assert task.done()
+        assert getattr(device, task_name) is None
+        await asyncio.sleep(0)
+        assert attempts() == before
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_external_connect_during_recovery_emits_connected_once(
+    mock_device_config, monkeypatch
+):
+    clock = RetryClock(monkeypatch)
+    finishing = asyncio.Event()
+    client_connected = asyncio.Event()
+
+    class SlowRecoveryDevice(ConcreteExternalClientDevice):
+        async def connect_client(self):
+            await super().connect_client()
+            client_connected.set()
+            await finishing.wait()
+
+    device = SlowRecoveryDevice(mock_device_config)
+    device.connect_client_should_fail = True
+    connected = []
+    device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+    try:
+        assert await device.connect() is False
+        assert await clock.next_delay() == 0.5
+        device.connect_client_should_fail = False
+        clock.advance()
+        async with asyncio.timeout(1):
+            await client_connected.wait()
+        assert await device.connect() is True
+        assert len(connected) == 1
+        finishing.set()
+        assert await clock.next_delay() == 30
+        assert len(connected) == 1
+        assert device.connect_client_called == 2
+    finally:
+        finishing.set()
+        await device.disconnect()
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"reconnect_delay": 0},
+        {"reconnect_max_delay": -1},
+        {"reconnect_delay": float("nan")},
+        {"reconnect_backoff_factor": 0.5},
+        {"reconnect_backoff_factor": float("inf")},
+    ],
+)
+def test_invalid_external_backoff_settings(mock_device_config, kwargs):
+    with pytest.raises(ValueError):
+        ConcreteExternalClientDevice(mock_device_config, **kwargs)
+
+
+@pytest.mark.parametrize("kind", ["websocket", "persistent"])
+@pytest.mark.parametrize("factor", [0.5, float("nan"), float("inf")])
+def test_invalid_connection_loop_backoff_factor(mock_device_config, kind, factor):
+    with pytest.raises(ValueError):
+        if kind == "websocket":
+            ConcreteWebSocketDevice(mock_device_config, reconnect_backoff_factor=factor)
+        else:
+            ConcretePersistentConnectionDevice(
+                mock_device_config, backoff_factor=factor
+            )
