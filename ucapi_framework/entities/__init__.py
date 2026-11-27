@@ -14,7 +14,6 @@ from .cover import CoverEntity
 from .button import ButtonEntity
 from .climate import ClimateEntity
 from .ir_emitter import IREmitterEntity
-from .number import NumberEntity
 from .remote import RemoteEntity
 from .select import SelectEntity
 from .sensor import SensorEntity
@@ -28,7 +27,6 @@ __all__ = [
     "ButtonEntity",
     "ClimateEntity",
     "IREmitterEntity",
-    "NumberEntity",
     "RemoteEntity",
     "SelectEntity",
     "SensorEntity",

@@ -16,7 +16,6 @@ from ucapi import (
     ir_emitter,
     light,
     media_player,
-    number,
     remote,
     select,
     sensor,
@@ -36,7 +35,6 @@ _ENTITY_ATTRIBUTES_MAP = {
     ir_emitter.IREmitter: ir_emitter.Attributes,
     light.Light: light.Attributes,
     media_player.MediaPlayer: media_player.Attributes,
-    number.Number: number.Attributes,
     remote.Remote: remote.Attributes,
     select.Select: select.Attributes,
     sensor.Sensor: sensor.Attributes,
@@ -179,14 +177,9 @@ class Entity(ABC):
         if not self._api.configured_entities.contains(self._framework_entity_id):
             return
 
-        # Strip unset attributes, except explicit null number values (unknown).
-        # Empty strings and False are valid.
-        update = {
-            k: v
-            for k, v in update.items()
-            if v is not None
-            or (isinstance(self, number.Number) and k == number.Attributes.VALUE)
-        }
+        # Strip None values - they represent attributes that have never been set
+        # and should not be sent to the Remote. Empty strings and False are valid.
+        update = {k: v for k, v in update.items() if v is not None}
 
         if force:
             attributes = update
@@ -403,7 +396,7 @@ class Entity(ABC):
         return {
             key: value
             for key, value in update.items()
-            if key not in current_attributes or current_attributes[key] != value
+            if current_attributes.get(key) != value
         }
 
     def map_entity_states(self, device_state: Any) -> Any:

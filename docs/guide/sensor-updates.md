@@ -4,20 +4,6 @@ Sensors are unique among entity types because they're read-only - they don't hav
 
 ## Overview
 
-With ucapi 0.7.1, `SensorEntity` also accepts `sensor.DeviceClasses.DATE`,
-`TIMESTAMP`, and `DURATION`, and `sensor.Options.CUSTOM_LABEL`. Send native values;
-the Remote handles localized display formatting:
-
-| Device class | Value format | Example |
-| --- | --- | --- |
-| `DATE` | ISO 8601 date string | `"2026-11-20"` |
-| `TIMESTAMP` | RFC 3339 string with UTC offset | `"2026-11-20T12:30:00-05:00"` |
-| `DURATION` | Number in the sensor's unit (`ms`, `s`, `min`, `h`, `d`) | `1.5` with unit `"h"` |
-
-Pass static options at construction, for example
-`options={sensor.Options.CUSTOM_LABEL: "Elapsed", sensor.Options.DECIMALS: 1}`.
-Use `SensorAttributes` or `update()` to publish the native values.
-
 The framework supports sensor updates through:
 
 1. **Direct Pattern** - Store entity references and call `update()` directly (Recommended)
