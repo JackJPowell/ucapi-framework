@@ -2289,6 +2289,42 @@ async def test_external_configurable_fixed_retry_delay(mock_device_config, monke
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("lock_before_super", [False, True])
+async def test_external_subclass_connect_lock(mock_device_config, lock_before_super):
+    """Subclass locks survive initialization and can be used during creation."""
+
+    class DeviceWithOwnLock(ConcreteExternalClientDevice):
+        def __init__(self, device_config):
+            own_lock = asyncio.Lock()
+            if lock_before_super:
+                self._connect_lock = own_lock
+            super().__init__(device_config, enable_watchdog=False)
+            if not lock_before_super:
+                self._connect_lock = own_lock
+            assert self._connect_lock is own_lock
+
+        async def create_client(self):
+            async with self._connect_lock:
+                await asyncio.sleep(0)
+                return await super().create_client()
+
+    device = DeviceWithOwnLock(mock_device_config)
+    connected = []
+    device.events.on(DeviceEvents.CONNECTED, lambda *args: connected.append(args))
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(device.connect(), device.connect()), timeout=1
+        )
+        assert results == [True, True]
+        assert device.is_connected
+        assert device.create_client_called == 1
+        assert device.connect_client_called == 1
+        assert len(connected) == 1
+    finally:
+        await device.disconnect()
+
+
+@pytest.mark.asyncio
 async def test_external_concurrent_connect_events(mock_device_config):
     device = ConcreteExternalClientDevice(mock_device_config)
     device.connect_client = AsyncMock(side_effect=device.connect_client)

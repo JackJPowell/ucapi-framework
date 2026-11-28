@@ -399,6 +399,12 @@ For devices using external client libraries that manage their own connections.
 - Early exit if client is already connected
 - Task management and cleanup
 
+`connect()` serializes connection requests with the framework's
+`_connection_lifecycle_lock`. It holds this lock while calling `create_client()`
+and `connect_client()`. Subclasses can use their own locks (including
+`_connect_lock`) in these methods, but must not acquire the framework's lock or
+call `connect()` recursively. Watchdog recovery also calls `create_client()`.
+
 ### Example
 
 ```python

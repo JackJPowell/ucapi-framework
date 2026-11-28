@@ -1116,7 +1116,7 @@ class ExternalClientDevice(BaseDeviceInterface):
         self._reconnect_delay = min(reconnect_delay, reconnect_max_delay)
         self._reconnect_max_delay = reconnect_max_delay
         self._reconnect_backoff_factor = reconnect_backoff_factor
-        self._connect_lock = asyncio.Lock()
+        self._connection_lifecycle_lock = asyncio.Lock()
         self._max_reconnect_attempts = max_reconnect_attempts
         self._is_connected = False
 
@@ -1126,7 +1126,7 @@ class ExternalClientDevice(BaseDeviceInterface):
 
         :return: True if connection successful, False otherwise
         """
-        async with self._connect_lock:
+        async with self._connection_lifecycle_lock:
             return await self._connect()
 
     async def _connect(self) -> bool:
@@ -1343,6 +1343,11 @@ class ExternalClientDevice(BaseDeviceInterface):
     async def create_client(self) -> Any:
         """
         Create the external client instance.
+
+        During connect(), this runs while the framework's connection lifecycle
+        lock is held to serialize connection requests. Subclasses may use their
+        own locks here, but must not acquire the framework's lock or call
+        connect() recursively. Watchdog recovery also calls this method.
 
         Example:
             async def create_client(self):
